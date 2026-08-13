@@ -21,6 +21,9 @@ const luminance = (r: number, g: number, b: number): number => {
   return 0.2126 * ch[0]! + 0.7152 * ch[1]! + 0.0722 * ch[2]!;
 };
 
+/** The luminance at which white and black are equally readable on a colour. */
+const WHITE_BLACK_CROSSOVER = 0.1791;
+
 const DEFAULT_BG = '#3a3a3a';
 
 export const labelColors = (bc: string | undefined | null): LabelColors => {
@@ -33,6 +36,6 @@ export const labelColors = (bc: string | undefined | null): LabelColors => {
   const r = Number.parseInt(hex.slice(0, 2), 16);
   const g = Number.parseInt(hex.slice(2, 4), 16);
   const b = Number.parseInt(hex.slice(4, 6), 16);
-  const text = luminance(r, g, b) > 0.55 ? '#1a1a1a' : '#ffffff';
+  const text = luminance(r, g, b) > WHITE_BLACK_CROSSOVER ? '#1a1a1a' : '#ffffff';
   return { background: `#${hex}`, text };
 };

@@ -5,7 +5,9 @@ import type {
   ServiceId,
 } from '@lolzteam/shared-types';
 
-export type LoginMethod = 'native' | 'web';
+// Re-exported so adapters and the renderer share one definition with the service registry instead of keeping a parallel.
+export type { LoginMethod } from '@lolzteam/shared-types';
+import type { LoginMethod } from '@lolzteam/shared-types';
 
 export type ProbeResult = { available: true } | { available: false; reason: string };
 
@@ -37,6 +39,8 @@ export type LoginStep =
   | 'acquiring-token'
   | 'awaiting-email-code'
   | 'fetching-email-code'
+  /** Signing Steam's mobile confirmation with the account's own linked Guard. */
+  | 'approving-device-confirm'
   | 'killing-steam'
   | 'writing-vdf'
   | 'encrypting-token'
@@ -63,7 +67,7 @@ export interface AdapterContext {
   abortSignal: AbortSignal;
   onProgress?: (event: LoginProgressEvent) => void;
   fetchEmailCode?: (itemId: number) => Promise<string | null>;
-  /** Fetches the Steam Guard mafile `shared_secret`. Cancels the item's guarantee — call only when a TOTP guard is required. */
+  /** Fetches the Steam Guard mafile `shared_secret`. */
   fetchSteamMafile?: (itemId: number) => Promise<string | null>;
   settings?: LauncherSettings;
   proxy?: ProxyEntry;

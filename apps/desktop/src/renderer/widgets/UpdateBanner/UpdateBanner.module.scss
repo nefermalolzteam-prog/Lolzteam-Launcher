@@ -5,8 +5,8 @@
   margin: 0 24px 16px 24px;
   padding: 12px 16px;
   border-radius: 16px;
-  background: rgba(0, 186, 120, 0.1);
-  border: 1px solid rgba(0, 186, 120, 0.32);
+  background: rgba($color-accent, 0.1);
+  border: 1px solid rgba($color-accent, 0.32);
   color: $color-text;
   font-size: 14px;
 }
@@ -46,21 +46,15 @@
 .primary {
   @include button-reset;
   @include clickable;
+  @include accent-button;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
   border-radius: 12px;
-  background: $color-accent;
-  color: #06170f;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
-  transition: filter $duration-fast $ease-out;
-
-  &:hover {
-    filter: brightness(1.08);
-  }
 
   &:focus-visible {
     @include focus-ring;
@@ -93,7 +87,7 @@
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
   color: $color-text-muted;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .progressTrack {

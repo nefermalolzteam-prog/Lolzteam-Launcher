@@ -1,0 +1,216 @@
+/** The bell and its panel, next to the profile in the header. */
+.bell {
+  position: relative;
+  flex: none;
+}
+
+.trigger {
+  @include button-reset;
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 40px;
+  width: 40px;
+  border-radius: v2.$radiusFull;
+  color: v2.$textMuted;
+  transition: background .12s ease-in-out, color .12s ease-in-out;
+
+  &:hover {
+    background: v2.$primary;
+    color: v2.$text;
+  }
+
+  &:active {
+    opacity: .72;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+/** The count, and the only thing in the header that asks to be looked at. */
+.badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: $radius-pill;
+  background: $color-accent-solid;
+  color: $color-on-accent;
+  font-size: $fs-xs;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  // The header sits on `$primaryDarker`; the ring is what keeps the badge from reading as part of the glyph when the two.
+  outline: 2px solid v2.$primaryDarker;
+}
+
+.panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: $z-sticky;
+  width: 360px;
+  // Нижняя граница — не только вкус, но и окно: в невысоком окне панель на фиксированные 420px уехала бы за нижний край.
+  max-height: min(420px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: $radius-lg;
+  background: v2.$primary;
+  outline: 1px solid rgba(v2.$text, .06);
+  outline-offset: -1px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .32);
+}
+
+.head {
+  // Шапка не участвует в делёжке высоты: всё, что не помещается, отбирается у списка, который умеет скроллиться.
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 8px;
+}
+
+.headTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: v2.$textMuted;
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.headButton {
+  @include button-reset;
+  display: grid;
+  place-items: center;
+  height: 24px;
+  width: 24px;
+  border-radius: $radius-sm;
+  color: v2.$textMuted;
+
+  &:hover {
+    background: rgba(v2.$text, .08);
+    color: v2.$text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.empty {
+  margin: 0;
+  padding: 20px 4px 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 17px;
+  color: v2.$textMuted;
+}
+
+/** Единственное, что в панели прокручивается. */
+.list {
+  list-style: none;
+  margin: 0 -8px 0 0;
+  padding: 0 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  overflow-y: auto;
+  // Докрутив список до конца, колесом не уезжаем в список аккаунтов под панелью: уведомления открывают поверх него.
+  overscroll-behavior: contain;
+  @include scrollbar();
+}
+
+.item {
+  // Строки не сжимаются, а выталкивают друг друга за нижний край — на то список и прокручивается.
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px;
+  border-radius: $radius-md;
+  background: rgba(v2.$text, .04);
+}
+
+// Read lines stay in the list and stay legible — the difference is a step of contrast, not a disappearance.
+.itemUnread {
+  background: rgba(v2.$text, .08);
+  box-shadow: inset 2px 0 0 $color-accent-solid;
+}
+
+/** The level, as a dot. */
+.dot {
+  flex: none;
+  margin-top: 6px;
+  height: 6px;
+  width: 6px;
+  border-radius: v2.$radiusFull;
+  background: rgba(v2.$text, .28);
+}
+
+.dotSuccess {
+  background: v2.$accent;
+}
+
+.dotWarning {
+  background: $color-warning;
+}
+
+.itemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.itemTitle {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+// Wraps, unlike the dock's single line: a notification is read once and in full.
+.itemBody {
+  font-size: 14px;
+  line-height: 17px;
+  color: v2.$textContent;
+  overflow-wrap: anywhere;
+}
+
+.itemTime {
+  font-size: 12px;
+  line-height: 16px;
+  color: v2.$textMuted;
+}
+
+.itemRemove {
+  @include button-reset;
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 24px;
+  width: 24px;
+  border-radius: $radius-sm;
+  color: v2.$textMuted;
+
+  &:hover {
+    background: rgba(v2.$text, .08);
+    color: v2.$text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}

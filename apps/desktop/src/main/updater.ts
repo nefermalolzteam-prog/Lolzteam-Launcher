@@ -2,6 +2,7 @@ import { IPC_CHANNELS, type UpdateStatus } from '@shared-ipc';
 import { app, ipcMain } from 'electron';
 import log from 'electron-log/main';
 import electronUpdater from 'electron-updater';
+import { logAction, recordAction } from './services/action-log';
 import { getMainWindow } from './window/main-window';
 
 const { autoUpdater } = electronUpdater;
@@ -53,9 +54,14 @@ export const registerUpdaterIpc = () => {
 
   wireEvents();
 
+  /** The check, the download and the restart, journalled. */
   ipcMain.handle(IPC_CHANNELS.UPDATE_CHECK, async () => {
     try {
-      await autoUpdater.checkForUpdates();
+      await logAction(
+        'update.check',
+        { detail: (r) => (r ? `found ${r.updateInfo.version}` : null) },
+        () => autoUpdater.checkForUpdates(),
+      );
     } catch (err) {
       log.error('[updater] check failed', err);
     }
@@ -63,7 +69,7 @@ export const registerUpdaterIpc = () => {
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_DOWNLOAD, async () => {
     try {
-      await autoUpdater.downloadUpdate();
+      await logAction('update.download', {}, () => autoUpdater.downloadUpdate());
     } catch (err) {
       log.error('[updater] download failed', err);
       emit({ state: 'error', message: err instanceof Error ? err.message : String(err) });
@@ -71,6 +77,8 @@ export const registerUpdaterIpc = () => {
   });
 
   ipcMain.handle(IPC_CHANNELS.UPDATE_INSTALL, () => {
+    // Written before the call, not after: `quitAndInstall` does not return.
+    recordAction({ action: 'update.install', status: 'ok', durationMs: 0, detail: null });
     autoUpdater.quitAndInstall();
   });
 

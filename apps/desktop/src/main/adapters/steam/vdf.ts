@@ -1,10 +1,13 @@
 import { promises as fs } from 'node:fs';
-import { dirname } from 'node:path';
-import { type VdfObject, getObj, parseVdf, writeVdfString } from './vdf-parse';
+import { basename, dirname } from 'node:path';
+import { type VdfObject, emptyVdf, getObj, parseVdf, writeVdfString } from './vdf-parse';
+
+let tmpSeq = 0;
 
 export const writeVdfFile = async (path: string, content: string): Promise<void> => {
   await fs.mkdir(dirname(path), { recursive: true });
-  const tmp = `${path}.tmp`;
+  tmpSeq += 1;
+  const tmp = `${path}.${process.pid}.${tmpSeq}.tmp`;
   try {
     await fs.writeFile(tmp, content, { encoding: 'utf8' });
     await fs.rename(tmp, path);
@@ -17,12 +20,21 @@ export const writeVdfFile = async (path: string, content: string): Promise<void>
 const writeFile = writeVdfFile;
 
 const readExisting = async (path: string): Promise<VdfObject | null> => {
+  let text: string;
   try {
-    const text = await fs.readFile(path, 'utf8');
-    return parseVdf(text);
-  } catch {
-    return null;
+    text = await fs.readFile(path, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw new Error(`не удалось прочитать ${basename(path)}: ${(err as Error).message}`);
   }
+  if (text.trim() === '') return null;
+  const parsed = parseVdf(text);
+  if (Object.keys(parsed).length === 0) {
+    throw new Error(
+      `файл ${basename(path)} не удалось разобрать — перезапись отменена, чтобы не потерять сохранённые в нём аккаунты`,
+    );
+  }
+  return parsed;
 };
 
 // Steam persona states: 0 = offline, 1 = online, 7 = invisible. To show as
@@ -58,7 +70,7 @@ export const mergeConfigVdf = async (
   login: string,
   steamId64: string,
 ): Promise<void> => {
-  const existing = (await readExisting(path)) ?? { InstallConfigStore: {} };
+  const existing = (await readExisting(path)) ?? emptyVdf();
   const root = getObj(existing, 'InstallConfigStore');
   const software = getObj(root, 'Software');
   const valve = getObj(software, 'Valve');
@@ -75,7 +87,7 @@ export const mergeLoginUsersVdf = async (
   steamId64: string,
 ): Promise<void> => {
   const ts = Math.round(Date.now() / 1000);
-  const existing = (await readExisting(path)) ?? { users: {} };
+  const existing = (await readExisting(path)) ?? emptyVdf();
   const users = getObj(existing, 'users');
 
   for (const [otherSteamId, value] of Object.entries(users)) {
@@ -101,7 +113,7 @@ export const mergeLocalVdf = async (
   hdr: string,
   encryptedHex: string,
 ): Promise<void> => {
-  const existing = (await readExisting(path)) ?? { MachineUserConfigStore: {} };
+  const existing = (await readExisting(path)) ?? emptyVdf();
   const root = getObj(existing, 'MachineUserConfigStore');
   const software = getObj(root, 'Software');
   const valve = getObj(software, 'Valve');

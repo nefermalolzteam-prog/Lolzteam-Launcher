@@ -4,7 +4,9 @@ import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LoginMethod, type LoginService, useLoginSession } from '~/stores/loginSession';
+import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
+import { ModalError, ModalSpacer } from '~/widgets/Modal/ModalKit';
 import s from './LoginProgressModal.module.scss';
 
 interface StepDef {
@@ -17,6 +19,7 @@ const buildSteps = (t: TFunction): Record<LoginService, readonly StepDef[]> => (
     { step: 'fetching-credentials', label: t('loginSteps.fetchingCredentials') },
     { step: 'acquiring-token', label: t('loginSteps.acquiringToken') },
     { step: 'fetching-email-code', label: t('loginSteps.fetchingEmailCode') },
+    { step: 'approving-device-confirm', label: t('loginSteps.approvingDeviceConfirm') },
     { step: 'killing-steam', label: t('loginSteps.killingSteam') },
     { step: 'writing-vdf', label: t('loginSteps.writingVdf') },
     { step: 'encrypting-token', label: t('loginSteps.encryptingToken') },
@@ -46,12 +49,12 @@ const buildSteps = (t: TFunction): Record<LoginService, readonly StepDef[]> => (
   ],
 });
 
-// Steam "open in browser" reuses the credential flow but lands in the in-app
-// browser, so its step list differs from the native client sign-in.
+// Steam "open in browser" reuses the credential flow but lands in the in-app browser.
 const steamWebSteps = (t: TFunction): readonly StepDef[] => [
   { step: 'fetching-credentials', label: t('loginSteps.fetchingCredentials') },
   { step: 'acquiring-token', label: t('loginSteps.acquiringToken') },
   { step: 'fetching-email-code', label: t('loginSteps.fetchingEmailCode') },
+  { step: 'approving-device-confirm', label: t('loginSteps.approvingDeviceConfirm') },
   { step: 'injecting-cookies', label: t('loginSteps.injectingCookies') },
   { step: 'launching-browser', label: t('loginSteps.launchingBrowser') },
 ];
@@ -67,7 +70,12 @@ const visibleSteps = (
   if (service !== 'steam') return [...stepsByService[service]];
   const base = method === 'web' ? steamWebSteps(t) : stepsByService.steam;
   const skipEmail = !awaitingEmail && currentStep !== 'fetching-email-code';
-  return base.filter((s) => (s.step === 'fetching-email-code' ? !skipEmail : true));
+  return base.filter((s) => {
+    if (s.step === 'fetching-email-code') return !skipEmail;
+    // Steam asks for a mobile confirmation rarely enough that a permanent row for it would read as a step that never runs.
+    if (s.step === 'approving-device-confirm') return currentStep === s.step;
+    return true;
+  });
 };
 
 type Status = 'done' | 'active' | 'pending' | 'failed';
@@ -90,8 +98,7 @@ export const LoginProgressModal = () => {
   const { isOpen, itemId, accountTitle, service, method, step, detail, error, close } =
     useLoginSession();
 
-  // Auto-dismiss shortly after a successful sign-in so the modal doesn't linger
-  // on screen (and can't be revived by a stray event or re-opened by accident).
+  // Auto-dismiss shortly after a successful sign-in so the modal doesn't linger on screen.
   const succeeded = isOpen && step === 'done' && !error;
   useEffect(() => {
     if (!succeeded) return;
@@ -127,6 +134,21 @@ export const LoginProgressModal = () => {
       title={t('loginModal.title', { title: accountTitle })}
       closable
       onClose={isFinished ? close : cancel}
+      footer={
+        <>
+          <ModalSpacer />
+          {/* Одна кнопка, но разная: пока идёт вход, она отменяет начатое, а после — просто убирает отчёт с экрана. */}
+          {isFinished ? (
+            <Button variant="ghost" size="sm" onClick={close}>
+              {t('common.close')}
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" onClick={cancel}>
+              {t('loginModal.cancel')}
+            </Button>
+          )}
+        </>
+      }
     >
       <ol className={s.steps}>
         {steps.map((stepDef, idx) => {
@@ -153,12 +175,8 @@ export const LoginProgressModal = () => {
         })}
       </ol>
 
-      {error && (
-        <div className={s.error}>
-          <AlertCircle size={16} />
-          <span>{error}</span>
-        </div>
-      )}
+      {/* Под списком, а не над ним: строка, на которой всё встало, уже отмечена красным значком. */}
+      {error && <ModalError>{error}</ModalError>}
 
       {isDone && (
         <div className={s.success}>
@@ -175,16 +193,6 @@ export const LoginProgressModal = () => {
                       : 'Steam',
           })}
         </div>
-      )}
-
-      {isFinished ? (
-        <button type="button" className={s.close} onClick={close}>
-          {t('common.close')}
-        </button>
-      ) : (
-        <button type="button" className={s.cancel} onClick={cancel}>
-          {t('loginModal.cancel')}
-        </button>
       )}
     </Modal>
   );

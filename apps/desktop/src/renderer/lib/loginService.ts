@@ -1,29 +1,25 @@
 import type { AccountSummary } from '@shared-types';
+import {
+  LOGIN_METHODS_BY_FLOW,
+  defaultLoginMethodOf,
+  loginFlowOf,
+  loginMethodsOf,
+} from '@shared-types';
 import type { LoginMethod, LoginService } from '~/stores/loginSession';
 
-const LOGIN_SERVICE_BY_CATEGORY: Partial<
-  Record<NonNullable<AccountSummary['category']>, LoginService>
-> = {
-  steam: 'steam',
-  telegram: 'telegram',
-  tiktok: 'browser',
-  instagram: 'browser',
-  discord: 'discord',
-  llm: 'llm',
-};
-
+/** Category → login flow. */
 export const toLoginService = (category: AccountSummary['category']): LoginService | null =>
-  category ? (LOGIN_SERVICE_BY_CATEGORY[category] ?? null) : null;
+  loginFlowOf(category);
 
-export const loginMethodFor = (service: LoginService): 'native' | 'web' =>
-  service === 'browser' || service === 'discord' || service === 'llm' ? 'web' : 'native';
+export const loginMethodFor = (service: LoginService): LoginMethod => defaultLoginMethodOf(service);
 
-const LOGIN_METHODS_BY_SERVICE: Partial<Record<LoginService, LoginMethod[]>> = {
-  steam: ['native', 'web'],
-};
+export const loginMethodsFor = (service: LoginService): readonly LoginMethod[] =>
+  LOGIN_METHODS_BY_FLOW[service] ?? [defaultLoginMethodOf(service)];
 
-export const loginMethodsFor = (service: LoginService): LoginMethod[] =>
-  LOGIN_METHODS_BY_SERVICE[service] ?? [loginMethodFor(service)];
+/** Login methods for a market category, skipping the flow indirection. */
+export const loginMethodsForCategory = (
+  category: AccountSummary['category'],
+): readonly LoginMethod[] => loginMethodsOf(category);
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 

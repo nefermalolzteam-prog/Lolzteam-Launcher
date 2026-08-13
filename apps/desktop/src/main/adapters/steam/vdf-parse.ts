@@ -3,6 +3,8 @@ export interface VdfObject {
   [key: string]: VdfValue;
 }
 
+const emptyObject = (): VdfObject => Object.create(null) as VdfObject;
+
 const tokenize = (src: string): string[] => {
   const tokens: string[] = [];
   let i = 0;
@@ -36,7 +38,7 @@ const tokenize = (src: string): string[] => {
 };
 
 const parseBlock = (tokens: string[], start: number): { value: VdfObject; next: number } => {
-  const obj: VdfObject = {};
+  const obj = emptyObject();
   let i = start;
   while (i < tokens.length) {
     const tok = tokens[i]!;
@@ -58,14 +60,19 @@ const parseBlock = (tokens: string[], start: number): { value: VdfObject; next: 
 
 export const parseVdf = (src: string): VdfObject => {
   const tokens = tokenize(src);
-  if (tokens.length === 0) return {};
+  if (tokens.length === 0) return emptyObject();
   const rootKey = tokens[0]!;
-  if (tokens[1] !== '{') return {};
+  if (tokens[1] !== '{') return emptyObject();
   const parsed = parseBlock(tokens, 2);
-  return { [rootKey]: parsed.value };
+  const root = emptyObject();
+  root[rootKey] = parsed.value;
+  return root;
 };
 
-const escapeValue = (s: string): string => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+export const emptyVdf = (): VdfObject => emptyObject();
+
+const escapeValue = (s: string): string =>
+  s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
 
 const stringify = (obj: VdfObject, indent: number): string => {
   const tab = '\t'.repeat(indent);
@@ -94,7 +101,7 @@ export const writeVdfString = (root: VdfObject): string => {
 export const getObj = (parent: VdfObject, key: string): VdfObject => {
   const cur = parent[key];
   if (cur && typeof cur === 'object') return cur;
-  const fresh: VdfObject = {};
+  const fresh = emptyObject();
   parent[key] = fresh;
   return fresh;
 };

@@ -1,0 +1,158 @@
+
+/* ── Значение факта о сессии ───────────────────────────────────────────────── */
+
+/* Правый край строки: адрес, город, название устройства. */
+.value {
+  @include truncate;
+  max-width: 240px;
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-text;
+}
+
+/* ── Мишень для картинки ───────────────────────────────────────────────────── */
+
+.dropZone,
+.dropZoneActive {
+  border-radius: $radius-lg;
+  border: 1px dashed $color-field-border;
+  background: $color-field-bg;
+  transition: border-color $duration-fast $ease-out, background $duration-fast $ease-out;
+}
+
+/* Файл над окном: пунктир зажигается акцентом — бросать можно сюда. */
+.dropZoneActive {
+  border-color: $color-accent;
+  background: rgba($color-accent, 0.08);
+}
+
+/* Настоящий `<input type=file>` под мишенью: диалог выбора открывает он, а не мы, и подменять его своим нечем. */
+.fileInput {
+  display: none;
+}
+
+.dropTarget {
+  @include button-reset;
+  @include clickable;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 16px;
+  color: v2.$textMuted;
+  text-align: center;
+
+  &:focus-visible {
+    @include focus-ring;
+    border-radius: $radius-lg;
+  }
+
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.dropTitle {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: $color-text;
+}
+
+.dropHint {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+.spin {
+  animation: guard-drop-spin 1s linear infinite;
+}
+
+@keyframes guard-drop-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 3s; }
+}
+
+/* ── Снимок экрана ─────────────────────────────────────────────────────────── */
+
+.scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Кнопки шага внутри тела: у сканера нет своего футера, а у диалога футер занят отменой и переходом дальше. */
+.row {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.shot {
+  @include button-reset;
+  @include clickable;
+  position: relative;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 1px solid $color-hairline-strong;
+
+  &:hover { border-color: $color-accent; }
+  &:focus-visible { @include focus-ring; }
+}
+
+.shotImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+/* Название монитора поверх самого снимка: подписью снизу оно отняло бы у плитки строку, а плиток бывает четыре в ряд. */
+.shotName {
+  @include truncate;
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  font-size: 14px;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+}
+
+/* ── Выделение области ─────────────────────────────────────────────────────── */
+
+.cropStage {
+  position: relative;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 1px solid $color-hairline-strong;
+  cursor: crosshair;
+  /* Жест тянут пальцем и мышью, и прокрутка страницы под ним стирала бы рамку. */
+  touch-action: none;
+  user-select: none;
+}
+
+.cropImage {
+  display: block;
+  width: 100%;
+  /* Картинка не перехватывает указатель: тянут по холсту, а не по ней. */
+  pointer-events: none;
+}
+
+.cropSelection {
+  position: absolute;
+  border: 2px solid $color-accent;
+  background: rgba($color-accent, 0.15);
+  pointer-events: none;
+}

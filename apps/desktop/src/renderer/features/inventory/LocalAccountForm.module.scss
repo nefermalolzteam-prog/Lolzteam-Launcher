@@ -1,0 +1,78 @@
+
+/* Зазор — свой, а не тела диалога: ту же форму рисует страница импорта, где никакого диалога вокруг нет. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 340px;
+  max-width: 460px;
+}
+
+/* Ключ и `tdata` — не текст, а данные: их переносят по любому месту, а не по словам. */
+.data {
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.pickRow {
+  display: flex;
+  gap: $space-2;
+}
+
+.source {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  word-break: break-all;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+.statusOk {
+  color: $color-accent-text;
+}
+
+.statusBad {
+  color: $color-danger-text;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  background: $color-field-bg;
+  border: 1px solid $color-field-border;
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-text-soft;
+}
+
+/* Кнопки — вправо; отбивку от последнего поля несёт зазор самой формы. */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+}

@@ -1,4 +1,6 @@
+import type { ProxyEntry } from '@shared-types';
 import { EAuthSessionGuardType, EAuthTokenPlatformType, LoginSession } from 'steam-session';
+import { proxyUrlFor } from '../../services/proxy';
 import { generateSteamGuardCode } from './mafile';
 
 export type SessionError =
@@ -34,10 +36,25 @@ interface LoginParams {
   password: string;
   sharedSecret: string | null;
   emailCode?: string;
+  proxy?: ProxyEntry;
+  approveDeviceConfirm?: (clientId: string, steamId: string) => Promise<boolean>;
 }
+
+const pendingClientId = (session: LoginSession): string | null => {
+  const started = (session as unknown as { _startSessionResponse?: { clientId?: unknown } })
+    ._startSessionResponse;
+  const clientId = started?.clientId;
+  return typeof clientId === 'string' && /^\d+$/.test(clientId) ? clientId : null;
+};
+
+const steamIdOf = (session: LoginSession): string =>
+  session.steamID ? session.steamID.toString() : '';
 
 export const acquireRefreshToken = async (params: LoginParams): Promise<SessionResult> =>
   (await runCredentialLogin(params, EAuthTokenPlatformType.SteamClient)).result;
+
+export const acquireMobileSession = async (params: LoginParams): Promise<SessionResult> =>
+  (await runCredentialLogin(params, EAuthTokenPlatformType.MobileApp)).result;
 
 export type WebSessionResult =
   | { ok: true; data: SessionSuccess & { cookies: string[] } }
@@ -66,7 +83,10 @@ const runCredentialLogin = async (
   params: LoginParams,
   platform: EAuthTokenPlatformType,
 ): Promise<{ result: SessionResult; session: LoginSession }> => {
-  const session = new LoginSession(platform, { machineId: true });
+  const session = new LoginSession(platform, {
+    machineId: true,
+    ...(params.proxy ? { httpProxy: proxyUrlFor(params.proxy) } : {}),
+  });
   const failWith = (error: SessionError): { result: SessionResult; session: LoginSession } => ({
     result: { ok: false, error },
     session,
@@ -85,6 +105,8 @@ const runCredentialLogin = async (
     }
     return failWith({ kind: 'unknown', message: msg });
   }
+
+  let confirmed = false;
 
   if (start.actionRequired) {
     const actions = (start.validActions ?? []) as GuardAction[];
@@ -117,14 +139,32 @@ const runCredentialLogin = async (
       // mafile and retry with a TOTP.
       return failWith({ kind: 'needs-totp' });
     } else if (has(EAuthSessionGuardType.DeviceConfirmation)) {
-      return failWith({ kind: 'needs-device-confirm' });
+      const clientId = pendingClientId(session);
+      const approved =
+        clientId && params.approveDeviceConfirm
+          ? await params.approveDeviceConfirm(clientId, steamIdOf(session))
+          : false;
+      if (!approved) {
+        try {
+          session.cancelLoginAttempt();
+        } catch {}
+        return failWith({ kind: 'needs-device-confirm' });
+      }
+      confirmed = true;
     } else if (has(EAuthSessionGuardType.EmailConfirmation)) {
       return failWith({ kind: 'needs-email-confirm' });
     }
   }
 
+  const authed = waitAuth(session);
+  if (confirmed) {
+    try {
+      session.forcePoll();
+    } catch {}
+  }
+
   try {
-    await waitAuth(session);
+    await authed;
   } catch (err) {
     return failWith({
       kind: 'unknown',

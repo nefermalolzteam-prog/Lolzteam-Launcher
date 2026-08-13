@@ -1,51 +1,27 @@
-import type { ServiceId } from './service-id';
+import { SERVICE_IDS, type ServiceId, getService } from './service-registry';
 
-const NAME_TO_SERVICE: Record<string, ServiceId> = {
-  steam: 'steam',
-  telegram: 'telegram',
-  discord: 'discord',
-  fortnite: 'fortnite',
-  mihoyo: 'mihoyo',
-  riot: 'riot',
-  supercell: 'supercell',
-  ea: 'ea',
-  origin: 'ea',
-  wot: 'wot',
-  'wot-blitz': 'wotblitz',
-  wotblitz: 'wotblitz',
-  gifts: 'gifts',
-  epicgames: 'epicgames',
-  'epic-games': 'epicgames',
-  eft: 'eft',
-  'escape-from-tarkov': 'eft',
-  socialclub: 'socialclub',
-  'social-club': 'socialclub',
-  uplay: 'uplay',
-  tiktok: 'tiktok',
-  instagram: 'instagram',
-  battlenet: 'battlenet',
-  'battle-net': 'battlenet',
-  llm: 'llm',
-  vpn: 'vpn',
-  roblox: 'roblox',
-  warface: 'warface',
-  minecraft: 'minecraft',
-  hytale: 'hytale',
-};
+/** Market category name → service id. */
+const NAME_TO_SERVICE: Record<string, ServiceId> = (() => {
+  const map: Record<string, ServiceId> = {};
+  for (const id of SERVICE_IDS) {
+    map[id] = id;
+    for (const alias of getService(id).aliases ?? []) map[alias.toLowerCase()] = id;
+  }
+  return map;
+})();
 
 export const categoryNameToServiceId = (name: string | undefined | null): ServiceId | null => {
   if (!name) return null;
   return NAME_TO_SERVICE[name.toLowerCase()] ?? null;
 };
 
-export const SERVICE_CATEGORY_ID: Partial<Record<ServiceId, number>> = {
-  steam: 1,
-  telegram: 24,
-  tiktok: 20,
-  instagram: 10,
-  discord: 22,
-  llm: 6,
-};
+/** Service → lzt.market numeric category id, for services that have one. */
+export const SERVICE_CATEGORY_ID: Partial<Record<ServiceId, number>> = Object.fromEntries(
+  SERVICE_IDS.filter((id) => getService(id).categoryId !== undefined).map((id) => [
+    id,
+    getService(id).categoryId as number,
+  ]),
+);
 
 const CATEGORY_ID_TO_SERVICE: Record<number, ServiceId> = Object.fromEntries(
   Object.entries(SERVICE_CATEGORY_ID).map(([service, id]) => [id, service as ServiceId]),
@@ -53,3 +29,6 @@ const CATEGORY_ID_TO_SERVICE: Record<number, ServiceId> = Object.fromEntries(
 
 export const categoryIdToServiceId = (id: number | undefined | null): ServiceId | null =>
   typeof id === 'number' ? (CATEGORY_ID_TO_SERVICE[id] ?? null) : null;
+
+/** Every market category spelling the launcher recognises. */
+export const KNOWN_CATEGORY_NAMES: readonly string[] = Object.keys(NAME_TO_SERVICE);

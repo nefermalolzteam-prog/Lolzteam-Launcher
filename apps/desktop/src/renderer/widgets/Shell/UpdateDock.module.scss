@@ -1,0 +1,98 @@
+/** Правый нижний док: обновление. */
+.dock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  @include dock-pill;
+  // Из угла, а не из ниоткуда: новость приходит сама, её не просили.
+  animation: updatedock-in .16s ease-out;
+}
+
+// Ошибку отличает не цвет фона, а обводка: залитая красным таблетка в углу кричит громче.
+.dockError {
+  outline-color: rgba($color-danger, .45);
+
+  .well {
+    color: $color-danger-text;
+  }
+}
+
+.trigger {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 4px;
+  border-radius: v2.$radiusFull;
+  text-align: left;
+  transition: background .12s ease-in-out;
+
+  &:hover {
+    background: rgba(v2.$text, .06);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.well {
+  @include dock-well(44px);
+  color: v2.$accentText;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  // Справа отступ меньше, чем в доке задач: следом идёт крестик, и вдвоём они набирают тот же воздух до края.
+  padding: 2px 8px 2px 12px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.description {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  white-space: nowrap;
+}
+
+// Единственная строка, которой позволено не поместиться: сообщение об ошибке приходит с той стороны.
+.descriptionTruncate {
+  @include truncate;
+  max-width: 260px;
+}
+
+.close {
+  @include button-reset;
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: 28px;
+  width: 28px;
+  margin-right: 8px;
+  border-radius: v2.$radiusFull;
+  color: v2.$textMuted;
+  transition: background .12s ease-in-out, color .12s ease-in-out;
+
+  &:hover {
+    background: rgba(v2.$text, .08);
+    color: v2.$text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+@keyframes updatedock-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}

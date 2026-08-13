@@ -1,8 +1,10 @@
 import type { LoginStep } from '@adapter-contract';
+import type { LoginFlow, LoginMethod } from '@shared-types';
 import { create } from 'zustand';
 
-export type LoginService = 'steam' | 'telegram' | 'browser' | 'discord' | 'llm';
-export type LoginMethod = 'native' | 'web';
+/** The login pipeline the progress modal renders. */
+export type LoginService = LoginFlow;
+export type { LoginMethod };
 
 interface LoginSessionState {
   itemId: number | null;

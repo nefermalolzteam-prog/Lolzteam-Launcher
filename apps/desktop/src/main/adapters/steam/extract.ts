@@ -1,5 +1,5 @@
 import type { AccountDetails } from '@shared-types';
-import { extractSharedSecret } from './mafile';
+import { type MafileData, parseMafile } from './mafile';
 
 export interface SteamCreds {
   login: string;
@@ -48,6 +48,15 @@ const pickFromKeys = (source: Record<string, unknown>, keys: readonly string[]):
   return null;
 };
 
+export const extractSteamMafile = (details: AccountDetails): MafileData | null => {
+  const secrets = (details.secrets ?? {}) as Record<string, unknown>;
+  for (const key of MAFILE_KEYS) {
+    const parsed = parseMafile(secrets[key]);
+    if (parsed.sharedSecret) return parsed;
+  }
+  return null;
+};
+
 export const extractSteamCreds = (details: AccountDetails): SteamCreds | null => {
   const secrets = (details.secrets ?? {}) as Record<string, unknown>;
 
@@ -61,11 +70,5 @@ export const extractSteamCreds = (details: AccountDetails): SteamCreds | null =>
 
   if (!login || !password) return null;
 
-  let sharedSecret: string | null = null;
-  for (const key of MAFILE_KEYS) {
-    sharedSecret = extractSharedSecret(secrets[key]);
-    if (sharedSecret) break;
-  }
-
-  return { login, password, sharedSecret };
+  return { login, password, sharedSecret: extractSteamMafile(details)?.sharedSecret ?? null };
 };

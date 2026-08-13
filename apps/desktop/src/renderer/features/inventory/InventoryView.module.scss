@@ -2,486 +2,28 @@
   display: flex;
   flex-direction: column;
   gap: $space-6;
-  padding: 0 24px 24px 24px;
+  // Takes the whole screen even when the list is three accounts long, so the mass bar has a bottom to be pushed to.
+  flex: 1 0 auto;
+  // Sides only. The bar used to need 16px under it here so that a short list put it exactly where `sticky` holds it.
+  padding: 0 8px;
 }
 
-.toolbar {
+.hiddenNotice {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-4;
-  flex-wrap: wrap;
-}
-
-.scopeTabs {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  border-radius: $radius-pill;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-}
-
-.scopeTab {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-1 $space-4;
-  border-radius: $radius-pill;
-  font-size: $fs-sm;
-  line-height: 22px;
-  font-weight: 600;
-  color: $color-text-soft;
-  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
-
-  &:hover {
-    color: $color-text;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.scopeTabActive {
-  background: $color-accent;
-  color: #06170f;
-
-  &:hover {
-    color: #06170f;
-  }
-
-  .filterCount {
-    background-color: #ffffff96;
-    opacity: 1;
-  }
-}
-
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-2;
-}
-
-.filter {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
   align-items: center;
   gap: $space-2;
   padding: $space-2 $space-3;
-  border-radius: $radius-pill;
-  background: $color-surface-raised;
-  border: 1px solid transparent;
-  color: $color-text-soft;
-  font-size: $fs-sm;
-  transition: background $duration-fast $ease-out, color $duration-fast $ease-out, border-color $duration-fast $ease-out;
-
-  &:hover {
-    border-color: $color-border-strong;
-    color: $color-text;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.filterActive {
-  background: $color-accent;
-  color: #06170f;
-  border-color: $color-accent;
-
-  &:hover {
-    background: $color-accent;
-    color: #06170f;
-  }
-
-  .filterCount {
-    background-color: #ffffff96;
-    opacity: 1;
-  }
-}
-
-.filterCount {
-  font-size: $fs-xs;
-  opacity: 0.8;
-  background-color: #ffffff32;
-  padding: 0 6px;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.filterCountSkeleton {
-  @include skeleton;
-  display: inline-block;
-  width: 18px;
-  height: 12px;
-  border-radius: $radius-pill;
-}
-
-.refresh {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  height: 38px;
-  padding: 0 $space-3;
-  border-radius: 12px;
-  background: $color-surface-raised;
-  border: 1px solid $color-border;
-  color: $color-text-soft;
-  font-size: $fs-sm;
-
-  &:hover {
-    color: $color-text;
-    border-color: $color-border-strong;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: progress;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-4;
-  flex-wrap: wrap;
-}
-
-.searchBox {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 220px;
-  max-width: 360px;
-}
-
-.searchIcon {
-  position: absolute;
-  left: $space-3;
-  color: $color-text-muted;
-  pointer-events: none;
-}
-
-.searchInput {
-  width: 100%;
-  padding: 10px 32px 10px 36px;
-  border-radius: 12px;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  color: $color-text;
-  font-size: $fs-sm;
-
-  &::placeholder {
-    color: $color-text-muted;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.searchClear {
-  @include button-reset;
-  @include clickable;
-  position: absolute;
-  right: $space-2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: $radius-sm;
-  color: $color-text-muted;
-
-  &:hover {
-    color: $color-text;
-    background: $color-surface-raised;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.sort {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  flex-wrap: wrap;
-}
-
-.sortKeys {
-  display: inline-flex;
-  gap: $space-1;
-  padding: 4px;
-  border-radius: 12px;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-}
-
-.sortBtn {
-  @include button-reset;
-  @include clickable;
-  padding: $space-1 $space-3;
-  border-radius: 8px;
-  font-size: $fs-sm;
-  color: $color-text-soft;
-  background: transparent;
-  font-weight: 600;
-  transition: color $duration-fast $ease-out, background $duration-fast $ease-out;
-
-  &:hover {
-    color: $color-text;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.sortBtnActive {
-  background: $color-accent;
-  color: #06170f;
-
-  &:hover {
-    color: #06170f;
-  }
-}
-
-.sortDir {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-2 $space-3;
-  border-radius: 12px;
-  background: $color-surface-raised;
-  border: 1px solid $color-border;
-  color: $color-text-soft;
-  font-size: $fs-sm;
-
-  &:hover {
-    color: $color-text;
-    border-color: $color-border-strong;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.controlsActions {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-}
-
-.filterBtn {
-  @include button-reset;
-  @include clickable;
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: $space-2;
-  height: 38px;
-  padding: 0 $space-3;
-  border-radius: 12px;
-  background: $color-surface-raised;
-  border: 1px solid $color-border;
-  color: $color-text-soft;
-  font-size: $fs-sm;
-
-  &:hover {
-    color: $color-text;
-    border-color: $color-border-strong;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.filterBtnActive {
-  color: $color-accent;
-  background-color: #00ba7824;
-  border-color: #00ba7832;
-
-  &:hover {
-    color: $color-accent;
-
-    background-color: #00ba7840;
-    border-color: #00ba7856;
-  }
-}
-
-.filterDot {
-  position: absolute;
-  top: -1px;
-  right: -1px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  outline: 2px solid #141414;
-  background: $color-accent;
-}
-
-.filterModal {
-  display: flex;
-  flex-direction: column;
-  gap: $space-3;
-}
-
-.filterGroup {
-  display: flex;
-  flex-direction: column;
-  gap: $space-2;
-}
-
-.filterGroupLabel {
-  font-size: $fs-xs;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: $color-text-muted;
-}
-
-.labelChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: $space-2;
-  max-height: 168px;
-  overflow-y: auto;
-  @include scrollbar;
-}
-
-.labelChip {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: $space-1 $space-3;
-  border-radius: 999px;
-  font-size: $fs-sm;
-  font-weight: 600;
-  color: $color-text-soft;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  transition: color $duration-fast $ease-out, background $duration-fast $ease-out;
-
-  &:hover {
-    color: $color-text;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.labelChipOn {
-  // Background/colour come from the label's own hue via inline style.
-  border-color: transparent;
-}
-
-.labelChipExclude {
-  color: #ff8a7a;
-  background: #c0392b29;
-  border-color: #c0392b80;
-
-  &:hover {
-    color: #ff8a7a;
-    background: #c0392b3d;
-  }
-}
-
-.sortRow {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  flex-wrap: wrap;
-}
-
-.filterOption {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  align-items: center;
-  gap: $space-3;
-  width: 100%;
-  padding: $space-3;
-  border-radius: 12px;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  font-size: $fs-sm;
-  color: $color-text;
-  text-align: left;
-
-  &:hover {
-    border-color: $color-border-strong;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.filterReset {
-  @include button-reset;
-  @include clickable;
-  align-self: flex-start;
-  margin-top: $space-1;
-  padding: $space-2 $space-3;
-  background-color: #ffffff20;
+  border: 1px solid rgba($color-warning, 0.35);
   border-radius: $radius-md;
-  font-size: $fs-sm;
-  color: $color-faint-text;
+  background: rgba($color-warning, 0.08);
+  color: $color-text-muted;
+  font-size: 12px;
+  line-height: 1.4;
 
-  &:hover:not(:disabled) {
-    color: $color-text;
-    background-color: #ffffff32;
+  svg {
+    flex-shrink: 0;
+    color: $color-warning;
   }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.checkbox {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  color: #06170f;
-  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out;
-}
-
-.checkboxOn {
-  background: $color-accent;
-  border-color: $color-accent;
 }
 
 .noResults {
@@ -498,11 +40,191 @@
   color: $color-text-soft;
 }
 
+// The windowed list.
 .grid {
+  position: relative;
+  width: 100%;
+  // Its height is set inline and means something exact.
+  flex-shrink: 0;
+  animation: grid-enter 280ms $ease-out;
+}
+
+// One virtual row.
+.gridRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+
+  // Every row is a stacking context whether it wants to be or not: the virtualizer places it with a `transform`.
+  &:has([role='menu']) {
+    z-index: 1;
+  }
+}
+
+// Card mode: a row is `--cols` cards side by side.
+.cardRow {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+// The gap belongs *between* rows, so the last one of the list drops it.
+.cardRowLast {
+  padding-bottom: 0;
+}
+
+// Table mode: one account per row, and the row exists only to be positioned and measured.
+.tableRow {
+  display: block;
+}
+
+// The separator lives between rows, not around them: the caption row already draws the line above the first one.
+.tableRowSep > * {
+  border-top: 1px solid #262626;
+}
+
+.tableRowFirst > * {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+
+.tableRowLast > * {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+// Placeholders for the very first load, when there is no list yet to belong to.
+.placeholders {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  gap: 8px;
   animation: grid-enter 280ms $ease-out;
+}
+
+// Table layout: one account per row, columns aligned across the whole list.
+.table {
+  --row-columns: #{$row-columns};
+  display: flex;
+  flex-direction: column;
+}
+
+// The «База» scope has no price to show: both the caption row and every account row drop that cell.
+.tableLocal {
+  --row-columns: #{$row-columns-local};
+  --cell-market: none;
+}
+
+// «Выложенные» drop the other one, on the same mechanism: a scope that cannot fill a column names the variable.
+.tableListed {
+  --row-columns: #{$row-columns-listed};
+  --cell-purchased: none;
+}
+
+.placeholdersTable {
+  grid-template-columns: 1fr;
+  gap: 0;
+
+  > * + * {
+    border-top: 1px solid #262626;
+  }
+}
+
+.tableHead {
+  display: grid;
+  grid-template-columns: var(--row-columns);
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  color: $color-text-muted;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.headCell {
+  @include truncate(1);
+}
+
+.headCellRight {
+  text-align: right;
+}
+
+// The leading caption: «#» over the row numbers.
+.headCellSelect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.headCheck {
+  @include button-reset;
+  @include clickable;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: v2.$onAccent;
+  border-radius: 6px;
+  background-color: rgba(v2.$primaryDark, .9);
+  outline: 1px solid rgba(v2.$text, .22);
+  outline-offset: -1px;
+  transition: all .1s ease-in-out;
+
+  &:hover {
+    outline-color: rgba(v2.$accent, .6);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.headCheckOn {
+  background-color: v2.$accent;
+  outline-color: v2.$accent;
+}
+
+.headCellMarket {
+  display: var(--cell-market, block);
+}
+
+.headCellPurchased {
+  display: var(--cell-purchased, block);
+}
+
+// The sortable captions are a shortcut into the filters modal.
+.headSort {
+  @include button-reset;
+  @include clickable;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font: inherit;
+  transition: color $duration-fast $ease-out;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.headSortOn {
+  color: $color-accent-text;
+
+  &:hover {
+    color: $color-accent-text;
+  }
 }
 
 @keyframes grid-enter {
@@ -514,10 +236,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.sentinel {
-  height: 1px;
 }
 
 .skeletonFilter {
@@ -631,6 +349,44 @@
   border-radius: 96px;
 }
 
+// Table mode gets its own placeholder: a card-shaped one in a one-per-row track would set the wrong expectation about.
+.skeletonRow {
+  display: grid;
+  grid-template-columns: var(--row-columns);
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.skeletonCell {
+  @include skeleton;
+  height: 14px;
+}
+
+.skeletonCellWide {
+  width: 70%;
+}
+
+// The leading track is 34px wide and holds a row number, not a value.
+.skeletonCellLead {
+  width: 14px;
+  margin: 0 auto;
+}
+
+.skeletonCellMarket {
+  display: var(--cell-market, block);
+}
+
+.skeletonCellPurchased {
+  display: var(--cell-purchased, block);
+}
+
+.skeletonRowButton {
+  @include skeleton;
+  height: 34px;
+  border-radius: 96px;
+}
+
 .state {
   background-color: #1f1f1f;
   border-radius: 24px;
@@ -675,7 +431,40 @@
   animation: spin 1s linear infinite;
 }
 
+// Two ways out of an empty screen: ask again, or go and buy something.
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+}
+
 .retry {
+  @include button-reset;
+  @include clickable;
+  @include accent-button;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 96px;
+  font-weight: 600;
+  font-size: 14px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// The second choice, and it reads as one: same shape, no fill.
+.retrySecondary {
   @include button-reset;
   @include clickable;
   display: inline-flex;
@@ -683,14 +472,17 @@
   justify-content: center;
   padding: 11px 22px;
   border-radius: 96px;
-  background: $color-accent;
-  color: #06170f;
+  border: 1px solid $color-border;
+  color: $color-text-soft;
   font-weight: 600;
   font-size: 14px;
-  transition: filter $duration-fast $ease-out;
+  transition:
+    color $duration-fast $ease-out,
+    border-color $duration-fast $ease-out;
 
   &:hover {
-    filter: brightness(1.08);
+    color: $color-text;
+    border-color: rgba(255, 255, 255, 0.24);
   }
 
   &:focus-visible {

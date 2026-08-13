@@ -15,7 +15,9 @@ node_modules/
 # editor
 .idea/
 .vscode/*
-.claude/*
+**/.claude/
+**/.playwright-mcp/
+.mcp.json
 .DS_Store
 Thumbs.db
 

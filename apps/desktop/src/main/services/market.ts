@@ -1,26 +1,44 @@
-import { MarketClient } from '@market-sdk';
-import type { RawLetter, RawMarketItem, RawProfileResponse, RawUserTag } from '@market-sdk';
-import { categoryIdToServiceId, categoryNameToServiceId, detectLlmService } from '@shared-types';
+import { MarketClient, readRateLimit } from '@market-sdk';
+import type {
+  RateLimitInfo,
+  RawLetter,
+  RawMarketItem,
+  RawOrdersResponse,
+  RawProfileResponse,
+  RawUserTag,
+} from '@market-sdk';
+import {
+  categoryIdToServiceId,
+  categoryNameToServiceId,
+  detectLlmService,
+  isProxyHost,
+} from '@shared-types';
 import type {
   AccountDetails,
-  AccountScope,
   AccountSummary,
   AccountTag,
   AuthSession,
+  DiscordInfo,
+  InstagramInfo,
+  LlmInfo,
   MailLetter,
   MailLettersRequest,
   MailLettersResult,
+  MarketScope,
   ServiceId,
   SteamGame,
   SteamInfo,
   TelegramInfo,
+  TikTokInfo,
   UserLabel,
 } from '@shared-types';
 import { app } from 'electron';
 import log from 'electron-log/main';
-import { extractSharedSecret } from '../adapters/steam/mafile';
+import { type MafileData, parseMafile } from '../adapters/steam/mafile';
 import { loadToken, onTokenChange } from '../auth/token-store';
+import { sleep } from '../lib/sleep';
 import { appFetch } from './api-session';
+import { toIsoCountry } from './country';
 
 let client: MarketClient | null = null;
 
@@ -35,9 +53,7 @@ const getClient = (): MarketClient => {
   return client;
 };
 
-// Bumped on every token change (login/logout). In-flight pagination captures
-// the epoch at start and bails between pages when it changes, so a stale loop
-// can't fire a request with a cleared/replaced token (→ spurious 401).
+// Bumped on every token change (login/logout).
 let tokenEpoch = 0;
 
 onTokenChange(() => {
@@ -74,8 +90,7 @@ const normalizeProfile = (raw: RawProfileResponse): AuthSession => ({
   usernameHtml: pickUsernameHtml(raw.user),
   avatarUrl: pickAvatarUrl(raw.user),
   profileUrl: raw.user.view_url ?? raw.user.links?.permalink ?? null,
-  // `convertedBalance` is the spendable balance already in the selected currency;
-  // the raw `balance` is in a base unit and shouldn't be shown as-is.
+  // `convertedBalance` is the spendable balance already in the selected currency.
   balance: parseBalance(raw.user.convertedBalance ?? raw.user.balance),
   // Forum API gives a lowercase code ("rub"); uppercase it for display/Intl.
   currency: typeof raw.user.currency === 'string' ? raw.user.currency.toUpperCase() : null,
@@ -107,13 +122,11 @@ const isAuthRejection = (err: unknown): boolean => {
 const isAbortError = (err: unknown): boolean =>
   err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'));
 
-export const fetchProfileResult = async (): Promise<ProfileResult> => {
-  const token = await loadToken();
-  if (!token) return { kind: 'unauthorized' };
-  // Market `/me` returns rendered avatars + gradient username HTML + balance in
-  // one call. Fall back to the forum `/users/me` shape if it ever lacks a user.
+/** Whose profile does this client see? */
+const profileVia = async (client: MarketClient): Promise<ProfileResult> => {
+  // Market `/me` returns rendered avatars + gradient username HTML + balance in one call.
   try {
-    const raw = await getClient().me();
+    const raw = await client.me();
     if (raw?.user) return { kind: 'ok', session: normalizeProfile(raw) };
     log.warn('[market] me() returned no user; falling back to forum profile');
   } catch (err) {
@@ -121,13 +134,32 @@ export const fetchProfileResult = async (): Promise<ProfileResult> => {
     log.warn('[market] me() failed; falling back to forum profile', err);
   }
   try {
-    const raw = await getClient().meForum();
+    const raw = await client.meForum();
     if (raw?.user) return { kind: 'ok', session: normalizeProfile(raw) };
   } catch (err) {
     if (isAuthRejection(err)) return { kind: 'unauthorized' };
     log.warn('[market] fetchProfile fallback failed', err);
   }
   return { kind: 'offline' };
+};
+
+export const fetchProfileResult = async (): Promise<ProfileResult> => {
+  const token = await loadToken();
+  if (!token) return { kind: 'unauthorized' };
+  return profileVia(getClient());
+};
+
+/** Ask the market who a token belongs to, without adopting it. */
+export const probeToken = async (token: string): Promise<ProfileResult> => {
+  const candidate = token.trim();
+  if (!candidate) return { kind: 'unauthorized' };
+  return profileVia(
+    new MarketClient({
+      getToken: () => candidate,
+      userAgent: `LolzteamLauncher/${app.getVersion?.() ?? '0.0.0'} (+desktop)`,
+      fetch: appFetch,
+    }),
+  );
 };
 
 const asNumber = (v: unknown): number | null => {
@@ -139,8 +171,7 @@ const asNumber = (v: unknown): number | null => {
   return null;
 };
 
-// XenForo flags arrive as 0/1 ints (sometimes strings). Treat any truthy
-// non-zero numeric as "on".
+// XenForo flags arrive as 0/1 ints (sometimes strings).
 const asFlag = (v: unknown): boolean => {
   const n = asNumber(v);
   return n !== null && n !== 0;
@@ -148,41 +179,6 @@ const asFlag = (v: unknown): boolean => {
 
 const asString = (v: unknown): string | null =>
   typeof v === 'string' && v.trim() ? v.trim() : null;
-
-// The market sends Telegram country as an ISO alpha-2 code but Steam country as
-// a full English name ("Ukraine"). Build a reverse English-name → ISO lookup
-// once so SteamInfo.country is normalized to the same ISO codes the UI expects
-// for flag rendering. Codes that don't resolve fall through to null.
-const ENGLISH_REGION_NAMES = new Intl.DisplayNames(['en'], { type: 'region' });
-
-const buildCountryNameToIso = (): Map<string, string> => {
-  const map = new Map<string, string>();
-  for (let a = 65; a <= 90; a++) {
-    for (let b = 65; b <= 90; b++) {
-      const code = String.fromCharCode(a, b);
-      let name: string | undefined;
-      try {
-        name = ENGLISH_REGION_NAMES.of(code);
-      } catch {
-        name = undefined;
-      }
-      // `of` echoes the input code back when it isn't a real region.
-      if (name && name !== code) map.set(name.toLowerCase(), code);
-    }
-  }
-  return map;
-};
-
-const COUNTRY_NAME_TO_ISO = buildCountryNameToIso();
-
-// Returns an ISO alpha-2 code given either an ISO code or an English country
-// name; null when it can't be resolved.
-const toIsoCountry = (value: unknown): string | null => {
-  const raw = asString(value);
-  if (!raw) return null;
-  if (/^[a-z]{2}$/i.test(raw)) return raw.toUpperCase();
-  return COUNTRY_NAME_TO_ISO.get(raw.toLowerCase()) ?? null;
-};
 
 const extractTags = (item: RawMarketItem): AccountTag[] => {
   const tags = item.tags;
@@ -203,24 +199,38 @@ interface SteamBans {
   vacBanned: boolean;
   communityBanned: boolean;
   tradeBanned: boolean;
+  /** How many VAC bans the profile carries; null when the field is absent. */
+  vacCount: number | null;
 }
 
+/** `steam_bans` is Steam's own `GetPlayerBans` payload. */
+const parseSteamBans = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === 'object') return value as Record<string, unknown>;
+  if (typeof value !== 'string' || !value.trim()) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+};
+
 const extractSteamBans = (item: RawMarketItem): SteamBans => {
-  const bans = item.steam_bans;
-  const obj = bans && typeof bans === 'object' ? (bans as Record<string, unknown>) : null;
+  const obj = parseSteamBans(item.steam_bans);
 
-  const vacBanned =
-    asFlag(item.steam_vac) ||
-    (obj ? asFlag(obj.VACBanned) || (asNumber(obj.NumberOfVACBans) ?? 0) > 0 : false);
+  const vacCount = obj ? asNumber(obj.NumberOfVACBans) : null;
+  const vacBanned = obj ? asFlag(obj.VACBanned) || (vacCount ?? 0) > 0 : false;
 
+  // `steam_community_ban` is the market's own documented flag; the bans blob repeats it, and either one being set is enough.
   const communityBanned =
     asFlag(item.steam_community_ban) || (obj ? asFlag(obj.CommunityBanned) : false);
 
+  // `steamLifetimeTradeBan` is documented as a plain boolean.
+  const economyBan = obj ? asString(obj.EconomyBan) : null;
   const tradeBanned =
-    asFlag(item.steam_trade_ban) ||
-    (obj ? asString(obj.EconomyBan) !== null && asString(obj.EconomyBan) !== 'none' : false);
+    item.steamLifetimeTradeBan === true || (economyBan !== null && economyBan !== 'none');
 
-  return { vacBanned, communityBanned, tradeBanned };
+  return { vacBanned, communityBanned, tradeBanned, vacCount };
 };
 
 const RESOLD_TAG_TITLES = new Set(['перепродан', 'resold']);
@@ -228,7 +238,7 @@ const RESOLD_TAG_TITLES = new Set(['перепродан', 'resold']);
 const isResold = (item: RawMarketItem): boolean =>
   extractTags(item).some((tag) => RESOLD_TAG_TITLES.has(tag.title.trim().toLowerCase()));
 
-// Top games by hours played. Icons resolve from parentGameId on the FE CDN.
+// Top games by hours played.
 const extractSteamGames = (item: RawMarketItem, max = 6): SteamGame[] => {
   const full = item.steam_full_games;
   const list = full && typeof full === 'object' ? (full as { list?: unknown }).list : null;
@@ -252,9 +262,7 @@ const extractSteamGames = (item: RawMarketItem, max = 6): SteamGame[] => {
   return games.slice(0, max);
 };
 
-// Steam items expose a rich set of `steam_*` fields plus `tags`/origin. We surface
-// a compact, display-ready subset; missing fields degrade to null/false so the
-// list endpoint (which may omit some) still renders cleanly.
+// Steam items expose a rich set of `steam_*` fields plus `tags`/origin.
 const extractSteamInfo = (item: RawMarketItem, serviceId: ServiceId | null): SteamInfo | null => {
   if (serviceId !== 'steam') return null;
   const bans = extractSteamBans(item);
@@ -262,7 +270,6 @@ const extractSteamInfo = (item: RawMarketItem, serviceId: ServiceId | null): Ste
     tags: extractTags(item),
     level: asNumber(item.steam_level),
     gameCount: asNumber(item.steam_game_count),
-    hasMfa: asFlag(item.steam_mfa),
     isLimited: asFlag(item.steam_is_limited),
     lastActivity: asNumber(item.steam_last_activity),
     vacBanned: bans.vacBanned,
@@ -272,6 +279,22 @@ const extractSteamInfo = (item: RawMarketItem, serviceId: ServiceId | null): Ste
     origin: asString(item.itemOriginPhrase),
     country: toIsoCountry(item.steam_country),
     games: extractSteamGames(item),
+    vacCount: bans.vacCount,
+    // Whether the CS2 ban is still running is the market's own call.
+    cs2BanActive: item.steam_cs2_ban_date_active === true,
+    cs2BanDate: asNumber(item.steam_cs2_ban_date),
+    marketBanEndsAt: asNumber(item.steam_market_ban_end_date),
+    chineseAccount: item.chineseAccount === true,
+    limitSpent: asNumber(item.steam_limit_spent),
+    convertedBalance: asNumber(item.steam_converted_balance),
+    inventoryValue: asNumber(item.steam_inv_value),
+    hoursRecent: asNumber(item.steam_hours_played_recently),
+    lastTransaction: asNumber(item.steam_last_transaction_date),
+    registerDate: asNumber(item.steam_register_date),
+    points: asNumber(item.steam_points),
+    friendCount: asNumber(item.steam_friend_count),
+    faceitLevel: asNumber(item.steam_faceit_level),
+    giftCount: asNumber(item.steam_gift_count),
   };
 };
 
@@ -280,7 +303,11 @@ const extractTelegramInfo = (
   serviceId: ServiceId | null,
 ): TelegramInfo | null => {
   if (serviceId !== 'telegram') return null;
+  const spamBlock = asNumber(item.telegram_spam_block);
+  // The spec ships both a flat `*_count` per kind and one grouped object; older items only carry the group.
+  const groups = item.telegram_group_counters ?? null;
   return {
+    // Detail-only fields (see `TelegramInfo`): never present on a listing.
     phone: asString(item.telegram_phone),
     username: asString(item.telegram_username),
     id: asNumber(item.telegram_id),
@@ -289,17 +316,134 @@ const extractTelegramInfo = (
     premium: asFlag(item.telegram_premium),
     premiumExpires: asNumber(item.telegram_premium_expires),
     // -1 means "unknown/not checked"; anything > 0 is an active block.
-    spamBlocked: (asNumber(item.telegram_spam_block) ?? -1) > 0,
+    spamBlocked: (spamBlock ?? -1) > 0,
+    spamBlock,
     tags: extractTags(item),
     origin: asString(item.itemOriginPhrase),
-    channelsCount: asNumber(item.telegram_channels_count),
-    chatsCount: asNumber(item.telegram_chats_count),
+    channelsCount: asNumber(item.telegram_channels_count) ?? asNumber(groups?.channels),
+    chatsCount: asNumber(item.telegram_chats_count) ?? asNumber(groups?.chats),
     contactsCount: asNumber(item.telegram_contacts_count),
+    conversationsCount:
+      asNumber(item.telegram_conversations_count) ?? asNumber(groups?.conversations),
+    adminCount: asNumber(item.telegram_admin_count) ?? asNumber(groups?.admin),
+    adminSubsCount: asNumber(item.telegram_admin_subs_count),
+    starsCount: asNumber(item.telegram_stars_count),
+    birthday: asNumber(item.telegram_birthday),
+    // `telegram_password` is a 0/1 flag and never the password itself.
+    passwordSet: asFlag(item.telegram_password),
   };
 };
 
-// `buyer.operation_date` (when present) is when the current viewer purchased the
-// item. Fall back to null so the card can hide the line.
+const extractDiscordInfo = (
+  item: RawMarketItem,
+  serviceId: ServiceId | null,
+): DiscordInfo | null => {
+  if (serviceId !== 'discord') return null;
+  // An account with no subscription arrives as `0`, not as an absent field — the market's own `getNitroInfo()` returns.
+  const nitroEnd = asNumber(item.discord_nitro_end_date);
+  const nitroEndDate = nitroEnd !== null && nitroEnd > 0 ? nitroEnd : null;
+  return {
+    tags: extractTags(item),
+    origin: asString(item.itemOriginPhrase),
+    locale: asString(item.discord_locale),
+    localeTitle: asString(item.discordLocaleTitle),
+    verified: asFlag(item.discord_verified),
+    condition: asString(item.discord_condition),
+    conditionLabel: asString(item.discordAccountConditionLabel),
+    billing: asFlag(item.discord_billing),
+    gifts: asNumber(item.discord_gifts),
+    registerDate: asNumber(item.discord_register_date),
+    chatCount: asNumber(item.discord_chat_count),
+    adminServersCount: asNumber(item.discord_admin_servers_count),
+    adminMembersCount: asNumber(item.discord_admin_members_count),
+    // The tier already arrives spelled out; `discord_nitro_type` is the numeric twin of it and only means anything while.
+    nitroTypeLabel: nitroEndDate === null ? null : asString(item.discordNitroType),
+    nitroEndDate,
+    boosts: asNumber(item.discord_available_boosts),
+  };
+};
+
+const extractInstagramInfo = (
+  item: RawMarketItem,
+  serviceId: ServiceId | null,
+): InstagramInfo | null => {
+  if (serviceId !== 'instagram') return null;
+  return {
+    tags: extractTags(item),
+    origin: asString(item.itemOriginPhrase),
+    id: asNumber(item.instagram_id),
+    username: asString(item.instagram_username),
+    // Unlike `telegram_country`, this one is a name when it is anything at all.
+    country: toIsoCountry(item.instagram_country),
+    followerCount: asNumber(item.instagram_follower_count),
+    followCount: asNumber(item.instagram_follow_count),
+    postCount: asNumber(item.instagram_post_count),
+    registerDate: asNumber(item.instagram_register_date),
+    mobile: asFlag(item.instagram_mobile),
+    hasCookies: asFlag(item.instagram_has_cookies),
+    loginWithoutCookies: asFlag(item.instagram_login_without_cookies),
+  };
+};
+
+const extractTikTokInfo = (item: RawMarketItem, serviceId: ServiceId | null): TikTokInfo | null => {
+  if (serviceId !== 'tiktok') return null;
+  return {
+    tags: extractTags(item),
+    origin: asString(item.itemOriginPhrase),
+    username: asString(item.tiktok_unique_id),
+    screenName: asString(item.tiktok_screen_name),
+    // A name when set and "" when not — the same two dialects `country.ts` exists.
+    topCountry: toIsoCountry(item.tiktok_top_country),
+    followerCount: asNumber(item.tiktok_followers),
+    followingCount: asNumber(item.tiktok_following),
+    likeCount: asNumber(item.tiktok_likes),
+    videoCount: asNumber(item.tiktok_videos),
+    coins: asNumber(item.tiktok_coins),
+    registerDate: asNumber(item.tiktok_create_time),
+    verified: asFlag(item.tiktok_verified),
+    privateAccount: asFlag(item.tiktok_private_account),
+    hasEmail: asFlag(item.tiktok_has_email),
+    hasMobile: asFlag(item.tiktok_has_mobile),
+    canStream: asFlag(item.tiktok_can_stream),
+    canStreamStudio: asFlag(item.tiktok_can_stream_studio),
+  };
+};
+
+/** A three-state flag: `null` when the market said nothing at all. */
+const asTriFlag = (v: unknown): boolean | null => {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'boolean') return v;
+  const n = asNumber(v);
+  return n === null ? null : n !== 0;
+};
+
+/** "Did the market send anything here?" for fields whose *value* must not be read — see `extractLlmInfo` and `llm_cookies`. */
+const hasPayload = (v: unknown): boolean => {
+  if (v === null || v === undefined || v === false) return false;
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === 'object') return Object.keys(v as object).length > 0;
+  return true;
+};
+
+/** LLM items, mapped from `llm_*`. */
+const extractLlmInfo = (item: RawMarketItem, serviceId: ServiceId | null): LlmInfo | null => {
+  if (serviceId !== 'llm') return null;
+  return {
+    subscription: asString(item.llm_subscription),
+    subscriptionEnds: asNumber(item.llm_subscription_ends),
+    subscriptionAutoRenew: asFlag(item.llm_subscription_auto_renew),
+    registerDate: asNumber(item.llm_register_date),
+    hasCookies: hasPayload(item.llm_cookies),
+    usagePercent: asNumber(item.llm_usage_percent),
+    balance: asString(item.llm_balance),
+    convertedBalance: asNumber(item.llm_converted_balance),
+    kycVerified: asTriFlag(item.llm_kyc_verified),
+    hasPhone: asTriFlag(item.llm_phone),
+  };
+};
+
+// `buyer.operation_date` (when present) is when the current viewer purchased the item.
 const extractPurchasedAt = (item: RawMarketItem): number | null => {
   const buyer = item.buyer;
   if (buyer && typeof buyer === 'object') {
@@ -325,11 +469,26 @@ const pickCategoryTitle = (item: RawMarketItem): string => {
   ).toString();
 };
 
-const normalizeItem = (item: RawMarketItem, scope: AccountScope): AccountSummary => {
+/** Market categories we could not map to a `ServiceId`. */
+const unmappedCategories = new Set<string>();
+
+const REGISTRY_HINT =
+  'Accounts of this category stay hidden. Add an entry (or an alias) in packages/shared-types/src/service-registry.ts.';
+
+const reportUnmappedCategory = (item: RawMarketItem, categoryRaw: string): void => {
+  const key = `${categoryRaw || '?'}#${item.category_id ?? '?'}`;
+  if (unmappedCategories.has(key)) return;
+  unmappedCategories.add(key);
+  const where = `category_id=${item.category_id ?? 'none'}, item ${item.item_id}`;
+  log.warn(`[market] unknown category "${categoryRaw}" (${where}) — ${REGISTRY_HINT}`);
+};
+
+/** Raw market item → `AccountSummary`. */
+export const normalizeItem = (item: RawMarketItem, scope: MarketScope): AccountSummary => {
   const categoryRaw = pickCategoryRaw(item);
-  // Resolve by name first; fall back to the numeric category id so a category
-  // with an unexpected name string (e.g. LLM, id 6) still maps to its service.
+  // Resolve by name first; fall back to the numeric category id so a category with an unexpected name string.
   const category = categoryNameToServiceId(categoryRaw) ?? categoryIdToServiceId(item.category_id);
+  if (category === null) reportUnmappedCategory(item, categoryRaw);
   return {
     itemId: item.item_id,
     category,
@@ -348,6 +507,9 @@ const normalizeItem = (item: RawMarketItem, scope: AccountScope): AccountSummary
     scope,
     steam: extractSteamInfo(item, category),
     telegram: extractTelegramInfo(item, category),
+    discord: extractDiscordInfo(item, category),
+    instagram: extractInstagramInfo(item, category),
+    tiktok: extractTikTokInfo(item, category),
     llmService:
       category === 'llm'
         ? detectLlmService(
@@ -357,37 +519,86 @@ const normalizeItem = (item: RawMarketItem, scope: AccountScope): AccountSummary
             item.description,
           )
         : null,
+    llm: extractLlmInfo(item, category),
     hasEmailLogin: Boolean(
       item.emailLoginData?.login ||
         item.email_login_data?.login ||
         item.canViewEmailLoginData ||
         item.can_view_email_login_data,
     ),
+    // Only Steam has a maFile to speak of; `null` for every other category so the card can tell "no maFile" apart from "the.
+    hasMafile: category === 'steam' ? asFlag(item.steam_mfa) : null,
+    // Whatever the user wrote about this account on the market.
+    note: asString(item.note_text),
+    // A market item lives on lzt.market, not in the local base.
+    folder: null,
+    // A market item is never itself a copy of something.
+    marketItemId: null,
+    // Filled in by whoever assembles the list — the market knows nothing about the local base.
+    localCopyId: null,
   };
 };
 
 type PageProgress = { page: number; totalPages: number | null };
 type OnPage = (items: AccountSummary[], progress: PageProgress) => void;
 
+/** The result of walking a paginated list. */
+export interface MarketList {
+  readonly items: AccountSummary[];
+  readonly complete: boolean;
+}
+
+/** The runaway guard, and nothing else. */
+const MAX_PAGES = 1000;
+
+/** Pages of slack past the total the server reported. */
+const PAGE_SLACK = 3;
+
+/** How much of the rate-limit window we refuse to spend. */
+const PACE_FLOOR = 2;
+
+/** Same reasoning as the client's cap: the window is one minute, no more. */
+const MAX_PACE_WAIT_MS = 70_000;
+
+/** Waits out the rate-limit window when the current one is nearly spent. */
+const pace = async (info: RateLimitInfo | null, signal?: AbortSignal): Promise<void> => {
+  if (info === null || info.remaining > PACE_FLOOR) return;
+  const ms = Math.min(info.reset * 1000 - Date.now(), MAX_PACE_WAIT_MS);
+  if (ms <= 0) return;
+  log.info(`[market] rate limit nearly spent (${info.remaining}/${info.limit}); pausing ${ms}ms`);
+  await sleep(ms, signal);
+};
+
 // 'purchased' reads the user's orders; 'listed' reads their own active listings.
-const fetchPage = (scope: AccountScope, page: number, categoryId?: number, signal?: AbortSignal) =>
+const fetchPage = (scope: MarketScope, page: number, categoryId?: number, signal?: AbortSignal) =>
   scope === 'listed'
     ? getClient().listUser({ page, categoryId, show: 'active' }, signal)
     : getClient().listOrders({ page, categoryId }, signal);
 
 const paginate = async (
-  scope: AccountScope,
+  scope: MarketScope,
   categoryId?: number,
   onPage?: OnPage,
   signal?: AbortSignal,
-): Promise<AccountSummary[]> => {
+): Promise<MarketList> => {
   const epoch = tokenEpoch;
   const out: AccountSummary[] = [];
   let page = 1;
   let hasNext = true;
-  while (hasNext && page <= 50) {
-    if (tokenEpoch !== epoch || signal?.aborted) break;
-    const resp = await fetchPage(scope, page, categoryId, signal);
+  // Recomputed from every response rather than pinned on the first, so a list that grows mid-walk raises the bound with it.
+  let bound = MAX_PAGES;
+  const where = `scope=${scope}, category=${categoryId ?? 'all'}`;
+  while (hasNext && page <= bound) {
+    if (tokenEpoch !== epoch || signal?.aborted) return { items: out, complete: false };
+    let resp: RawOrdersResponse;
+    try {
+      resp = await fetchPage(scope, page, categoryId, signal);
+    } catch (err) {
+      if (!isAbortError(err) && !signal?.aborted) {
+        log.warn(`[market] page ${page} failed (${where})`, err);
+      }
+      return { items: out, complete: false };
+    }
     const items = resp.items ?? [];
     // Resold items only appear among purchases; own listings are kept as-is.
     const visible = scope === 'listed' ? items : items.filter((it) => !isResold(it));
@@ -396,6 +607,7 @@ const paginate = async (
     const perPage = resp.perPage || items.length;
     const totalPages =
       perPage > 0 && resp.totalItems > 0 ? Math.ceil(resp.totalItems / perPage) : null;
+    if (totalPages !== null) bound = Math.min(totalPages + PAGE_SLACK, MAX_PAGES);
     onPage?.(normalized, { page, totalPages });
     if (typeof resp.hasNextPage === 'boolean') {
       hasNext = resp.hasNextPage;
@@ -403,42 +615,38 @@ const paginate = async (
       hasNext = items.length > 0 && perPage > 0 && page * perPage < resp.totalItems;
     }
     page += 1;
+    if (hasNext && page <= bound) await pace(readRateLimit(resp), signal);
   }
-  return out;
+  if (hasNext) {
+    log.warn(
+      `[market] pagination stopped at the ${page - 1}-page guard (${where}) — the list is incomplete`,
+    );
+  }
+  return { items: out, complete: !hasNext };
 };
 
+/** Both walks answer with what they managed to collect. */
 export const listPurchasedAccounts = async (
-  scope: AccountScope = 'purchased',
+  scope: MarketScope = 'purchased',
   signal?: AbortSignal,
-): Promise<AccountSummary[]> => {
+): Promise<MarketList> => {
   const token = await loadToken();
-  if (!token) return [];
-  try {
-    return await paginate(scope, undefined, undefined, signal);
-  } catch (err) {
-    if (isAbortError(err) || signal?.aborted) return [];
-    log.warn(`[market] listPurchasedAccounts(${scope}) failed`, err);
-    return [];
-  }
+  if (!token) return { items: [], complete: false };
+  return paginate(scope, undefined, undefined, signal);
 };
 
 export const listAccountsByCategory = async (
   categoryId: number,
-  scope: AccountScope = 'purchased',
+  scope: MarketScope = 'purchased',
   onPage?: OnPage,
   signal?: AbortSignal,
-): Promise<AccountSummary[]> => {
+): Promise<MarketList> => {
   const token = await loadToken();
-  if (!token) return [];
-  try {
-    return await paginate(scope, categoryId, onPage, signal);
-  } catch (err) {
-    if (isAbortError(err) || signal?.aborted) return [];
-    log.warn(`[market] listAccountsByCategory(${categoryId}, ${scope}) failed`, err);
-    return [];
-  }
+  if (!token) return { items: [], complete: false };
+  return paginate(scope, categoryId, onPage, signal);
 };
 
+/** Waits for the market to parse the confirmation code out of the mailbox. */
 export const fetchEmailCode = async (
   itemId: number,
   signal: AbortSignal,
@@ -448,7 +656,7 @@ export const fetchEmailCode = async (
   for (let attempt = 0; attempt < 30; attempt++) {
     if (signal.aborted) return null;
     try {
-      const resp = await getClient().getEmailCode(itemId);
+      const resp = await getClient().getEmailCode(itemId, signal);
       if ('codeData' in resp && resp.codeData && typeof resp.codeData.code === 'string') {
         const code = resp.codeData.code.trim();
         if (code) return code;
@@ -462,7 +670,7 @@ export const fetchEmailCode = async (
       log.warn('[market] getEmailCode threw', err);
       return null;
     }
-    await new Promise((r) => setTimeout(r, 2000));
+    await sleep(2000, signal);
   }
   return null;
 };
@@ -479,9 +687,12 @@ const tagsToResult = (tags: AccountTag[], reason?: string): CheckAccountResult =
   return { ok: true, valid, tags, reason };
 };
 
-const fetchAuthoritativeTags = async (itemId: number): Promise<AccountTag[] | null> => {
+const fetchAuthoritativeTags = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<AccountTag[] | null> => {
   try {
-    const resp = await getClient().getItem(itemId);
+    const resp = await getClient().getItem(itemId, signal);
     if (resp?.item) return extractTags(resp.item);
   } catch (err) {
     log.warn(`[market] checkAccount getItem(${itemId}) failed`, err);
@@ -489,20 +700,25 @@ const fetchAuthoritativeTags = async (itemId: number): Promise<AccountTag[] | nu
   return null;
 };
 
-export const checkAccountValidity = async (itemId: number): Promise<CheckAccountResult> => {
+/** Asks the market to re-check the account and reports what it decided. */
+export const checkAccountValidity = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<CheckAccountResult> => {
   const token = await loadToken();
   if (!token) return { ok: false, message: 'not_authenticated' };
   for (let attempt = 0; attempt < 100; attempt++) {
+    if (signal?.aborted) return { ok: false, message: 'cancelled' };
     try {
-      const resp = await getClient().checkAccount(itemId);
+      const resp = await getClient().checkAccount(itemId, signal);
       const errors = 'errors' in resp && Array.isArray(resp.errors) ? resp.errors : [];
       if (errors.includes('retry_request')) {
-        await new Promise((r) => setTimeout(r, 2000));
+        await sleep(2000, signal);
         continue;
       }
       const reason = typeof errors[0] === 'string' ? errors[0] : undefined;
       if (reason) log.warn(`[market] checkAccount(${itemId}) error: ${reason}`);
-      const tags = await fetchAuthoritativeTags(itemId);
+      const tags = await fetchAuthoritativeTags(itemId, signal);
       if (tags) return tagsToResult(tags, reason);
       return { ok: false, message: reason ?? 'check_failed' };
     } catch (err) {
@@ -513,61 +729,76 @@ export const checkAccountValidity = async (itemId: number): Promise<CheckAccount
   return { ok: false, message: 'retry_request' };
 };
 
-export const fetchSteamMafile = async (itemId: number): Promise<string | null> => {
+/** The whole maFile, not just the login secret. */
+export const fetchSteamMafileData = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<MafileData | null> => {
   const token = await loadToken();
   if (!token) return null;
   try {
-    const resp = await getClient().getSteamMafile(itemId);
-    return extractSharedSecret(resp);
+    const resp = await getClient().getSteamMafile(itemId, signal);
+    return parseMafile(resp);
   } catch (err) {
     log.warn('[market] getSteamMafile failed', err);
     return null;
   }
 };
 
+/** The login path only ever wants the TOTP secret; kept narrow for the adapter contract. */
+export const fetchSteamMafile = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<string | null> => (await fetchSteamMafileData(itemId, signal))?.sharedSecret ?? null;
+
 const asTrimmedString = (v: unknown): string | null =>
   typeof v === 'string' && v.trim() ? v.trim() : null;
 
+/** `loginData.{login,password}` is the documented credential carrier and is preferred everywhere except Telegram. */
 const pickLoginRaw = (item: RawMarketItem, serviceId: ServiceId | null): string | null => {
+  if (serviceId === 'telegram') return asTrimmedString(item.telegram_phone);
+
   const ld = item.loginData;
   const fromLoginData =
     ld && typeof ld === 'object' ? asTrimmedString((ld as { login?: unknown }).login) : null;
-  const fromAccountLogin = asTrimmedString(item.account_login);
-
-  if (serviceId === 'telegram') {
-    return asTrimmedString(item.telegram_phone) ?? null;
-  }
-  return fromLoginData ?? fromAccountLogin;
+  return fromLoginData ?? asTrimmedString(item.account_login);
 };
 
 const pickPasswordRaw = (item: RawMarketItem, serviceId: ServiceId | null): string | null => {
+  if (serviceId === 'telegram') return asTrimmedString(item.telegram_password_value);
+
   const ld = item.loginData;
   const fromLoginData =
     ld && typeof ld === 'object' ? asTrimmedString((ld as { password?: unknown }).password) : null;
-  const fromAccountPassword = asTrimmedString(item.account_password);
-
-  if (serviceId === 'telegram') {
-    return asTrimmedString(item.telegram_password_value) ?? null;
-  }
-  return fromLoginData ?? fromAccountPassword;
+  return fromLoginData ?? asTrimmedString(item.account_password);
 };
 
-export const getAccountDetails = async (itemId: number): Promise<AccountDetails | null> => {
+/** Why an item's details could not be had. */
+export type AccountDetailsResult =
+  | { ok: true; details: AccountDetails }
+  | { ok: false; reason: 'not_found' | 'unreachable'; detail?: string };
+
+export const fetchAccountDetails = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<AccountDetailsResult> => {
+  let resp: { item?: RawMarketItem };
   try {
-    const resp = await getClient().getItem(itemId);
+    resp = await getClient().getItem(itemId, signal);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    log.warn(`[market] getItem(${itemId}) unreachable: ${detail}`);
+    return { ok: false, reason: 'unreachable', detail };
+  }
+
+  try {
     const item = resp.item;
-    if (!item) return null;
+    if (!item) return { ok: false, reason: 'not_found' };
     // Scope is irrelevant for a single item's login flow; default to 'purchased'.
     const summary = normalizeItem(item, 'purchased');
     const loginRaw = pickLoginRaw(item, summary.category);
     const passwordRaw = pickPasswordRaw(item, summary.category);
-    // Ownership uses the market's own authoritative flags, NOT credential
-    // presence (which varies by category and state):
-    //   - `buyer.visitorIsBuyer === true`  → we bought this account
-    //   - `visitorIsAuthor === true`        → it's our own listing
-    // `item.buyer` alone is NOT enough: it's set for any item sold to *someone*,
-    // so a stranger's already-sold listing has `buyer` present but
-    // `visitorIsBuyer === false`. Both flags being false means it isn't ours.
+    // Ownership uses the market's own authoritative flags, NOT credential presence (which varies by category and state).
     const anyItem = item as unknown as Record<string, unknown>;
     const buyer = anyItem.buyer as { visitorIsBuyer?: boolean } | null | undefined;
     const owned = buyer?.visitorIsBuyer === true || anyItem.visitorIsAuthor === true;
@@ -577,23 +808,33 @@ export const getAccountDetails = async (itemId: number): Promise<AccountDetails 
         `passwordRaw=${passwordRaw ? 'present' : 'missing'}`,
     );
     return {
-      ...summary,
-      loginRaw,
-      passwordRaw,
-      secrets: item,
-      owned,
+      ok: true,
+      details: {
+        ...summary,
+        loginRaw,
+        passwordRaw,
+        secrets: item,
+        owned,
+      },
     };
   } catch (err) {
-    log.warn('[market] getAccountDetails failed', err);
-    return null;
+    // Reading a shape the market changed under us.
+    const detail = err instanceof Error ? err.message : String(err);
+    log.warn(`[market] getItem(${itemId}) could not be read: ${detail}`);
+    return { ok: false, reason: 'unreachable', detail };
   }
 };
 
-// --- User labels (метки) -----------------------------------------------------
+/** The same thing for callers that can do nothing with the difference. */
+export const getAccountDetails = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<AccountDetails | null> => {
+  const result = await fetchAccountDetails(itemId, signal);
+  return result.ok ? result.details : null;
+};
 
-// The user's own label palette, cached in memory and reset on token change
-// (alongside `client`). New labels can only be created on the web; here we just
-// read the palette and attach/detach existing labels to items.
+// --- User labels (метки) -----------------------------------------------------
 let labelsCache: UserLabel[] | null = null;
 
 onTokenChange(() => {
@@ -725,6 +966,33 @@ export const removeItemTag = async (
   }
 };
 
+// --- Account note ------------------------------------------------------------
+
+/** The longest note we will send. */
+const NOTE_MAX_LENGTH = 1000;
+
+/** Write the account's note, or delete it when the text comes back empty. */
+export const setAccountNote = async (
+  itemId: number,
+  text: string,
+): Promise<{ ok: true; note: string | null } | { ok: false; message: string }> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  const note = text.trim().slice(0, NOTE_MAX_LENGTH).trim();
+  try {
+    const client = getClient();
+    const resp = note
+      ? await client.setItemNote(itemId, note)
+      : await client.deleteItemNote(itemId);
+    const err = tagOpError(resp);
+    if (err) return { ok: false, message: err };
+    return { ok: true, note: note || null };
+  } catch (err) {
+    log.warn(`[market] setAccountNote(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : 'note_failed' };
+  }
+};
+
 // --- Account currency --------------------------------------------------------
 
 export const setCurrency = async (
@@ -758,15 +1026,19 @@ const lettersError = (resp: { error?: string; errors?: string[] | string }): str
   return tagOpError(resp);
 };
 
-export const fetchLetters = async (req: MailLettersRequest): Promise<MailLettersResult> => {
+export const fetchLetters = async (
+  req: MailLettersRequest,
+  signal?: AbortSignal,
+): Promise<MailLettersResult> => {
   const token = await loadToken();
   if (!token) return { ok: false, message: 'not_authenticated' };
   for (let attempt = 0; attempt < 50; attempt++) {
+    if (signal?.aborted) return { ok: false, message: 'cancelled' };
     try {
-      const resp = await getClient().getLetters(req);
+      const resp = await getClient().getLetters(req, signal);
       const err = lettersError(resp);
       if (err === 'retry_request') {
-        await new Promise((r) => setTimeout(r, 1500));
+        await sleep(1500, signal);
         continue;
       }
       if (err) return { ok: false, message: err };
@@ -797,7 +1069,8 @@ const normalizeProxy = (raw: unknown): MarketProxy | null => {
   const host = asStr(o.proxy_ip ?? o.ip ?? o.host ?? o.address ?? o.server);
   const portStr = asStr(o.proxy_port ?? o.port);
   const port = portStr ? Number(portStr) : Number.NaN;
-  if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) return null;
+  if (!host || !isProxyHost(host)) return null;
+  if (!Number.isInteger(port) || port <= 0 || port > 65535) return null;
   const type = (asStr(o.proxy_type ?? o.type ?? o.protocol) ?? 'http').toLowerCase();
   return {
     protocol: type.includes('https') ? 'https' : 'http',

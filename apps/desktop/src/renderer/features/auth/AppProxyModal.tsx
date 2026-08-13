@@ -1,9 +1,25 @@
 import type { LauncherSettings, ProxyEntry, ProxyTestResult } from '@shared-types';
-import { Check, Loader2, Plus, Wifi } from 'lucide-react';
+import { Globe, Plus, ShieldOff, Wifi } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { parseProxyLine, proxyKey } from '~/lib/proxy';
+import {
+  groupProxiesByFolder,
+  parseProxyLine,
+  proxyDetail,
+  proxyKey,
+  proxyName,
+} from '~/lib/proxy';
+import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
+import {
+  ModalError,
+  ModalGroup,
+  ModalHint,
+  ModalIconButton,
+  ModalInput,
+  ModalOption,
+  ModalSection,
+} from '~/widgets/Modal/ModalKit';
 import s from './AppProxyModal.module.scss';
 
 interface AppProxyModalProps {
@@ -35,6 +51,7 @@ export const AppProxyModal = ({ onClose, onChanged }: AppProxyModalProps) => {
   }, []);
 
   const proxies = settings?.proxies ?? [];
+  const folders = settings?.proxyFolders ?? [];
   const appProxyId = settings?.appProxyId ?? null;
   proxiesRef.current = proxies;
 
@@ -93,81 +110,95 @@ export const AppProxyModal = ({ onClose, onChanged }: AppProxyModalProps) => {
     }
   };
 
+  const groups = groupProxiesByFolder(proxies, folders);
+  // Headers only earn their line when there is more than one group to tell apart.
+  const headed = groups.length > 1;
+
+  /** Адрес и последний ответ — одной строкой под названием. */
+  const rowHint = (p: ProxyEntry) => {
+    const detail = proxyDetail(p);
+    const res = p.test;
+    return (
+      <>
+        {detail ? `${detail}${res ? ' · ' : ''}` : ''}
+        {res && (
+          <span className={res.ok ? s.ok : s.bad}>
+            {res.ok ? t('settings.proxy.ping', { ms: res.ms }) : t('settings.proxy.statusInvalid')}
+          </span>
+        )}
+      </>
+    );
+  };
+
+  const row = (p: ProxyEntry) => (
+    <ModalOption
+      key={p.id}
+      icon={Globe}
+      title={proxyName(p)}
+      hint={rowHint(p)}
+      selected={appProxyId === p.id}
+      // Пока адрес проверяют, вертушка встаёт на место галки: строка занята, и выбрать её второй раз, не дождавшись ответа.
+      busy={testing.has(p.id)}
+      onClick={() => void select(p.id)}
+      // Проверка живёт в строке, а не отдельной кнопкой под списком: проверяют всегда конкретный адрес.
+      trailing={
+        <ModalIconButton
+          icon={Wifi}
+          label={t('settings.proxy.testLabel')}
+          disabled={testing.has(p.id)}
+          onClick={() => void testProxy(p)}
+        />
+      }
+    />
+  );
+
   return (
-    <Modal title={t('settings.proxy.appLabel')} closable onClose={onClose}>
-      <div className={s.body}>
-        <p className={s.hint}>{t('settings.proxy.appHint')}</p>
+    <Modal title={t('settings.proxy.appLabel')} size="lg" closable onClose={onClose}>
+      <ModalHint>{t('settings.proxy.appHint')}</ModalHint>
 
-        <div className={s.addRow}>
-          <input
-            className={s.input}
-            value={bulk}
-            onChange={(e) => {
-              setBulk(e.target.value);
-              setAddError(false);
-            }}
-            placeholder={t('settings.proxy.bulkPlaceholder')}
-            spellCheck={false}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                void addProxy();
-              }
-            }}
-          />
-          <button
-            type="button"
-            className={s.addBtn}
-            onClick={() => void addProxy()}
-            disabled={bulk.trim() === ''}
-          >
-            <Plus size={16} />
-          </button>
-        </div>
-        {addError && <p className={s.error}>{t('settings.proxy.addInvalid')}</p>}
-
-        <div className={s.list}>
-          <div className={`${s.option} ${appProxyId === null ? s.optionOn : ''}`}>
-            <button type="button" className={s.optionSelect} onClick={() => void select(null)}>
-              <span className={s.optionMain}>{t('settings.proxy.appNone')}</span>
-            </button>
-            {appProxyId === null && <Check size={16} className={s.optionCheck} />}
-          </div>
-
-          {proxies.map((p) => {
-            const on = appProxyId === p.id;
-            const isTesting = testing.has(p.id);
-            const res = p.test;
-            return (
-              <div key={p.id} className={`${s.option} ${on ? s.optionOn : ''}`}>
-                <button type="button" className={s.optionSelect} onClick={() => void select(p.id)}>
-                  <span className={s.optionMain}>
-                    {p.host}:{p.port}
-                    {p.username ? ` · ${p.username}` : ''}
-                  </span>
-                  {res && (
-                    <span className={res.ok ? s.statusOk : s.statusFail}>
-                      {res.ok
-                        ? t('settings.proxy.ping', { ms: res.ms })
-                        : t('settings.proxy.statusInvalid')}
-                    </span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className={s.testBtn}
-                  onClick={() => void testProxy(p)}
-                  disabled={isTesting}
-                  aria-label={t('settings.proxy.testLabel')}
-                >
-                  {isTesting ? <Loader2 size={15} className={s.spin} /> : <Wifi size={15} />}
-                </button>
-                {on && <Check size={16} className={s.optionCheck} />}
-              </div>
-            );
-          })}
-        </div>
+      <div className={s.addRow}>
+        <ModalInput
+          value={bulk}
+          onChange={(e) => {
+            setBulk(e.target.value);
+            setAddError(false);
+          }}
+          placeholder={t('settings.proxy.bulkPlaceholder')}
+          spellCheck={false}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              void addProxy();
+            }
+          }}
+        />
+        <Button
+          variant="neutral"
+          size="md"
+          iconOnly
+          icon={Plus}
+          label={t('settings.proxy.addLabel')}
+          disabled={bulk.trim() === ''}
+          onClick={() => void addProxy()}
+        />
       </div>
+      {addError && <ModalError>{t('settings.proxy.addInvalid')}</ModalError>}
+
+      <ModalOption
+        icon={ShieldOff}
+        title={t('settings.proxy.appNone')}
+        selected={appProxyId === null}
+        onClick={() => void select(null)}
+      />
+
+      {groups.map(({ folder, items }) => (
+        <ModalSection key={folder?.id ?? 'none'}>
+          {headed && (
+            <ModalGroup>{folder ? folder.name : t('settings.proxy.folderNone')}</ModalGroup>
+          )}
+          {items.map(row)}
+        </ModalSection>
+      ))}
     </Modal>
   );
 };

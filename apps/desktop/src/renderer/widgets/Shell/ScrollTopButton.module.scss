@@ -1,0 +1,33 @@
+/** The chrome is `TaskDock`'s trigger, deliberately: the two sit on the same line at opposite ends of the shell. */
+.button {
+  @include button-reset;
+  @include dock-pill;
+  display: flex;
+  padding: 4px;
+  transition: background .12s ease-in-out;
+  // Nothing on screen asked for it, so it arrives rather than appears.
+  animation: scrolltop-in .16s ease-out;
+
+  &:hover {
+    background: color-mix(in srgb, v2.$primary 88%, #fff);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// The same 58px well the task ring lives in, so the two discs read as one row.
+.disc {
+  @include dock-well;
+}
+
+/* Со вторым доком под собой кнопка ужимается. */
+.buttonCompact .disc {
+  @include dock-well(40px);
+}
+
+@keyframes scrolltop-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}

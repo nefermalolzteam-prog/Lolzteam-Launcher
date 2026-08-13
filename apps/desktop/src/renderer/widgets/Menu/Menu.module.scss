@@ -1,0 +1,154 @@
+// The menu is mounted, not toggled — `Menu` returns null while it is closed.
+.menu {
+  position: absolute;
+  z-index: $z-sticky;
+  min-width: 180px;
+  padding: 6px;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+  box-shadow: $shadow-lg;
+  animation: menu-in $duration-base $ease-out both;
+  // Only ever bites when `Menu` hands down a `max-height`.
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  @include scrollbar();
+
+  .item {
+    @include button-reset;
+    @include clickable;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: v2.$radiusMD;
+    font-size: 14px;
+    color: $color-text;
+    white-space: nowrap;
+    transition: background $duration-fast $ease-out;
+
+    // A shade up from the menu's own `$primaryDark`.
+    &:hover {
+      background: v2.$primary;
+    }
+
+    // The row under the cursor is the one about to be chosen.
+    &:hover:not(:disabled):not(.itemDanger):not(.itemActive) .itemIcon {
+      color: v2.$accentDark;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    // Both of these live *inside* `.item` for a reason that is not tidiness.
+    &.itemDanger {
+      color: $color-danger-text;
+
+      .itemIcon {
+        color: inherit;
+      }
+
+      // A wash of the solid red rather than the neutral `$primary` every other row takes.
+      &:hover:not(:disabled) {
+        background: rgba($color-danger-solid, 0.22);
+      }
+    }
+
+    &.itemActive {
+      color: $color-accent-text;
+
+      .itemIcon {
+        color: inherit;
+      }
+    }
+  }
+
+  &.bottomStart {
+    top: calc(100% + 8px);
+    left: 0;
+    transform-origin: top left;
+  }
+
+  &.bottomEnd {
+    top: calc(100% + 8px);
+    right: 0;
+    transform-origin: top right;
+  }
+
+  // Opening upwards, the slide has to come from below or the menu would drift into* the button it belongs to.
+  &.topStart {
+    bottom: calc(100% + 8px);
+    left: 0;
+    transform-origin: bottom left;
+    animation-name: menu-in-up;
+  }
+
+  &.topEnd {
+    bottom: calc(100% + 8px);
+    right: 0;
+    transform-origin: bottom right;
+    animation-name: menu-in-up;
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes menu-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// A menu that flies in is decoration; a menu that is *there* is the point.
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}
+
+// The label is what the user reads; the glyph beside it is there to be found by shape.
+.itemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  overflow: hidden;
+  color: v2.$textMuted;
+  transition: color $duration-fast $ease-out;
+
+  > svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+.itemLabel {
+  flex: 1;
+  text-align: left;
+}

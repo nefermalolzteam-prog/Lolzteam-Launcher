@@ -12,6 +12,9 @@ const WORKSPACE_PKGS = [
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({ exclude: WORKSPACE_PKGS })],
+    define: {
+      __TELEMETRY_KEY__: JSON.stringify(process.env.LAUNCHER_TELEMETRY_KEY ?? ''),
+    },
     resolve: {
       alias: {
         '@main': resolve('src/main'),
@@ -78,7 +81,7 @@ export default defineConfig({
       preprocessorOptions: {
         scss: {
           api: 'modern-compiler',
-          additionalData: `@use "~styles/tokens" as *;\n@use "~styles/mixins" as *;\n`,
+          additionalData: `@use "~styles/tokens" as *;\n@use "~styles/mixins" as *;\n@use "~styles/v2/tokens" as v2;\n`,
           loadPaths: [resolve('src/renderer')],
         },
       },

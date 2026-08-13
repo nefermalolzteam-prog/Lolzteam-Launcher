@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
-export type ViewId = 'inventory' | 'mail' | 'settings';
+/** `localAdd` is the add-account wizard; it lives under the inventory tab. */
+export type ViewId = 'inventory' | 'localAdd' | 'mail' | 'settings';
 
 interface ViewState {
   view: ViewId;

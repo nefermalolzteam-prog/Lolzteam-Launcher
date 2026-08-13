@@ -1,77 +1,109 @@
-.pill {
+.pingItem {
   @include button-reset;
   @include clickable;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  line-height: 20px;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-  color: $color-text-muted;
-  padding: 4px 8px;
-  border-radius: $radius-pill;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+  background-color: v2.$primary;
+  padding: 4px 10px;
+  border-radius: v2.$radiusFull;
+  transition: background-color $duration-fast $ease-out;
 
-  &:hover:not(:disabled) {
-    color: $color-text;
-    background: $color-surface-raised;
-    border-color: $color-border-strong;
-  }
-
-  &:disabled {
-    cursor: default;
+  &:hover {
+    background-color: #2a2a2a;
   }
 
   &:focus-visible {
     @include focus-ring;
   }
+
+  .label {
+    color: v2.$textMuted;
+  }
+
+  .dotGroup {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    // Цвет — единственное, что меняется в точке между «жив» и «нет связи»; переход делает эту смену сменой.
+    transition: background-color $duration-base $ease-out;
+
+    &.dotOk {
+      background: #1ea360;
+    }
+
+    &.dotFail {
+      background: #e5484d;
+    }
+
+    &.dotChecking {
+      background: $color-text-muted;
+      animation: ping-dot-pulse 1.1s $ease-out infinite;
+    }
+  }
+
+  /** Место под число. */
+  .value,
+  .skeleton {
+    box-sizing: border-box;
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+
+  .value {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    animation: ping-value-in $duration-base $ease-out;
+  }
+
+  .skeleton {
+    @include skeleton;
+    height: 9px;
+    border-radius: v2.$radiusFull;
+  }
 }
 
-.icon {
-  color: $color-text-muted;
-  flex-shrink: 0;
-}
-
-.spin {
-  animation: proxy-ping-spin 0.9s linear infinite;
-  flex-shrink: 0;
-}
-
-.label {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dotOk {
-  background: #1ea360;
-}
-
-.dotFail {
-  background: #e5484d;
-}
-
-.dotChecking {
-  background: $color-text-muted;
-}
-
-.value {
-  color: $color-text-soft;
-  font-variant-numeric: tabular-nums;
-}
-
-@keyframes proxy-ping-spin {
+// Число не подставляется, а проявляется: подмена текста на месте читается как рывок, проявление.
+@keyframes ping-value-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Точка дышит, пока идёт проверка, — это и заменило крутилку слева.
+@keyframes ping-dot-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value {
+    animation: none;
+  }
+
+  .dot.dotChecking {
+    animation: none;
+  }
+
+  .skeleton::after {
+    animation: none;
   }
 }

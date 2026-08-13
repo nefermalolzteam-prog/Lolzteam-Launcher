@@ -1,37 +1,9 @@
+
 .list {
   display: flex;
   flex-direction: column;
   gap: $space-5;
-  max-height: 56vh;
-  overflow-y: auto;
-  margin: -#{$space-5} 0;
-  padding: $space-5 $space-3 $space-5 0;
-  margin-right: -#{$space-3};
-  scrollbar-gutter: stable;
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    border-radius: $radius-pill;
-    border: 2px solid transparent;
-    background-clip: padding-box;
-    background-color: #ffffff24;
-    transition: background-color $duration-fast $ease-out;
-  }
-
-  &:hover::-webkit-scrollbar-thumb {
-    background-color: #ffffff24;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: #ffffff32;
-  }
+  padding-top: $space-2;
 }
 
 .entry {
@@ -41,7 +13,7 @@
 
   &:not(:last-child) {
     padding-bottom: $space-5;
-    border-bottom: 1px solid $color-border;
+    border-bottom: 1px solid $color-hairline;
   }
 }
 
@@ -53,17 +25,18 @@
 
 .version {
   font-size: $fs-base;
-  font-weight: 700;
+  font-weight: 600;
   color: $color-text;
 }
 
+/* Метка «текущая версия» намеренно не берёт акцент-заливку: это не элемент управления. */
 .currentTag {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #00ba78;
-  background: #00ba7832;
+  color: $color-accent-text;
+  background: rgba($color-accent-text, 0.16);
   padding: 2px 8px;
   line-height: 16px;
   border-radius: $radius-pill;
@@ -71,8 +44,9 @@
 
 .date {
   margin-left: auto;
-  font-size: $fs-sm;
-  color: $color-text-muted;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
 }
 
 .changes {
@@ -86,15 +60,16 @@
   li {
     position: relative;
     padding-left: $space-4;
-    font-size: $fs-sm;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 20px;
     color: $color-text-soft;
 
+    /* Точка, а не `list-style`: маркер браузера живёт в своей колонке и уводит вторую строку пункта под первую букву. */
     &::before {
       content: '';
       position: absolute;
       left: 2px;
-      top: 8px;
+      top: 9px;
       width: 5px;
       height: 5px;
       border-radius: 50%;

@@ -1,0 +1,25 @@
+@use '../tokens' as legacy;
+
+//colors [background]
+$background: #131313;
+$primary: #282828;
+$primaryDark: #202020;
+$primaryDarker: #191919;
+$accent: legacy.$color-accent;
+$accentHover: legacy.$color-accent-hover;
+$onAccent: legacy.$color-on-accent;
+$accentText: legacy.$color-accent-text;
+$accentDark: #228e5d;
+$accentDarker: #124c32;
+
+//colors [text]
+$text: #ffffff;
+$textContent: #d6d6d6;
+$textMuted: #9E9E9E;
+
+// radius
+$radiusSM: 8px;
+$radiusMD: 12px;
+$radiusLG: 16px;
+$radiusXL: 20px;
+$radiusFull: 999px;

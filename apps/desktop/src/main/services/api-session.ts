@@ -1,8 +1,15 @@
 import type { ProxyEntry } from '@shared-types';
 import { net, type Session, session } from 'electron';
 import log from 'electron-log/main';
+import { redactSecrets } from '../lib/redact';
 import { getSettings, onSettingsChange } from '../settings/settings-store';
-import { applyProxyToSession, clearProxyFromSession, proxyLoginFor, syncProxyCreds } from './proxy';
+import {
+  applyProxyToSession,
+  clearProxyFromSession,
+  proxyLoginFor,
+  proxyRulesFor,
+  syncProxyCreds,
+} from './proxy';
 
 export const APP_PARTITION = 'persist:lolz-auth';
 
@@ -10,11 +17,15 @@ export const getAppSession = (): Session => session.fromPartition(APP_PARTITION)
 
 const SKIP_REQUEST_HEADERS = new Set(['host', 'content-length', 'connection']);
 
+/** A ceiling on what one answer may occupy in the main process. */
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+
 export const appFetch = (async (
   input: Parameters<typeof globalThis.fetch>[0],
   init?: RequestInit,
 ): Promise<Response> => {
   await whenAppProxyReady();
+  assertProxyHonoured();
 
   const request = input instanceof Request && !init ? input : new Request(input as never, init);
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
@@ -47,7 +58,16 @@ export const appFetch = (async (
 
     req.on('response', (res) => {
       const chunks: Buffer[] = [];
-      res.on('data', (c) => chunks.push(c));
+      let size = 0;
+      res.on('data', (c) => {
+        size += c.length;
+        if (size > MAX_RESPONSE_BYTES) {
+          req.abort();
+          fail(new Error('Ответ сервера слишком большой'));
+          return;
+        }
+        chunks.push(c);
+      });
       res.on('end', () => {
         if (settled) return;
         settled = true;
@@ -91,15 +111,27 @@ export const appFetch = (async (
   });
 }) as typeof globalThis.fetch;
 
+/** Every field that changes where a request actually goes, and nothing else. */
 const proxySignature = (proxy: ProxyEntry | undefined): string =>
-  proxy ? `${proxy.host}:${proxy.port}:${proxy.username ?? ''}:${proxy.password ?? ''}` : '';
+  proxy ? `${proxyRulesFor(proxy)}#${proxy.username ?? ''}:${proxy.password ?? ''}` : '';
 
 let applied: string | null = null;
+
+/** Set when the user asked for a proxy and the session did not take it. */
+let proxyFailure: string | null = null;
+
+/** Throws if traffic would leave outside the proxy the user selected. */
+const assertProxyHonoured = (): void => {
+  if (proxyFailure === null) return;
+  throw new Error(
+    `Запрос не отправлен: не удалось направить трафик через выбранный прокси (${proxyFailure}). Проверьте прокси в настройках или отключите его.`,
+  );
+};
 
 const applyAppProxy = async (proxies: ProxyEntry[], appProxyId: string | null): Promise<void> => {
   const proxy = appProxyId ? proxies.find((p) => p.id === appProxyId) : undefined;
   const sig = proxySignature(proxy);
-  if (sig === applied) return;
+  if (sig === applied && proxyFailure === null) return;
   applied = sig;
   const ses = getAppSession();
   try {
@@ -110,8 +142,11 @@ const applyAppProxy = async (proxies: ProxyEntry[], appProxyId: string | null): 
       await clearProxyFromSession(ses);
       log.info('[app-proxy] app traffic direct (no proxy)');
     }
+    proxyFailure = null;
   } catch (err) {
     applied = null;
+    // Only a *chosen* proxy that failed blocks anything.
+    proxyFailure = proxy ? redactSecrets(err instanceof Error ? err.message : String(err)) : null;
     log.warn('[app-proxy] failed to apply', err);
   }
 };

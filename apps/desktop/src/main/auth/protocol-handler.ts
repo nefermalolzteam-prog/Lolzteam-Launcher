@@ -12,7 +12,7 @@ const buildAuthUrl = (state: string) => {
     scope: LOLZ_CONFIG.oauthScopes,
     state,
   });
-  return `${LOLZ_CONFIG.webUrl}/account/authorize?${params.toString()}`;
+  return `${LOLZ_CONFIG.authWebUrl}/account/authorize?${params.toString()}`;
 };
 
 export const registerAuthFlow = (getWindow: GetWindow) => {

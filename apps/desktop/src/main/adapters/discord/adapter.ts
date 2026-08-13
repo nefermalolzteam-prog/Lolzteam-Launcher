@@ -6,12 +6,13 @@ import type {
   ServiceAdapter,
 } from '@adapter-contract';
 import type { AccountDetails } from '@shared-types';
+import { serviceLabel } from '@shared-types';
 import { BrowserWindow, session } from 'electron';
+import { mailboxPairFor } from '../../services/mailbox';
 import { applyProxyToSession, clearProxyFromSession } from '../../services/proxy';
 import { MAIN_COLORS } from '../../theme';
 import { failLogin as fail } from '../_shared/fail';
 import { createBrowserShell } from '../browser/browser-shell';
-import { emailPasswordFor } from '../llm/extract';
 import { extractDiscordToken } from './extract';
 
 const LOGIN_URL = 'https://discord.com/login';
@@ -37,6 +38,16 @@ const buildInjectionScript = (token: string): string => {
   })()`;
 };
 
+const isDiscordUrl = (raw: string): boolean => {
+  try {
+    const { protocol, hostname } = new URL(raw);
+    if (protocol !== 'https:') return false;
+    return hostname === 'discord.com' || hostname.endsWith('.discord.com');
+  } catch {
+    return false;
+  }
+};
+
 const prepareSession = async (partition: string, ctx: AdapterContext): Promise<void> => {
   const ses = session.fromPartition(partition);
   await ses.clearStorageData();
@@ -51,7 +62,7 @@ const prepareSession = async (partition: string, ctx: AdapterContext): Promise<v
 
 export const discordAdapter: ServiceAdapter = {
   id: 'discord',
-  displayName: 'Discord',
+  displayName: serviceLabel('discord'),
   platforms: ['win32', 'darwin', 'linux'] as const,
   methods: ['web'] as const,
 
@@ -104,13 +115,18 @@ export const discordAdapter: ServiceAdapter = {
       log: ctx.log,
       proxy: ctx.proxy,
       proxyTest: ctx.proxyTest,
-      emailPassword: emailPasswordFor(account) ?? undefined,
+      emailPassword: mailboxPairFor(account) ?? undefined,
     });
     const site = siteView.webContents;
 
     let injected = false;
     site.on('did-finish-load', () => {
       if (injected) return;
+      const url = site.getURL();
+      if (!isDiscordUrl(url)) {
+        ctx.log.warn(`[discord] not injecting the token into a non-Discord page (${url})`);
+        return;
+      }
       injected = true;
       site
         .executeJavaScript(buildInjectionScript(token), true)

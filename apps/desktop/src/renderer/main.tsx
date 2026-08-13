@@ -7,6 +7,9 @@ import { I18nextProvider } from 'react-i18next';
 import { App } from './app/App';
 import { ErrorBoundary } from './app/ErrorBoundary';
 import { i18n, initI18n } from './i18n';
+import { startRendererLogging } from './lib/log';
+
+startRendererLogging();
 
 const queryClient = new QueryClient({
   defaultOptions: {

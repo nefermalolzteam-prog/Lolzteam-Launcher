@@ -34,3 +34,4 @@ jobs:
         run: pnpm --filter @lolzteam/desktop exec electron-vite build && pnpm --filter @lolzteam/desktop exec electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LAUNCHER_TELEMETRY_KEY: ${{ secrets.LAUNCHER_TELEMETRY_KEY }}

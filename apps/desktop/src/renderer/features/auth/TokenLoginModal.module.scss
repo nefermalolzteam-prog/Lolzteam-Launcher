@@ -1,0 +1,74 @@
+
+.field {
+  position: relative;
+  // Внутри `<ModalField/>` это ребёнок флекс-колонки.
+  display: block;
+}
+
+/* Место под кнопку справа, чтобы длинный ключ не заезжал под глаз. */
+.input {
+  padding-right: 40px;
+}
+
+.reveal {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: flex;
+}
+
+/* ── Права токена ──────────────────────────────────────────────────────────── */
+
+/* Заголовок и список — один блок со своим шагом: зазор тела диалога (10px) развёл бы. */
+.scopesBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scopesTitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+.scopes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scope {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Имя права — ровно теми буквами, что стоят на странице выдачи. */
+.scopeName {
+  flex: none;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 1px 8px;
+  border-radius: v2.$radiusSM;
+  background: v2.$primary;
+  color: v2.$text;
+}
+
+.scopeWhy {
+  color: v2.$textMuted;
+  font-size: 14px;
+  line-height: 20px;
+  min-width: 0;
+}
+
+/* Кнопка по содержимому, а не во всю ширину тела: тело — флекс-колонка с `stretch` по умолчанию. */
+.whereRow {
+  display: flex;
+}

@@ -1,359 +1,190 @@
-.settingsContainer {
-  padding: 0 24px 24px 24px;
+.container {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 0 8px;
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
 
-  .settingsBlock {
-    max-width: 640px;
-    margin: 0 auto;
+  .rail {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    flex-shrink: 0;
+    width: 216px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: v2.$radiusXL;
+    background-color: v2.$primaryDarker;
+
+    .railGroup {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .railGroupLabel {
+        padding: 4px 12px;
+        font-weight: 400;
+        color: v2.$textMuted;
+        font-size: 14px;
+        line-height: 20px
+      }
+
+      .railItem {
+        @include button-reset;
+        @include clickable;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 12px;
+        color: v2.$textContent;
+        line-height: 20px;
+        font-size: 14px;
+        text-align: left;
+        transition: background-color .1s ease-in-out, color .1s ease-in-out;
+
+        &:hover {
+          background: #1F1F1F;
+        }
+
+        &:focus-visible {
+          @include focus-ring;
+        }
+
+        &.railItemActive {
+          background: rgba(v2.$accent, .12);
+          color: $color-text;
+
+          .railIcon {
+            color: $color-accent-text;
+          }
+        }
+
+        // Иконка красится текущим цветом пункта: сами знаки нарисованы `currentColor` (`ui/SettingsIcons.tsx`).
+        .railIcon {
+          flex-shrink: 0;
+          color: v2.$textMuted;
+          object-fit: contain;
+        }
+
+        .railLabel {
+          @include truncate(1);
+        }
+      }
+    }
+  }
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: v2.$radiusXL;
+  background-color: v2.$primaryDarker;
+
+  .pageHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    border-bottom: 1px solid v2.$primaryDark;
+
+    .pageHeadText {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      animation: settings-page-in $duration-base $ease-out;
+    }
+
+    // Сюда страница дорисовывает свои кнопки порталом (`pageActions.tsx`).
+    .pageActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .pageTitle {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+      color: v2.$textContent;
+    }
+
+    .pageHint {
+      margin: 0;
+      font-size: 14px;
+      color: v2.$textMuted;
+    }
+  }
+
+  .pageBody {
     display: flex;
     flex-direction: column;
     gap: 16px;
-
-    .settingsItem {
-      background-color: #1F1F1F;
-      border-radius: 24px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-
-      .prefix {
-        padding: 16px 20px 8px 20px;
-        color: #949494;
-        text-transform: uppercase;
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      .alert {
-        white-space: wrap;
-        font-size: 14px;
-        color: #f8a93f;
-      }
-
-      .settingsMenu {
-        padding: 12px 16px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin: 0 4px;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all .1s ease-in-out;
-
-        &:last-child {
-          margin-bottom: 4px;
-        }
-
-        .text {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-
-          .descriptionBlock {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-
-            .description {
-              color: #949494;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-
-            .greenText {
-              color: #1EA360;
-              cursor: pointer;
-              flex-shrink: 0;
-
-              &:hover {
-                text-decoration: underline;
-              }
-            }
-          }
-        }
-
-        svg {
-          width: 20px;
-          height: 20px;
-          color: #949494;
-          flex-shrink: 0;
-          transition: all .1s ease-in-out;
-        }
-
-        &:hover {
-          background-color: #282828;
-
-          svg {
-            color: #d6d6d6;
-          }
-        }
-
-        &:active {
-          opacity: .72;
-        }
-      }
-    }
-
-    .socialBlock {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-
-      .socialItem {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #1F1F1F;
-        border-radius: 32px;
-        padding: 12px;
-        gap: 6px;
-        color: #f5f5f5;
-        text-decoration: none;
-        cursor: pointer;
-        user-select: none;
-        line-height: 1;
-        transition: all .1s ease-in-out;
-
-        svg {
-          width: 20px;
-          height: 20px;
-        }
-
-        &:hover {
-          background-color: #282828;
-        }
-
-        &:active {
-          opacity: .72;
-        }
-      }
-    }
-
-    .toggleRow {
-      @include button-reset;
-      @include clickable;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: $space-4;
-      text-align: left;
-
-      &:focus-visible {
-        @include focus-ring;
-      }
-    }
+    padding: 16px;
+    // Тело едет чуть позже заголовка: сначала видно, куда пришёл, потом — что там лежит.
+    animation: settings-page-in $duration-slow $ease-out;
   }
 }
 
-.langList {
-  display: flex;
-  flex-direction: column;
-  gap: $space-1;
-}
-
-.langOption {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: $space-3;
-  padding: $space-3 $space-4;
-  border-radius: $radius-md;
-  font-size: $fs-sm;
-  color: $color-text;
-  background: #ffffff12;
-  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
-
-  &:hover {
-    background: #ffffff20;
+/** Появление страницы настроек. */
+@keyframes settings-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
   }
-
-  &:focus-visible {
-    @include focus-ring;
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
-.langOptionActive {
-  color: $color-accent;
-  font-weight: 600;
-}
-
-.segmented {
-  display: inline-flex;
-  flex-shrink: 0;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 12px;
-  background: #161616;
-  border: 1px solid $color-border;
-}
-
-.appIdInput {
-  flex-shrink: 0;
-  width: 96px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: #161616;
-  border: 1px solid $color-border;
-  color: $color-text;
-  font-size: 14px;
-  text-align: center;
-  outline: none;
-  transition: border-color $duration-fast $ease-out;
-
-  &:focus {
-    border-color: $color-accent;
-  }
-
-  &::placeholder {
-    color: $color-text-muted;
+// Страница, которая приехала, — украшение; страница, которая *есть*, — суть.
+@media (prefers-reduced-motion: reduce) {
+  .pageHeadText,
+  .pageBody {
+    animation: none;
   }
 }
 
-.segmentBtn {
-  @include button-reset;
-  @include clickable;
-  min-width: 34px;
-  padding: 6px 12px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #949494;
-  transition: background 0.1s ease, color 0.1s ease;
-
-  &:hover {
-    color: $color-text;
+@media (max-width: 900px) {
+  .container {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.segmentBtnActive {
-  background: $color-accent;
-  color: #06170f;
-
-  &:hover {
-    color: #06170f;
-  }
-}
-
-.switch {
-  position: relative;
-  flex-shrink: 0;
-  width: 40px;
-  height: 22px;
-  border-radius: $radius-pill;
-  background: $color-surface-overlay;
-  border: 1px solid $color-border;
-  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out;
-}
-
-.switchKnob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: $color-text-muted;
-  transition: transform $duration-fast $ease-out, background $duration-fast $ease-out;
-}
-
-.switchOn {
-  background: $color-accent;
-  border-color: $color-accent;
-
-  .switchKnob {
-    transform: translateX(18px);
-    background: #06170f;
-  }
-}
-
-.confirm {
-  display: flex;
-  flex-direction: column;
-  gap: $space-4;
-}
-
-.confirmBody {
-  margin: 0;
-  font-size: $fs-sm;
-  line-height: 1.5;
-  color: $color-text-muted;
-}
-
-.confirmActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: $space-2;
-}
-
-.confirmCancel,
-.confirmDanger {
-  @include button-reset;
-  @include clickable;
-  padding: $space-3 $space-4;
-  border-radius: $radius-md;
-  font-size: $fs-sm;
-  font-weight: 600;
-  transition: background $duration-fast $ease-out, opacity $duration-fast $ease-out;
-
-  &:focus-visible {
-    @include focus-ring;
+  .rail {
+    position: static;
+    width: 100%;
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    @include scrollbar;
   }
 
-  &:active {
-    opacity: .72;
+  .railGroup {
+    flex-direction: row;
+    gap: 4px;
   }
-}
 
-.confirmCancel {
-  color: $color-text;
-  background: #ffffff12;
-
-  &:hover {
-    background: #ffffff20;
+  .railGroupLabel {
+    display: none;
   }
-}
 
-.confirmDanger {
-  color: #fff;
-  background: #c0392b;
-
-  &:hover {
-    background: #d04434;
+  .railItem {
+    white-space: nowrap;
   }
-}
 
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.langValue {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.menuFlag {
-  width: 18px;
-  height: auto;
-  border-radius: 3px;
-  flex-shrink: 0;
+  .content {
+    width: 100%;
+  }
 }

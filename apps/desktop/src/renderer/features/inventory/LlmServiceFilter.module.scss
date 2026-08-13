@@ -22,15 +22,16 @@
   }
 }
 
+// Подложка и рамка — тот же акцент, только прозрачный; подпись — его светлая ступень для надписей (`$color-accent-text`).
 .triggerActive {
-  color: $color-accent;
-  background-color: #00ba7824;
-  border-color: #00ba7832;
+  color: $color-accent-text;
+  background-color: rgba($color-accent, 0.14);
+  border-color: rgba($color-accent, 0.2);
 
   &:hover {
-    color: $color-accent;
-    background-color: #00ba7840;
-    border-color: #00ba7856;
+    color: $color-accent-text;
+    background-color: rgba($color-accent, 0.25);
+    border-color: rgba($color-accent, 0.34);
   }
 }
 
@@ -40,41 +41,4 @@
 
 .chevronOpen {
   transform: rotate(180deg);
-}
-
-.menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: $z-sticky;
-  min-width: 160px;
-  padding: 6px;
-  background: $color-surface-raised;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  box-shadow: $shadow-lg;
-}
-
-.item {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: $radius-sm;
-  font-size: 14px;
-  color: $color-text;
-  white-space: nowrap;
-  transition: background 120ms ease;
-
-  &:hover {
-    background: $color-surface-overlay;
-  }
-}
-
-.itemActive {
-  color: $color-accent;
 }

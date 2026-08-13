@@ -24,12 +24,17 @@ interface TooltipProps {
 
 const GAP = 8;
 const EDGE = 8;
+/** Mirrors `$duration-fast`, the length of the `tooltip-out` keyframes. */
+const LEAVE_MS = 120;
 
 interface Pos {
   left: number;
   top: number;
   placement: Placement;
 }
+
+/** `hidden` is not rendered at all; `leaving` still is, for exactly as long as the fade-out runs. */
+type Phase = 'hidden' | 'shown' | 'leaving';
 
 export const Tooltip = ({
   label,
@@ -41,33 +46,40 @@ export const Tooltip = ({
   const id = useId();
   const anchorRef = useRef<HTMLElement | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerFocusRef = useRef(false);
-  const [open, setOpen] = useState(false);
+  const enterRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [phase, setPhase] = useState<Phase>('hidden');
   const [pos, setPos] = useState<Pos | null>(null);
 
-  const clearTimer = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+  const clearTimers = () => {
+    if (enterRef.current) clearTimeout(enterRef.current);
+    if (leaveRef.current) clearTimeout(leaveRef.current);
+    enterRef.current = null;
+    leaveRef.current = null;
   };
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: unmount-only cleanup; clearTimer touches only refs
-  useEffect(() => () => clearTimer(), []);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: unmount-only cleanup; clearTimers touches only refs
+  useEffect(() => () => clearTimers(), []);
 
   const show = () => {
     if (disabled) return;
-    clearTimer();
-    timerRef.current = setTimeout(() => setOpen(true), delay);
+    clearTimers();
+    enterRef.current = setTimeout(() => setPhase('shown'), delay);
   };
 
   const hide = () => {
-    clearTimer();
-    setOpen(false);
-    setPos(null);
+    clearTimers();
+    // A bubble that never made it onto the screen has nothing to fade.
+    setPhase((p) => (p === 'shown' ? 'leaving' : 'hidden'));
+    leaveRef.current = setTimeout(() => {
+      setPhase('hidden');
+      setPos(null);
+    }, LEAVE_MS);
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `label` changes the bubble size — reposition when it changes
   useLayoutEffect(() => {
-    if (!open) return;
+    if (phase !== 'shown') return;
     const anchor = anchorRef.current;
     const bubble = bubbleRef.current;
     if (!anchor || !bubble) return;
@@ -86,10 +98,11 @@ export const Tooltip = ({
     left = Math.max(EDGE, Math.min(left, window.innerWidth - b.width - EDGE));
 
     setPos({ left, top, placement: side });
-  }, [open, placement, label]);
+  }, [phase, placement, label]);
 
   const child = children as ReactElement<{
     ref?: React.Ref<HTMLElement>;
+    title?: string;
     onMouseEnter?: (e: React.MouseEvent) => void;
     onMouseLeave?: (e: React.MouseEvent) => void;
     onPointerDown?: (e: React.PointerEvent) => void;
@@ -111,6 +124,8 @@ export const Tooltip = ({
 
   const trigger = cloneElement(child, {
     ref: setRef,
+    /** The bubble is the tooltip; the browser's own must not double it. */
+    title: '',
     onMouseEnter: (e: React.MouseEvent) => {
       child.props.onMouseEnter?.(e);
       show();
@@ -121,35 +136,32 @@ export const Tooltip = ({
     },
     onPointerDown: (e: React.PointerEvent) => {
       child.props.onPointerDown?.(e);
-      pointerFocusRef.current = true;
       hide();
     },
     onFocus: (e: React.FocusEvent) => {
       child.props.onFocus?.(e);
-      if (pointerFocusRef.current) {
-        pointerFocusRef.current = false;
-        return;
-      }
+      // Only a keyboard focus is worth a bubble, and `:focus-visible` is the browser's own answer to which focus that was.
+      const anchor = anchorRef.current;
+      if (!anchor || !anchor.matches(':focus-visible')) return;
       show();
     },
     onBlur: (e: React.FocusEvent) => {
       child.props.onBlur?.(e);
-      pointerFocusRef.current = false;
       hide();
     },
-    'aria-describedby': open ? id : undefined,
+    'aria-describedby': phase === 'shown' ? id : undefined,
   });
 
   return (
     <>
       {trigger}
-      {open &&
+      {phase !== 'hidden' &&
         createPortal(
           <div
             ref={bubbleRef}
             id={id}
             role="tooltip"
-            className={`${s.tooltip} ${pos ? s.visible : ''} ${
+            className={`${s.tooltip} ${pos ? s.visible : ''} ${phase === 'leaving' ? s.leaving : ''} ${
               pos?.placement === 'bottom' ? s.bottom : s.top
             }`}
             style={pos ? { left: pos.left, top: pos.top } : { left: -9999, top: -9999 }}

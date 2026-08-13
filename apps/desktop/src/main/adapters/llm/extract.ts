@@ -61,30 +61,28 @@ export const extractEmailCreds = (
   return email && password ? { email, password } : null;
 };
 
-export const emailPasswordFor = (details: AccountDetails): string | null => {
-  const creds = extractEmailCreds(details);
-  return creds ? `${creds.email}:${creds.password}` : null;
-};
-
-export const extractLlmKey = (details: AccountDetails): string | null => {
+export const extractLlmKey = (details: AccountDetails, cookieName?: string): string | null => {
   const secrets = (details.secrets ?? {}) as Record<string, unknown>;
   log.debug(
     `[llm] secret keys for #${details.itemId}: ${Object.keys(secrets).join(', ') || 'none'}`,
   );
 
-  const sessionCookie = extractLlmCookieArray(details).find((c) => c.name === 'sessionKey');
+  const wanted = cookieName ?? 'sessionKey';
+  const sessionCookie = extractLlmCookieArray(details).find((c) => c.name === wanted);
   if (sessionCookie?.value) return sessionCookie.value;
 
   const ld = secrets.loginData;
   const fromLoginData =
     ld && typeof ld === 'object'
-      ? (asString((ld as Record<string, unknown>).sessionKey) ??
+      ? (asString((ld as Record<string, unknown>)[wanted]) ??
+        asString((ld as Record<string, unknown>).sessionKey) ??
         asString((ld as Record<string, unknown>).cookie) ??
         asString((ld as Record<string, unknown>).login) ??
         asString((ld as Record<string, unknown>).password))
       : null;
 
   const candidates = [
+    asString(secrets[wanted]),
     asString(secrets.sessionKey),
     asString(secrets.session_key),
     fromLoginData,
@@ -106,10 +104,10 @@ export const resolveLlmCookies = (
   const cookies = extractLlmCookieArray(details);
   if (cookies.length > 0) return cookies;
 
-  const key = extractLlmKey(details);
+  const { cookieDomain, cookieName } = provider;
+  const key = extractLlmKey(details, cookieName);
   if (!key) return [];
 
-  const { cookieDomain, cookieName } = provider;
   if (!cookieDomain || !cookieName) return [];
 
   const host = cookieDomain.startsWith('.') ? cookieDomain.slice(1) : cookieDomain;

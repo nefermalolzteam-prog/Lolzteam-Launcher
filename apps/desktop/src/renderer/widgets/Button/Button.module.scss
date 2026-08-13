@@ -1,0 +1,155 @@
+
+.button {
+  @include button-reset;
+  @include clickable;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+
+  /* Нажатие — только у кнопок по содержимому. */
+  &:not(.block) {
+    @include pressable;
+  }
+
+  /* Repeats `scale` from `clickable`, which this declaration would otherwise replace wholesale. */
+  transition:
+    filter $duration-fast $ease-out,
+    background $duration-fast $ease-out,
+    scale $duration-fast $ease-out,
+    color $duration-fast $ease-out;
+
+  /* The button itself shrinks like any other flex item — a row that gives it. */
+  > svg {
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.2);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  /* Busy is disabled at the DOM level but not to the eye: the button is doing the thing that was asked of it. */
+  &:disabled:not(.busy) {
+    background: $color-surface-overlay;
+    color: $color-text-muted;
+    cursor: not-allowed;
+  }
+
+  &.busy {
+    cursor: progress;
+  }
+}
+
+/* ── Variants ─────────────────────────────────────────────────────────────── */
+
+/* The label on a filled variant comes from the fill's own foreground token, not from the text palette. */
+.accent {
+  @include accent-button;
+
+  /* Ховер приезжает из миксина заливкой — тем же `$color-accent-hover`, что и у всех акцентных кнопок приложения. */
+  &:hover:not(:disabled) {
+    filter: none;
+  }
+}
+
+.neutral {
+  background: $color-surface-overlay;
+  color: $color-text;
+}
+
+.danger {
+  background: $color-danger-solid;
+  color: $color-on-danger;
+}
+
+.ghost {
+  background: transparent;
+  color: $color-text-muted;
+
+  &:hover:not(:disabled) {
+    background: $color-surface-overlay;
+    color: $color-text;
+    filter: none;
+  }
+
+  /* Nothing to grey out — a ghost that goes grey looks like a neutral button. */
+  &:disabled:not(.busy) {
+    background: transparent;
+    opacity: 0.5;
+  }
+}
+
+/* ── Sizes ────────────────────────────────────────────────────────────────── */
+
+.sm {
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: $fs-xs;
+}
+
+/* The one size with a line-height of its own: at 14px the label is read as text. */
+.md {
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: $fs-sm;
+  line-height: 20px;
+}
+
+.lg {
+  gap: 8px;
+  padding: 16px 24px;
+  font-size: $fs-base;
+}
+
+/* ── Shapes ───────────────────────────────────────────────────────────────── */
+
+.pill {
+  border-radius: $radius-pill;
+}
+
+.rounded {
+  border-radius: v2.$radiusMD;
+}
+
+/* ── Modifiers ────────────────────────────────────────────────────────────── */
+
+/* Square padding, so `pill` turns the same button into a circle. */
+.iconOnly {
+  &.sm {
+    padding: 7px;
+  }
+
+  &.md {
+    padding: 9px;
+  }
+
+  &.lg {
+    padding: 12px;
+  }
+}
+
+.block {
+  width: 100%;
+}
+
+/* The label is the only part allowed to give way. */
+.label {
+  @include truncate(1);
+  min-width: 0;
+}
+
+.spinner {
+  animation: button-spin 0.9s linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

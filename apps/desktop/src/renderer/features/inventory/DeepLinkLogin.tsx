@@ -1,23 +1,25 @@
-import type { AccountDetails, ProxyEntry, ServiceId } from '@shared-types';
-import { Loader2 } from 'lucide-react';
+import type { AccountPreview, ProxyEntry, ServiceId } from '@shared-types';
+import { pinnedProxyFor } from '@shared-types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { loginMethodsFor, toLoginService } from '~/lib/loginService';
 import { formatWarranty } from '~/lib/loginService';
 import { type LoginMethod, useLoginSession } from '~/stores/loginSession';
 import { useSettings } from '~/stores/settings';
+import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
-import s from './DeepLinkLogin.module.scss';
+import { ModalHint, ModalSpacer, ModalStatus, ModalWarn } from '~/widgets/Modal/ModalKit';
 import { LoginMethodModal } from './LoginMethodModal';
 import { ProxyChoiceModal, type ProxyTest } from './ProxyChoiceModal';
 
 const EMPTY_PROXIES: ProxyEntry[] = [];
+const EMPTY_PINS: Record<string, string> = {};
 const EMPTY_SERVICES: ServiceId[] = [];
 const EMPTY_PREFS: Partial<Record<ServiceId, 'native' | 'web'>> = {};
 
 export const DeepLinkLogin = () => {
   const { t } = useTranslation();
-  const [pending, setPending] = useState<AccountDetails | null>(null);
+  const [pending, setPending] = useState<AccountPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [choosingMethod, setChoosingMethod] = useState(false);
@@ -27,6 +29,7 @@ export const DeepLinkLogin = () => {
   const proxyEnabled = useSettings((st) => st.settings?.proxyEnabled ?? false);
   const proxies = useSettings((st) => st.settings?.proxies ?? EMPTY_PROXIES);
   const proxyServices = useSettings((st) => st.settings?.proxyServices ?? EMPTY_SERVICES);
+  const accountProxies = useSettings((st) => st.settings?.accountProxies ?? EMPTY_PINS);
   const preferredLoginMethod = useSettings(
     (st) => st.settings?.preferredLoginMethod ?? EMPTY_PREFS,
   );
@@ -41,7 +44,7 @@ export const DeepLinkLogin = () => {
       setMethod(null);
       setLoading(true);
       window.launcher.accounts
-        .get(itemId)
+        .preview(itemId)
         .then((details) => {
           if (!details) setError(t('deepLink.notFound'));
           else if (!details.owned) setError(t('deepLink.notOwned'));
@@ -127,26 +130,29 @@ export const DeepLinkLogin = () => {
 
   if (error) {
     return (
-      <Modal title={t('deepLink.title')} closable onClose={close}>
-        <div className={s.body}>
-          <p className={s.error}>{error}</p>
-          <div className={s.actions}>
-            <button type="button" className={s.cancel} onClick={close}>
+      <Modal
+        title={t('deepLink.title')}
+        size="sm"
+        closable
+        onClose={close}
+        footer={
+          <>
+            <ModalSpacer />
+            <Button variant="ghost" size="sm" onClick={close}>
               {t('deepLink.close')}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </>
+        }
+      >
+        <ModalStatus tone="bad" title={error} />
       </Modal>
     );
   }
 
   if (loading) {
     return (
-      <Modal title={t('deepLink.title')} closable onClose={close}>
-        <div className={s.loadingBody}>
-          <Loader2 size={22} className={s.spin} />
-          <span>{t('deepLink.loading')}</span>
-        </div>
+      <Modal title={t('deepLink.title')} size="sm" closable onClose={close}>
+        <ModalStatus tone="busy" title={t('deepLink.loading')} />
       </Modal>
     );
   }
@@ -169,6 +175,14 @@ export const DeepLinkLogin = () => {
     return (
       <ProxyChoiceModal
         proxies={proxies}
+        // A deep link into a pinned account asks nothing and dials the pin — the same behaviour the card has.
+        autoTestId={
+          pinnedProxyFor(
+            { proxyEnabled, proxies, proxyServices, accountProxies },
+            pending.itemId,
+            pending.category,
+          )?.id ?? null
+        }
         onChoose={(id, test) => startLogin(method, id, test)}
         onCancel={() => setChoosingProxy(false)}
       />
@@ -178,19 +192,26 @@ export const DeepLinkLogin = () => {
   const warranty = service === 'steam' ? formatWarranty(pending.warrantyEndsAt, t) : null;
 
   return (
-    <Modal title={t('deepLink.title')} closable onClose={close}>
-      <div className={s.body}>
-        <p className={s.text}>{t('deepLink.body', { title: pending.title })}</p>
-        {warranty && <p className={s.warn}>{t('inventory.card.warrantyWarnBody', { warranty })}</p>}
-        <div className={s.actions}>
-          <button type="button" className={s.cancel} onClick={close}>
+    <Modal
+      title={t('deepLink.title')}
+      size="sm"
+      closable
+      onClose={close}
+      footer={
+        <>
+          <ModalSpacer />
+          <Button variant="ghost" size="sm" onClick={close}>
             {t('deepLink.cancel')}
-          </button>
-          <button type="button" className={s.confirm} onClick={confirm}>
+          </Button>
+          <Button variant="accent" size="sm" onClick={confirm}>
             {t('deepLink.confirm')}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </>
+      }
+    >
+      <ModalHint>{t('deepLink.body', { title: pending.title })}</ModalHint>
+      {/* Ссылка приходит извне, и гарантия — единственное. */}
+      {warranty && <ModalWarn>{t('inventory.card.warrantyWarnBody', { warranty })}</ModalWarn>}
     </Modal>
   );
 };

@@ -31,7 +31,7 @@ select {
 }
 
 a {
-  color: $color-accent;
+  color: $color-accent-text;
   text-decoration: none;
   &:hover {
     text-decoration: underline;
@@ -48,6 +48,6 @@ h1, h2, h3, h4, h5, h6, p, figure {
 }
 
 ::selection {
-  background: rgba(0, 186, 120, 0.35);
+  background: rgba($color-accent, 0.35);
   color: #fff;
 }

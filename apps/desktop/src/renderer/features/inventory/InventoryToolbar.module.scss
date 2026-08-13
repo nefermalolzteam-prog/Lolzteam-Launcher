@@ -1,0 +1,344 @@
+.toolbar {
+  padding: 12px 24px 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .scopeTabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .scopeTab {
+      @include button-reset;
+      font-size: 14px;
+      line-height: 20px;
+      padding: 10px 12px 10px 16px;
+      outline: 1px solid rgba(v2.$text, 0.04);
+      outline-offset: -1px;
+      border-radius: v2.$radiusFull;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background-color: rgba(v2.$primaryDark, 0.7);
+      // Named properties rather than `all`: the tab is what the list dissolves with*.
+      transition:
+        background-color .16s ease-in-out,
+        outline-color .16s ease-in-out,
+        color .16s ease-in-out;
+
+      .filterCount {
+        font-size: 12px;
+        line-height: 20px;
+        padding: 0 8px;
+        background-color: rgba(v2.$text, 0.07);
+        border-radius: v2.$radiusFull;
+      }
+
+      svg {
+        color: v2.$textMuted;
+        // The glyph is a child, so it is not covered by the rule above.
+        transition: color .16s ease-in-out;
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &:hover {
+        outline: 1px solid rgba(v2.$text, 0.1);
+        background-color: rgba(v2.$primaryDark, 1);
+      }
+
+      &.scopeTabActive {
+        color: v2.$text;
+        outline: 1px solid rgba(v2.$accent, 0.4);
+        background-color: rgba(v2.$accent, 0.07);
+
+        svg {
+          color: v2.$accentText;
+        }
+      }
+    }
+  }
+
+  .controlsActions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .leftControls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .designChanger {
+        display: flex;
+        align-items: center;
+        width: fit-content;
+        gap: 4px;
+        padding: 4px;
+        border-radius: v2.$radiusFull;
+        background-color: v2.$primary;
+
+        .designChangerItem {
+          @include button-reset;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: v2.$radiusFull;
+          color: v2.$textMuted;
+          transition: all .1s ease-in-out;
+
+          &:hover {
+            color: v2.$text;
+          }
+
+          &:active {
+            opacity: .72;
+          }
+
+          &.designChangerItemActive {
+            color: v2.$text;
+            background-color: rgba(v2.$text, 0.07);
+          }
+        }
+      }
+
+      // The «Фильтры» button and the reset next to it read as one control.
+      .filterGroup {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .filterBtn {
+        @include button-reset;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        line-height: 20px;
+        outline: 1px solid #ffffff00;
+        outline-offset: -1px;
+        border-radius: v2.$radiusFull;
+        background-color: v2.$primary;
+        transition: all .1s ease-in-out;
+
+        svg {
+          color: v2.$textMuted;
+        }
+
+        &:active {
+          opacity: .72;
+        }
+
+        // The same accent treatment `.filter` and `.scopeTab` wear when they are the active one.
+        &.filterBtnActive {
+          color: v2.$text;
+          outline: 1px solid rgba(v2.$accent, 0.4);
+          background-color: rgba(v2.$accent, 0.07);
+
+          svg {
+            color: v2.$accentText;
+          }
+        }
+
+        // How many answers the dialog is holding — shaped like the counter on the scope tabs and the category buttons.
+        .filterCount {
+          font-size: 12px;
+          line-height: 20px;
+          padding: 0 8px;
+          font-weight: 500;
+          color: v2.$accentText;
+          background-color: rgba(v2.$accent, 0.12);
+          border-radius: v2.$radiusFull;
+        }
+      }
+
+      // Sized and shaped like `.refresh`, the bar's other icon-only button.
+      .filterClear {
+        @include button-reset;
+        display: flex;
+        padding: 10px;
+        color: v2.$textMuted;
+        border-radius: v2.$radiusFull;
+        transition: all .1s ease-in-out;
+
+        &:hover {
+          background-color: rgba(v2.$accent, 0.12);
+          color: v2.$accentText;
+        }
+
+        &:active {
+          opacity: .72;
+        }
+      }
+
+      // The one call to action in the bar, and the last thing in the left cluster: it acts on the list those controls describe.
+      .addBtn {
+        @include button-reset;
+        @include accent-button;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-size: 14px;
+        line-height: 20px;
+        font-weight: 500;
+        border-radius: v2.$radiusFull;
+        transition: all .1s ease-in-out;
+
+        &:active {
+          opacity: .72;
+        }
+
+        &:disabled {
+          opacity: .56;
+          cursor: default;
+        }
+      }
+    }
+
+    .refresh {
+      @include button-reset;
+      display: flex;
+      padding: 10px;
+      color: v2.$textMuted;
+      border-radius: v2.$radiusFull;
+      transition: all .1s ease-in-out;
+
+      &:hover {
+        background-color: v2.$primary;
+        color: v2.$text;
+      }
+
+      &:active {
+        opacity: .72;
+      }
+    }
+  }
+}
+
+.controls {
+  padding: 16px 24px;
+  border-top: 1px solid v2.$primary;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .searchBox {
+    display: flex;
+    align-items: center;
+    position: relative;
+
+    .searchInput {
+      @include button-reset;
+      padding: 10px 40px 10px 44px;
+      font-size: 14px;
+      line-height: 20px;
+      background-color: v2.$primaryDark;
+      border-radius: v2.$radiusFull;
+
+      // Without this the placeholder inherits the input's own colour and reads as real, typed-in text.
+      &::placeholder {
+        color: v2.$textMuted;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+
+    .searchIcon {
+      position: absolute;
+      left: 16px;
+      color: $color-text-muted;
+      pointer-events: none;
+    }
+
+    .searchClear {
+      @include button-reset;
+      display: flex;
+      color: v2.$textMuted;
+      position: absolute;
+      right: 12px;
+    }
+  }
+
+  .filters {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background-color: v2.$primaryDark;
+    padding: 2px;
+    border-radius: v2.$radiusFull;
+
+    .filter {
+      @include button-reset;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      outline: 1px solid #ffffff00;
+      outline-offset: -1px;
+      border-radius: v2.$radiusFull;
+      transition: all .1s ease-in-out;
+
+      .filterLogo {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+        color: v2.$textMuted;
+      }
+
+      .filterCount {
+        font-size: 12px;
+        line-height: 20px;
+        padding: 0 8px;
+        background-color: rgba(v2.$text, 0.07);
+        border-radius: v2.$radiusFull;
+      }
+
+      // Deliberately the size of a two-digit `.filterCount` including its padding: the counts arrive one service at a time.
+      .filterCountSkeleton {
+        @include skeleton;
+        display: inline-block;
+        width: 30px;
+        height: 20px;
+        border-radius: v2.$radiusFull;
+      }
+
+      &.filterActive {
+        color: v2.$text;
+        outline: 1px solid rgba(v2.$accent, 0.4);
+        background-color: rgba(v2.$accent, 0.07);
+
+        .filterLogo {
+          color: v2.$accentText;
+        }
+      }
+    }
+
+    .filterDivider {
+      flex: 0 0 auto;
+      width: 1px;
+      height: 20px;
+      background-color: rgba(v2.$text, 0.1);
+    }
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

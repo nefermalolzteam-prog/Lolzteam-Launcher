@@ -1,0 +1,41 @@
+
+.lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-text;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: $radius-md;
+  background: $color-field-bg;
+  border: 1px solid $color-field-border;
+}
+
+/* Название и пояснение — колонкой, а не по краям строки. */
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+
+  & + & {
+    border-top: 1px solid $color-hairline;
+  }
+}
+
+.itemName {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: $color-text;
+}
+
+.itemValue {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}

@@ -1,0 +1,429 @@
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background-color: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+}
+
+/* ── Панель инструментов ───────────────────────────────────────────────── */
+
+/* Два ряда, а не один переносящийся. */
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: v2.$primaryDarker;
+  border-radius: v2.$radiusLG v2.$radiusLG 0 0;
+}
+
+/** Нижний ряд: состояние, раздел и «ещё». */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 11px;
+  color: v2.$textMuted;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  // Высота получается 34px — ровно как у переключателя состояния и кнопки раздела рядом.
+  padding: 6px 11px 6px 34px;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusMD;
+  background: v2.$primaryDark;
+  color: $color-text;
+  font-size: 14px;
+  line-height: 20px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color $duration-fast $ease-out;
+
+  &::placeholder {
+    color: v2.$textMuted;
+  }
+
+  &:hover {
+    border-color: $color-border-strong;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  /* WebKit draws its own clear button, and it does not match anything here. */
+  &::-webkit-search-cancel-button {
+    appearance: none;
+  }
+}
+
+/* ── Переключатель состояния ───────────────────────────────────────────── */
+
+/** Четыре сцепленных деления в одной рамке. */
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusMD;
+  background: v2.$primaryDark;
+}
+
+.segBtn {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: calc(#{v2.$radiusMD} - 3px);
+  color: v2.$textContent;
+  font-size: 13px;
+  line-height: 18px;
+  white-space: nowrap;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover {
+    background: v2.$primary;
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+/** Выбранное деление. */
+.segBtnOn {
+  background: $color-accent-solid;
+  color: $color-on-accent;
+
+  // Ховер не осветляет и не гасит: деление уже выбрано, и нажатие по нему ничего не изменит — подсказывать нечего.
+  &:hover {
+    background: $color-accent-solid;
+    color: $color-on-accent;
+  }
+}
+
+/** Число рядом с подписью — оно вторично, поэтому не жирное, а бледное. */
+.segCount {
+  font-size: 12px;
+  opacity: .65;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Переключатель раздела ─────────────────────────────────────────────── */
+
+/** Обёртка нужна не для вида, а для места: `Menu` встаёт. */
+.picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.pickerTrigger {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 190px;
+  padding: 6px 10px;
+  border-radius: v2.$radiusMD;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  color: v2.$textContent;
+  font-size: 13px;
+  line-height: 20px;
+  transition: border-color $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover {
+    border-color: $color-border-strong;
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.pickerIcon {
+  flex-shrink: 0;
+  color: v2.$textMuted;
+}
+
+/** Названия разделов в словаре записаны со строчной («все разделы», «прокси») — они задуманы как часть фразы. */
+.pickerValue {
+  @include truncate(1);
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: v2.$textMuted;
+  transition: transform $duration-fast $ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/** Та же роль, что и у `.picker`: якорь для меню «Ещё». */
+.moreWrap {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+}
+
+/* Строка меню с числом справа: `.itemLabel` отдаёт всю ширину, делим её сами. */
+.optionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/** Название раздела в строке меню. */
+.optionName {
+  @include truncate(1);
+  min-width: 0;
+
+  &::first-letter {
+    text-transform: uppercase;
+  }
+}
+
+.optionCount {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: v2.$textMuted;
+}
+
+.iconBtn {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Квадрат в высоту соседей по панели, а не на шесть пикселей ниже них.
+  width: 34px;
+  height: 34px;
+  border-radius: v2.$radiusMD;
+  color: v2.$textMuted;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover:not(:disabled) {
+    background: #ffffff1f;
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Полоса дня ────────────────────────────────────────────────────────── */
+
+/** Не заголовок секции, а разрыв в ленте: список идёт сплошняком, и день отделяется тем, что фон на секунду темнеет. */
+.day {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  background: v2.$primaryDarker;
+  border-top: 1px solid v2.$primary;
+  border-bottom: 1px solid v2.$primary;
+  font-size: 12.5px;
+  line-height: 18px;
+  color: v2.$textMuted;
+}
+
+.dayCount {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Строки ────────────────────────────────────────────────────────────── */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/** Строка журнала. */
+.row {
+  display: grid;
+  grid-template-columns: 54px 12px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3px 10px;
+  padding: 7px 16px;
+  font-size: 14px;
+  line-height: 20px;
+  transition: background $duration-fast $ease-out;
+
+  &:hover {
+    background: v2.$primary;
+  }
+
+  /* Низ скругляет себе последняя строка последнего дня: карточка без `overflow: clip`. */
+  .list:last-child &:last-child {
+    border-radius: 0 0 v2.$radiusLG v2.$radiusLG;
+  }
+}
+
+/** Раскрытый повтор. */
+.rowNested {
+  background: rgba(0, 0, 0, .18);
+
+  .rowTitle {
+    color: v2.$textContent;
+  }
+}
+
+.rowTime {
+  color: v2.$textMuted;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/** Точка состояния. */
+.dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #3a3a3a;
+  }
+}
+
+/* По классу на состояние, включая успех: строка собирает имя как `dot_${status}`. */
+.dot_ok::before {
+  background: #3a3a3a;
+}
+
+.dot_fail::before {
+  background: #e24b4a;
+}
+
+.dot_cancelled::before {
+  background: #efa023;
+}
+
+.rowBody {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+/** Подпись действия не ужимается: она из словаря и коротка. */
+.rowTitle {
+  flex-shrink: 0;
+  color: $color-text;
+  white-space: nowrap;
+}
+
+/** Красным — только подпись неудачи: строка целиком в красном была бы криком. */
+.rowTitleFail {
+  color: #e8706f;
+}
+
+/** Уточнение: над кем действие и чем кончилось. */
+.rowMeta {
+  color: v2.$textMuted;
+  font-size: 13px;
+  @include truncate(1);
+}
+
+/** Причина отказа — во всю ширину под строкой, без обрезки. */
+.rowReason {
+  grid-column: 3 / -1;
+  color: #b07472;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.rowDuration {
+  color: v2.$textMuted;
+  font-size: 12.5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/** «×6» — не подпись, а кнопка: раскрывает пачку на месте. */
+.repeat {
+  @include button-reset;
+  @include clickable;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: v2.$primary;
+  color: v2.$textContent;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover {
+    background: #ffffff2b;
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+/* ── Пусто и служебное ─────────────────────────────────────────────────── */
+
+.empty {
+  margin: 0;
+  padding: 32px 20px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/** Путь сохранённого файла. */
+.exported {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid v2.$primary;
+  font-size: 13px;
+  line-height: 18px;
+  color: v2.$accentText;
+  word-break: break-all;
+}

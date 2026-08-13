@@ -1,8 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import type { ProxyTestResult } from '@shared-ipc';
 import type { ProxyEntry } from '@shared-types';
 import { net, type Session, app, session } from 'electron';
 import log from 'electron-log/main';
+import { redactSecrets } from '../lib/redact';
 
 type ProxyCreds = { username: string; password: string };
 
@@ -12,6 +12,15 @@ const hostPortKey = (host: string, port: number): string => `${host}:${port}`;
 
 export const proxyRulesFor = (entry: Pick<ProxyEntry, 'host' | 'port' | 'protocol'>): string =>
   `${entry.protocol === 'https' ? 'https' : 'http'}://${entry.host}:${entry.port}`;
+
+/** The same proxy as a single URL with credentials inline. */
+export const proxyUrlFor = (entry: ProxyEntry): string => {
+  const scheme = entry.protocol === 'https' ? 'https' : 'http';
+  const auth = entry.username
+    ? `${encodeURIComponent(entry.username)}:${encodeURIComponent(entry.password ?? '')}@`
+    : '';
+  return `${scheme}://${auth}${entry.host}:${entry.port}`;
+};
 
 const registerProxyCreds = (
   entry: Pick<ProxyEntry, 'host' | 'port' | 'username' | 'password'>,
@@ -60,37 +69,55 @@ export const registerProxyAuthHandler = (): void => {
 
 const TEST_TIMEOUT_MS = 10_000;
 const TEST_URL = 'https://api.ipify.org?format=json';
+/** The answer is `{"ip":"…"}`. */
+const TEST_MAX_BYTES = 64 * 1024;
+
+/** Sessions for the probe, borrowed and returned. */
+const idleTestSessions: Session[] = [];
+let testSessionSeq = 0;
+
+const borrowTestSession = (): Session =>
+  idleTestSessions.pop() ?? session.fromPartition(`proxy-test-${++testSessionSeq}`);
+
+const returnTestSession = async (ses: Session): Promise<void> => {
+  try {
+    await ses.setProxy({ mode: 'direct' });
+    await ses.closeAllConnections();
+    await ses.clearStorageData();
+    idleTestSessions.push(ses);
+  } catch (err) {
+    // Not returned to the pool: a session whose proxy could not be cleared would send the next probe through the previous.
+    log.warn('[proxy] could not reset a test session', err);
+  }
+};
 
 export const testProxy = (
   input: Pick<ProxyEntry, 'host' | 'port' | 'username' | 'password' | 'protocol'>,
 ): Promise<ProxyTestResult> => {
   return new Promise<ProxyTestResult>((resolve) => {
-    const ses = session.fromPartition(`proxy-test-${randomUUID()}`);
+    const ses = borrowTestSession();
 
+    let req: Electron.ClientRequest | null = null;
     let settled = false;
     const finish = (result: ProxyTestResult) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      void ses.clearStorageData().catch(() => {});
+      void returnTestSession(ses);
       resolve(result);
     };
 
     const started = Date.now();
     const timer = setTimeout(() => {
-      try {
-        req.abort();
-      } catch {
-        // ignore
-      }
+      // `req` is still null when `setProxy` itself is what is taking too long.
+      req?.abort();
       finish({ ok: false, message: 'Таймаут подключения' });
     }, TEST_TIMEOUT_MS);
-
-    let req: Electron.ClientRequest;
 
     ses
       .setProxy({ proxyRules: proxyRulesFor(input) })
       .then(() => {
+        if (settled) return;
         req = net.request({ session: ses, url: TEST_URL, useSessionCookies: false });
 
         req.on('login', (authInfo, cb) => {
@@ -103,7 +130,17 @@ export const testProxy = (
 
         req.on('response', (response) => {
           const chunks: Buffer[] = [];
-          response.on('data', (c) => chunks.push(c));
+          let size = 0;
+          response.on('data', (c) => {
+            size += c.length;
+            // A proxy that answers with a stream instead of a page would otherwise be buffered whole, in the main process.
+            if (size > TEST_MAX_BYTES) {
+              req?.abort();
+              finish({ ok: false, message: 'Некорректный ответ' });
+              return;
+            }
+            chunks.push(c);
+          });
           response.on('end', () => {
             const ms = Date.now() - started;
             try {
@@ -120,9 +157,10 @@ export const testProxy = (
           });
         });
 
+        // `err.message` goes to the renderer and, through `ACTION_LOG_RECORD`, into the journal on disk.
         req.on('error', (err) => {
           log.warn('[proxy] test failed', err);
-          finish({ ok: false, message: err.message });
+          finish({ ok: false, message: redactSecrets(err.message) });
         });
 
         req.end();
@@ -130,7 +168,7 @@ export const testProxy = (
       .catch((err: unknown) => {
         finish({
           ok: false,
-          message: err instanceof Error ? err.message : String(err),
+          message: redactSecrets(err instanceof Error ? err.message : String(err)),
         });
       });
   });

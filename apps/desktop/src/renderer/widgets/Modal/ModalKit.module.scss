@@ -1,0 +1,615 @@
+/* Ни у одного блока кита нет собственного поля снизу. */
+.option {
+  appearance: none;
+  margin: 0;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: $radius-md;
+  background: v2.$primary;
+  border: 1px solid transparent;
+  color: $color-text;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.optionClickable {
+  @include clickable;
+
+  &:hover:not(:disabled) { border-color: $color-hairline-strong; }
+  &:focus-visible { @include focus-ring; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.optionHit {
+  @include button-reset;
+  @include clickable;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border-radius: $radius-sm;
+
+  &:disabled { opacity: 0.5; cursor: default; }
+  &:focus-visible { @include focus-ring; }
+}
+
+.option:has(.optionHit:hover:not(:disabled)) {
+  border-color: $color-hairline-strong;
+}
+
+.optionSelected {
+  border-color: rgba($color-accent-text, 0.35);
+  background: rgba($color-accent-text, 0.12);
+
+  .tick { opacity: 1; }
+}
+
+.optionIcon {
+  flex: none;
+  color: v2.$textMuted;
+}
+
+/* Кружок цвета вместо иконки — метка базы узнаётся по нему, а не по названию. */
+.optionSwatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.optionText {
+  flex: 1;
+  min-width: 0;
+}
+
+.optionTitle {
+  display: block;
+  font-size: 14px;
+}
+
+.optionHint {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  @include truncate(1);
+}
+
+/* Галка держит своё место и в невыбранной строке: появись она только у выбранной. */
+.tick {
+  flex: none;
+  opacity: 0;
+  color: $color-accent-text;
+}
+
+/* Стрелка вместо галки: строка не выбирает, а ведёт дальше. */
+.arrow {
+  flex: none;
+  color: v2.$textMuted;
+}
+
+/* На месте галки, пока строка занята: та же ширина, тот же край. */
+.optionSpin {
+  animation: modal-option-spin 1s linear infinite;
+}
+
+@keyframes modal-option-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .optionSpin { animation-duration: 3s; }
+}
+
+.optionTrailing {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Заголовок раздела: к списку под собой он ближе, чем к тому, что стоит выше. */
+.group {
+  margin-bottom: -4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* Заголовок и строки под ним — одним блоком. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  /* Отрицательное поле заголовка — поправка на зазор тела (10px → 6px). */
+  > .group { margin-bottom: 0; }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+
+  /* `min-width` — чтобы длинная подпись ужималась многоточием, а не распирала колонку: у элемента сетки это `auto`. */
+  > * {
+    min-width: 0;
+  }
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  background: $color-field-bg;
+  border: 1px solid $color-field-border;
+  border-radius: $radius-md;
+  padding: 0 11px;
+
+  &:focus-within { border-color: rgba($color-accent-text, 0.35); }
+}
+
+.searchIcon {
+  flex: none;
+  color: $color-text-ghost;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  color: $color-text;
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 0;
+
+  &:focus { outline: none; }
+  &::placeholder { color: $color-text-ghost; }
+}
+
+/* ── Поле ввода ────────────────────────────────────────────────────────────── */
+
+/* Утоплено, а не приподнято: поле на карточке — это то, куда пишут, и темнее подложки оно читается как углубление. */
+.field {
+  width: 100%;
+  background: $color-field-bg;
+  border: 1px solid $color-field-border;
+  border-radius: $radius-md;
+  color: $color-text;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 9px 11px;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: rgba($color-accent-text, 0.35);
+  }
+
+  &:disabled { opacity: 0.6; }
+  &::placeholder { color: $color-text-ghost; }
+}
+
+/* ── Выбор из списка ───────────────────────────────────────────────────────── */
+
+/* Закрытая кнопка — то же поле, что и рядом: список открывается из строки формы. */
+.selectWrap {
+  position: relative;
+  display: block;
+}
+
+.select {
+  display: flex;
+  align-items: center;
+  /* Место под стрелку: без него длинное название уезжает ей под низ. */
+  padding-right: 34px;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+
+  &:hover:not(:disabled) { border-color: $color-hairline-strong; }
+  &:focus-visible { @include focus-ring; }
+  &:disabled { cursor: default; }
+}
+
+/* Список раскрыт — граница та же, что у поля под курсором ввода: пока он открыт, поле и есть то, с чем работают. */
+.selectOpen { border-color: rgba($color-accent-text, 0.35); }
+
+.selectValue {
+  @include truncate;
+  flex: 1;
+}
+
+/* Ничего не выбрано — тем же тоном, что и подсказка в пустом поле ввода. */
+.selectEmpty { color: $color-text-ghost; }
+
+.selectArrow {
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  transform: translateY(-50%);
+  color: v2.$textMuted;
+  /* Стрелка — часть кнопки, а не отдельная мишень: нажатие уходит в кнопку под ней, иначе список не открывается ровно там. */
+  pointer-events: none;
+  transition: transform $duration-fast $ease-out;
+}
+
+.selectArrowUp { transform: translateY(-50%) rotate(180deg); }
+
+/* Та же панель, что и у меню строки аккаунта (`widgets/Menu`): в приложении один всплывающий список. */
+.selectPopup {
+  position: fixed;
+  z-index: $z-popover;
+  padding: 6px;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+  box-shadow: $shadow-lg;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: modal-select-in $duration-fast $ease-out both;
+  @include scrollbar();
+}
+
+/* Раскрылся вверх — и выезжает снизу, а не сверху: иначе он въезжал бы в кнопку, из которой вырос. */
+.selectPopupUp { animation-name: modal-select-in-up; }
+
+.selectItem {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: v2.$radiusMD;
+  color: $color-text;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+/* Строка под курсором — она же строка под стрелками клавиатуры: у списка одна «текущая» строка. */
+.selectItemActive:not(:disabled) { background: v2.$primary; }
+
+.selectItemPicked { color: $color-accent-text; }
+
+.selectItemLabel {
+  @include truncate;
+  flex: 1;
+}
+
+.selectTick {
+  flex: none;
+  color: $color-accent-text;
+}
+
+/* Имя папки над её строками. */
+.selectGroup {
+  padding: 8px 10px 4px;
+  font-size: 13px;
+  line-height: 18px;
+  color: v2.$textMuted;
+}
+
+@keyframes modal-select-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes modal-select-in-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Список, который вылетает, — украшение; список, который есть, — смысл. */
+@media (prefers-reduced-motion: reduce) {
+  .selectPopup { animation: none; }
+  .selectArrow { transition: none; }
+}
+
+/* Подпись, поле и пояснение одним блоком. */
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fieldLabel {
+  display: block;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* Под полем, а не над ним: сначала то, куда пишут, потом — что будет, если не написать. */
+.fieldNote {
+  display: block;
+  padding: 0 2px;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* ── Текст ─────────────────────────────────────────────────────────────────── */
+
+/* Пояснение внутри тела — перед тем, к чему относится. */
+.hint {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* Пояснение в футере — тише кнопок рядом и занимает всё, что от них осталось. */
+.note {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* Разводит разрушающую кнопку и главную по разным краям футера. */
+.spacer {
+  flex: 1;
+}
+
+/* Строка над содержимым: что не вышло или о чём стоит знать заранее. */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: v2.$radiusMD;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+
+  /* Значок по центру строки, а не по её первой текстовой строке. */
+  > svg { flex: none; }
+}
+
+/* Подложка — тот же цвет, что и текст, разведённый почти до фона. */
+.noticeBad {
+  color: $color-danger-text;
+  background: rgba($color-danger-solid, 0.1);
+}
+
+.noticeWarn {
+  color: $color-warning;
+  background: rgba($color-warning, 0.07);
+}
+
+/* ── Флажок ────────────────────────────────────────────────────────────────── */
+
+.checks {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-text-soft;
+  cursor: pointer;
+  user-select: none;
+
+  &:has(input:disabled) { opacity: 0.5; cursor: default; }
+  &:has(input:checked), &:has(input:indeterminate) { color: $color-text; }
+  &:has(input:focus-visible) .checkBox { @include focus-ring; }
+}
+
+/* С пояснением подпись становится двухэтажной, и квадратик садится к её первой строке, а не к середине блока. */
+.checkStacked {
+  align-items: flex-start;
+
+  .checkBox { margin-top: 2px; }
+}
+
+.checkText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Ширина квадратика с его зазором: вложенная подпись начинается ровно под подписью родителя, а не под его флажком. */
+.checkNested {
+  padding-left: 25px;
+}
+
+.checkHint {
+  font-size: 14px;
+  line-height: 20px;
+  /* Не наследует потемнение отмеченной строки: пояснение одинаково тихое в обоих состояниях. */
+  color: v2.$textMuted;
+}
+
+/* Настоящий `<input type=checkbox>` под квадратиком. */
+.checkInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.checkBox {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1.5px solid #3a3a3a;
+  display: grid;
+  place-items: center;
+  color: $color-on-accent;
+  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out;
+
+  > svg { opacity: 0; }
+}
+
+.check:has(input:checked) .checkBox {
+  background: $color-accent-solid;
+  border-color: $color-accent-solid;
+
+  > svg { opacity: 1; }
+}
+
+/* Часть отмечена: тот же залитый квадратик, но с чертой вместо галки — клик по нему снимает выделенное. */
+.check:has(input:indeterminate) .checkBox {
+  background: $color-accent-solid;
+  border-color: $color-accent-solid;
+
+  > svg { opacity: 1; }
+}
+
+/* ── Пилюли ────────────────────────────────────────────────────────────────── */
+
+.chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.chip {
+  @include button-reset;
+  @include clickable;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: v2.$radiusFull;
+  border: 1px solid transparent;
+  background: v2.$primary;
+  color: v2.$textContent;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+
+  &:hover:not(:disabled) { color: $color-text; }
+  &:disabled { opacity: 0.5; cursor: default; }
+  &:focus-visible { @include focus-ring; }
+}
+
+.chipOn {
+  border-color: rgba($color-accent-text, 0.35);
+  background: rgba($color-accent-text, 0.12);
+  color: $color-accent-text;
+}
+
+.chipCount {
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Круглая кнопка-иконка ─────────────────────────────────────────────────── */
+
+/* Тот же размер, что у крестика в шапке: правка строки и её удаление — действия того же веса. */
+.iconButton {
+  @include button-reset;
+  @include clickable;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: $radius-sm;
+  color: v2.$textMuted;
+  display: grid;
+  place-items: center;
+
+  &:hover:not(:disabled) {
+    background: $color-panel-raised;
+    color: $color-text;
+  }
+
+  &:disabled { opacity: 0.4; cursor: default; }
+  &:focus-visible { @include focus-ring; }
+}
+
+.iconButtonDanger:hover:not(:disabled) {
+  color: $color-danger-text;
+}
+
+/* ── Пустой экран внутри диалога ───────────────────────────────────────────── */
+
+.empty {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/* ── Исход действия ────────────────────────────────────────────────────────── */
+
+/* Значок, строка, причина — по центру и в столбик. */
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  /* Держит высоту при смене исхода: иначе карточка подпрыгивает в тот момент, когда пользователь читает ответ. */
+  min-height: 132px;
+  justify-content: center;
+  padding: 12px 8px 6px;
+  text-align: center;
+}
+
+.statusIcon { flex: none; }
+
+.statusBusy { color: v2.$textMuted; }
+.statusOk { color: $color-accent-text; }
+.statusWarn { color: $color-warning; }
+.statusBad { color: $color-danger-text; }
+
+.statusSpin { animation: modal-status-spin 1s linear infinite; }
+
+@keyframes modal-status-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusSpin { animation-duration: 3s; }
+}
+
+.statusTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+  color: $color-text;
+}
+
+.statusHint {
+  margin: 0;
+  max-width: 340px;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  word-break: break-word;
+}

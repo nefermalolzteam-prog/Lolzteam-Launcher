@@ -1,0 +1,4 @@
+# Git hooks are executed by `sh`, which chokes on a stray CR at end of line.
+# `core.autocrlf=true` is the Windows default, so without this every fresh
+# clone would install hooks that fail with `pnpm lint-staged\r: not found`.
+.husky/** text eol=lf

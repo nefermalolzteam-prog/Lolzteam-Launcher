@@ -34,7 +34,11 @@ export const openBrowserWindow = (
   landingUrl: string,
   title: string,
   ctx: AdapterContext,
-  opts?: { onEachLoad?: (site: WebContents) => void; emailPassword?: string },
+  opts?: {
+    onEachLoad?: (site: WebContents) => void;
+    emailPassword?: string;
+    plantBeforeScripts?: (site: WebContents) => Promise<void> | void;
+  },
 ): { windowId: number } => {
   const win = new BrowserWindow({
     width: 1180,
@@ -58,7 +62,30 @@ export const openBrowserWindow = (
     proxyTest: ctx.proxyTest,
     emailPassword: opts?.emailPassword,
   });
-  if (opts?.onEachLoad) {
+  if (opts?.plantBeforeScripts) {
+    const ses = session.fromPartition(partition);
+    let blocking = true;
+    const unblock = () => {
+      if (!blocking) return;
+      blocking = false;
+      ses.webRequest.onBeforeRequest(null);
+    };
+    ses.webRequest.onBeforeRequest({ urls: ['<all_urls>'] }, (details, callback) => {
+      callback({ cancel: blocking && details.resourceType === 'script' });
+    });
+    siteView.webContents.once('did-finish-load', () => {
+      void (async () => {
+        try {
+          await opts.plantBeforeScripts?.(siteView.webContents);
+        } catch (err) {
+          ctx.log.warn('[browser] pre-script injection failed', err);
+        }
+        unblock();
+        siteView.webContents.reload();
+      })();
+    });
+    win.on('closed', unblock);
+  } else if (opts?.onEachLoad) {
     siteView.webContents.on('did-finish-load', () => opts.onEachLoad?.(siteView.webContents));
   }
   siteView.webContents.loadURL(landingUrl).catch((err: unknown) => {

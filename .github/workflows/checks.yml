@@ -1,0 +1,51 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# A new push supersedes the run still going for the same ref.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    # Nothing here builds or launches the app — the ~100 MB Electron binary
+    # would only slow the install down. Tests mock `electron`; typecheck needs
+    # the types, which ship in the package itself.
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Each step runs even if an earlier one failed, so a single push reports
+      # every problem at once instead of one per round-trip.
+      - name: Lint & format
+        run: pnpm lint
+
+      - name: Typecheck
+        if: '!cancelled()'
+        run: pnpm typecheck
+
+      - name: Test
+        if: '!cancelled()'
+        run: pnpm test

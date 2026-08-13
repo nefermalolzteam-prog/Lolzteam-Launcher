@@ -1,351 +1,264 @@
-import type { AccountScope, AccountSummary, LauncherSettings, ServiceId } from '@shared-types';
+import type { AccountScope, AccountSummary, LocalAccountInput } from '@shared-types';
+import { isServiceId, serviceLabel } from '@shared-types';
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
-  ArrowDownUp,
+  ArrowDown,
+  ArrowUp,
   Check,
   Inbox,
-  ListFilter,
+  Minus,
   RefreshCw,
   Search,
-  X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { matchesLabelFilters } from '~/lib/labelFilter';
-import {
-  isScopeLoaded,
-  isStreamService,
-  mergeWithStream,
-  startAccountsStream,
-  useAccountsStream,
-} from '~/stores/accountsStream';
+import { MassBar } from '~/features/base/MassBar';
+import { useFadedSwap } from '~/lib/useFadedSwap';
+import { isScopeLoaded, startAccountsStream, useAccountsStream } from '~/stores/accountsStream';
+import { useInventoryFilters } from '~/stores/inventoryFilters';
+import { useInventoryReveal } from '~/stores/inventoryReveal';
+import { useInventorySelection } from '~/stores/inventorySelection';
+import { useLocalEditor } from '~/stores/localEditor';
+import { useLocalLabels } from '~/stores/localLabels';
 import { useProfileLabels } from '~/stores/profileLabels';
 import { useSettings } from '~/stores/settings';
+import { useTelegramTasks } from '~/stores/telegramTasks';
+import { useView } from '~/stores/view';
+import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
-import { AccountCard } from './AccountCard';
-import { SkeletonCard } from './InventorySkeleton';
+import { ModalError, ModalHint, ModalSpacer } from '~/widgets/Modal/ModalKit';
+import { useScrollRoot } from '~/widgets/Shell/scrollRoot';
+import { InventoryGrid } from './InventoryGrid';
+import { SkeletonCard, SkeletonRow } from './InventorySkeleton';
 import s from './InventoryView.module.scss';
-import { LabelMultiSelect } from './LabelMultiSelect';
-import { LlmServiceFilter, type LlmServiceFilterValue } from './LlmServiceFilter';
-
-const CHUNK = 24;
+import { LocalAccountModal } from './LocalAccountModal';
+import { isCheckable } from './checkable';
+import { localErrorText } from './localErrors';
+import { SUPPORTED_SERVICES, type SortDir, type SortKey, useInventoryList } from './useInventory';
 
 const SKELETON_INITIAL = 8;
 const SKELETON_TAIL = 4;
 
-const SUPPORTED_SERVICES = [
-  'steam',
-  'telegram',
-  'tiktok',
-  'instagram',
-  'discord',
-  'llm',
-] as const satisfies readonly ServiceId[];
-type SupportedService = (typeof SUPPORTED_SERVICES)[number];
-const isSupportedService = (id: ServiceId | null): id is SupportedService =>
-  id !== null && (SUPPORTED_SERVICES as readonly string[]).includes(id);
+/** Where a user's purchases actually live. */
+const ordersUrlFor = (userId: number | null): string =>
+  userId ? `https://lzt.market/user/${userId}/orders` : 'https://lzt.market/';
 
-const SERVICE_LABELS: Record<SupportedService, string> = {
-  steam: 'Steam',
-  telegram: 'Telegram',
-  tiktok: 'TikTok',
-  instagram: 'Instagram',
-  discord: 'Discord',
-  llm: 'LLM',
+/** Which scopes narrow the table, and to what. */
+const SCOPE_TRACK_CLASS: Partial<Record<AccountScope, string>> = {
+  local: s.tableLocal,
+  listed: s.tableListed,
 };
 
-type Filter = ServiceId | 'all';
-
-type SortKey = 'purchased' | 'price' | 'warranty';
-type SortDir = 'asc' | 'desc';
-
-const SORT_KEYS: readonly SortKey[] = ['purchased', 'price', 'warranty'] as const;
-
-const INVALID_TAG_ID = 2;
-const isInvalidAccount = (item: AccountSummary): boolean =>
-  item.tags.some((tag) => tag.id === INVALID_TAG_ID);
-
-const searchHaystack = (item: AccountSummary): string => {
-  const parts: (string | null | undefined)[] = [
-    item.title,
-    item.categoryTitle,
-    item.steam?.country,
-    item.telegram?.country,
-    item.telegram?.username,
-    item.telegram?.phone,
-    ...(item.steam?.games.map((g) => g.title) ?? []),
-  ];
-  return parts.filter(Boolean).join(' ').toLowerCase();
-};
-
-const matchesQuery = (item: AccountSummary, query: string): boolean => {
-  if (!query) return true;
-  const haystack = searchHaystack(item);
-  return query
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
-    .every((term) => haystack.includes(term));
-};
-
-const sortValue = (item: AccountSummary, key: SortKey): number | null => {
-  switch (key) {
-    case 'purchased':
-      return item.purchasedAt;
-    case 'price':
-      return item.price;
-    case 'warranty':
-      return item.warrantyEndsAt;
-  }
-};
-
-const compareItems = (a: AccountSummary, b: AccountSummary, key: SortKey, dir: SortDir): number => {
-  const va = sortValue(a, key);
-  const vb = sortValue(b, key);
-  if (va === null && vb === null) return 0;
-  if (va === null) return 1;
-  if (vb === null) return -1;
-  return dir === 'asc' ? va - vb : vb - va;
-};
-
-interface Bucket {
-  id: Filter;
-  label: string;
-  count: number;
-  loading: boolean;
-}
-
-const buildBuckets = (
-  items: AccountSummary[],
-  allLabel: string,
-  loaded: ReadonlySet<string>,
-  scope: AccountScope,
-  streaming: boolean,
-): Bucket[] => {
-  const counts = new Map<SupportedService, number>();
-  for (const item of items) {
-    if (isSupportedService(item.category)) {
-      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
-    }
-  }
-  const total = [...counts.values()].reduce((a, b) => a + b, 0);
-  const allDone = SUPPORTED_SERVICES.every((id) => loaded.has(`${scope}:${id}`));
-  const buckets: Bucket[] = [
-    { id: 'all', label: allLabel, count: total, loading: streaming && !allDone },
-  ];
-  for (const id of SUPPORTED_SERVICES) {
-    buckets.push({
-      id,
-      label: SERVICE_LABELS[id],
-      count: counts.get(id) ?? 0,
-      loading: !loaded.has(`${scope}:${id}`),
-    });
-  }
-  return buckets;
-};
-
+/** The account grid. */
 export const InventoryView = () => {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const loadLabels = useProfileLabels((p) => p.load);
   const labels = useProfileLabels((p) => p.labels);
+  const labelsLoaded = useProfileLabels((p) => p.loaded);
   // Load the label palette once so card chips can render in their colours.
   useEffect(() => {
     void loadLabels();
   }, [loadLabels]);
-  const [filter, setFilter] = useState<Filter>('all');
-  const [scope, setScope] = useState<AccountScope>(() => useAccountsStream.getState().activeScope);
-  // Label filters: show accounts that carry ANY included label, hiding any that
-  // carry an excluded one. A label can be in include or exclude, not both.
-  const [includeLabels, setIncludeLabels] = useState<number[]>([]);
-  const [excludeLabels, setExcludeLabels] = useState<number[]>([]);
-  const [search, setSearch] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [llmServiceFilter, setLlmServiceFilter] = useState<LlmServiceFilterValue>('all');
-  const [limit, setLimit] = useState(CHUNK);
-  const streaming = useAccountsStream((st) => st.streaming);
-  const loaded = useAccountsStream((st) => st.loaded);
-  const launchHandled = useAccountsStream((st) => st.launchHandled);
-  const settings = useSettings((st) => st.settings);
-  const setSettings = useSettings((st) => st.set);
-  const hideInvalid = settings?.inventoryHideInvalid ?? false;
-  const sortKey = settings?.inventorySortKey ?? 'purchased';
-  const sortDir = settings?.inventorySortDir ?? 'desc';
-  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const filtersActive =
-    hideInvalid ||
-    sortKey !== 'purchased' ||
-    sortDir !== 'desc' ||
-    includeLabels.length > 0 ||
-    excludeLabels.length > 0;
-
-  const persistSettings = async (patch: Partial<LauncherSettings>) => {
-    const next = await window.launcher.settings.set(patch);
-    setSettings(next.settings);
-  };
-
-  const setSortKey = (key: SortKey) => void persistSettings({ inventorySortKey: key });
-  const setSortDir = (dir: SortDir) => void persistSettings({ inventorySortDir: dir });
-  const toggleHideInvalid = () => void persistSettings({ inventoryHideInvalid: !hideInvalid });
-
-  // Toggle a label in the include set; selecting it there clears it from exclude
-  // (a label can't be both required and forbidden).
-  const toggleInclude = (id: number) => {
-    setExcludeLabels((prev) => prev.filter((x) => x !== id));
-    setIncludeLabels((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-  const toggleExclude = (id: number) => {
-    setIncludeLabels((prev) => prev.filter((x) => x !== id));
-    setExcludeLabels((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  };
-
-  // Labels may disappear from the palette (deleted on web) while still selected
-  // — drop them from both filters so the list doesn't stay mysteriously empty.
+  const keepLabels = useInventoryFilters((st) => st.keepLabels);
+  const localLabels = useLocalLabels((st) => st.labels);
+  const loadLocalLabels = useLocalLabels((st) => st.load);
+  const localLabelsLoaded = useLocalLabels((st) => st.loaded);
+  // The user's own labels ride in the same `tags` array as the forum's.
   useEffect(() => {
-    const ids = new Set(labels.map((l) => l.id));
-    setIncludeLabels((prev) =>
-      prev.every((id) => ids.has(id)) ? prev : prev.filter((id) => ids.has(id)),
-    );
-    setExcludeLabels((prev) =>
-      prev.every((id) => ids.has(id)) ? prev : prev.filter((id) => ids.has(id)),
-    );
-  }, [labels]);
+    void loadLocalLabels();
+  }, [loadLocalLabels]);
 
-  const resetFilters = () => {
-    setIncludeLabels([]);
-    setExcludeLabels([]);
-    void persistSettings({
-      inventoryHideInvalid: false,
-      inventorySortKey: 'purchased',
-      inventorySortDir: 'desc',
-    });
+  // Labels may disappear from the palette.
+  useEffect(() => {
+    if (!localLabelsLoaded || !labelsLoaded) return;
+    keepLabels(new Set([...labels.map((l) => l.id), ...localLabels.map((l) => l.id)]));
+  }, [labels, labelsLoaded, localLabels, localLabelsLoaded, keepLabels]);
+
+  // --- What is on screen ----------------------------------------------------- Two controls replace the whole list.
+  const trackRef = useRef<HTMLDivElement>(null);
+  const layout = useSettings((st) => st.settings?.inventoryLayout ?? 'grid');
+  const liveScope = useInventoryFilters((st) => st.scope);
+  const frame = useMemo(
+    () => ({ table: layout === 'table', scope: liveScope }),
+    [layout, liveScope],
+  );
+  const shown = useFadedSwap(frame, trackRef);
+  const table = shown.table;
+
+  const {
+    query,
+    rawItems,
+    rawScopedItems,
+    scopedItems,
+    visible,
+    filter,
+    filtersKey,
+    scope,
+    sortKey,
+    streaming,
+    loaded,
+    allDone,
+    activeLoading,
+    fullySettled,
+    failed,
+    filterFailed,
+    hiddenByCategory,
+    hiddenCount,
+  } = useInventoryList(shown.scope);
+
+  // The «Открыть lzt.market» button used to point at `/orders`.
+  const authStatus = useQuery({
+    queryKey: ['auth-status'],
+    queryFn: () => window.launcher.auth.getStatus(),
+  });
+  const ordersUrl = ordersUrlFor(authStatus.data?.session?.userId ?? null);
+  const openOrders = () => void window.launcher.app.openExternal(ordersUrl);
+
+  /** Ask the market again, from an empty screen. */
+  const reload = () => {
+    if (streaming || scope === 'local') return;
+    startAccountsStream(undefined, scope);
+    void qc.invalidateQueries({ queryKey: ['auth-status'] });
   };
 
-  const query = useQuery({
-    queryKey: ['accounts'],
-    queryFn: async () => mergeWithStream(await window.launcher.accounts.list()),
-    staleTime: 60_000,
-  });
+  const launchHandled = useAccountsStream((st) => st.launchHandled);
+  const sortDir = useSettings((st) => st.settings?.inventorySortDir ?? 'desc');
+  const applySettings = useSettings((st) => st.set);
+  const scrollRoot = useScrollRoot();
 
-  const rawItems = query.data ?? [];
-  const items = useMemo(() => rawItems.filter((it) => isSupportedService(it.category)), [rawItems]);
-  // Items in the currently selected scope (purchased vs the user's own listings).
-  const scopedItems = useMemo(
-    () => items.filter((it) => (it.scope ?? 'purchased') === scope),
-    [items, scope],
-  );
-  const scopeCounts = useMemo(() => {
-    let purchased = 0;
-    let listed = 0;
-    for (const it of items) {
-      if ((it.scope ?? 'purchased') === 'listed') listed++;
-      else purchased++;
-    }
-    return { purchased, listed };
-  }, [items]);
+  const openLocalEditor = useLocalEditor((st) => st.openEdit);
+  const setView = useView((st) => st.setView);
+  const openLocalCreate = () => setView('localAdd');
+  const editorOpen = useLocalEditor((st) => st.open);
+  const editorTarget = useLocalEditor((st) => st.target);
+  const closeLocalEditor = useLocalEditor((st) => st.close);
+
   useEffect(() => {
     useAccountsStream.getState().setActiveScope(scope);
-    if (!launchHandled) return;
+    // Local accounts come from disk with the initial list — nothing to stream.
+    if (!launchHandled || scope === 'local') return;
     if (!isScopeLoaded(loaded, scope) && !streaming) startAccountsStream(undefined, scope);
   }, [scope, loaded, streaming, launchHandled]);
 
-  const buckets = useMemo(
-    () => buildBuckets(scopedItems, t('inventory.filter.all'), loaded, scope, streaming),
-    [scopedItems, t, loaded, scope, streaming],
+  // A change to any filter input means a different list — start it from the top
+  // rather than leaving the user at a scroll offset that meant something else.
+  //
+  // Unless the list is being taken to a particular account: `revealAccount` gets
+  // there by changing exactly these inputs (the scope, the search, the category
+  // filters), so this effect would fire on every reveal and undo it. And it
+  // would win — React runs a child's effects before the parent's, so the grid
+  // has already scrolled by the time this one runs.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `filtersKey` is exactly the set of filter inputs — scroll back up whenever any of them changes
+  useEffect(() => {
+    if (useInventoryReveal.getState().itemId !== null) return;
+    scrollRoot?.scrollTo({ top: 0 });
+  }, [filtersKey, scrollRoot]);
+
+  // --- Table mode ------------------------------------------------------------ The column template is published.
+  const trackClass = table ? `${s.table} ${SCOPE_TRACK_CLASS[scope] ?? ''}` : '';
+  // Only the "nothing has arrived yet" placeholders use a plain CSS grid.
+  const placeholderClass = `${s.placeholders} ${table ? s.placeholdersTable : ''}`;
+
+  const sortByColumn = (key: SortKey) => {
+    // The same caption again flips the direction; a new one starts at the end worth seeing first — newest, dearest.
+    const fresh: SortDir = key === 'title' ? 'asc' : 'desc';
+    const dir: SortDir = sortKey === key ? (sortDir === 'asc' ? 'desc' : 'asc') : fresh;
+    void window.launcher.settings
+      .set({ inventorySortKey: key, inventorySortDir: dir })
+      .then((next) => applySettings(next.settings));
+  };
+
+  const sortCaption = (key: SortKey, text: string) => (
+    <button
+      type="button"
+      className={`${s.headSort} ${sortKey === key ? s.headSortOn : ''}`}
+      onClick={() => sortByColumn(key)}
+    >
+      <span>{text}</span>
+      {sortKey === key && (sortDir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+    </button>
   );
 
-  const trimmedSearch = search.trim();
-  const visible = useMemo(() => {
-    const filtered = scopedItems.filter(
-      (it) =>
-        (filter === 'all' || it.category === filter) &&
-        (filter !== 'llm' || llmServiceFilter === 'all' || it.llmService === llmServiceFilter) &&
-        (!hideInvalid || !isInvalidAccount(it)) &&
-        matchesLabelFilters(
-          it.tags.map((tg) => tg.id),
-          includeLabels,
-          excludeLabels,
-        ) &&
-        matchesQuery(it, trimmedSearch),
+  const skeletons = (count: number, prefix: string) =>
+    Array.from({ length: count }, (_, i) =>
+      table ? <SkeletonRow key={`${prefix}${i}`} /> : <SkeletonCard key={`${prefix}${i}`} />,
     );
-    return [...filtered].sort((a, b) => compareItems(a, b, sortKey, sortDir));
-  }, [
-    scopedItems,
-    filter,
-    llmServiceFilter,
-    hideInvalid,
-    includeLabels,
-    excludeLabels,
-    trimmedSearch,
-    sortKey,
-    sortDir,
-  ]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: deps are the filter inputs — reset paging whenever any of them changes
-  useEffect(() => {
-    setLimit(CHUNK);
-    document.querySelector('[data-scroll-root]')?.scrollTo({ top: 0 });
-  }, [
-    filter,
-    llmServiceFilter,
-    scope,
-    hideInvalid,
-    includeLabels,
-    excludeLabels,
-    trimmedSearch,
-    sortKey,
-    sortDir,
-  ]);
+  // --- Mass operations ------------------------------------------------------- A card gets a checkbox when some action can.
+  const selectedIds = useInventorySelection((st) => st.ids);
+  const toggleSelected = useInventorySelection((st) => st.toggle);
+  const replaceSelected = useInventorySelection((st) => st.replace);
+  const candidates = useMemo(() => visible.filter(isCheckable), [visible]);
+  const candidateIds = useMemo(() => new Set(candidates.map((it) => it.itemId)), [candidates]);
+  const selectionOn = candidates.length > 0;
+  // The caption cell doubles as the master checkbox — same rule as the bar at the bottom.
+  const chosenCount = useMemo(
+    () => candidates.reduce((n, it) => (selectedIds.has(it.itemId) ? n + 1 : n), 0),
+    [candidates, selectedIds],
+  );
+  const allSelected = candidates.length > 0 && chosenCount === candidates.length;
+  const someSelected = chosenCount > 0 && !allSelected;
+  const toggleAllVisible = (): void => {
+    if (allSelected) {
+      const next = new Set(selectedIds);
+      for (const it of candidates) next.delete(it.itemId);
+      replaceSelected(next);
+    } else {
+      replaceSelected([...selectedIds, ...candidates.map((it) => it.itemId)]);
+    }
+  };
+  // A run outlives the selection it started from.
+  const running = useTelegramTasks((st) => st.running);
 
-  // Leaving the LLM tab clears the per-provider narrowing.
-  useEffect(() => {
-    if (filter !== 'llm') setLlmServiceFilter('all');
-  }, [filter]);
+  // --- Local accounts: add / edit / delete ----------------------------------- No store of their own beyond which form is.
+  const [deleteTarget, setDeleteTarget] = useState<AccountSummary | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const shown = visible.slice(0, limit);
-  const hasMore = limit < visible.length;
+  // The three callbacks every card gets.
+  const handleSelect = useCallback(
+    (item: AccountSummary) => toggleSelected(item.itemId),
+    [toggleSelected],
+  );
+  const handleEdit = useCallback(
+    (item: AccountSummary) => void openLocalEditor(item.itemId),
+    [openLocalEditor],
+  );
+  const handleDelete = useCallback((item: AccountSummary) => {
+    setDeleteError(null);
+    setDeleteTarget(item);
+  }, []);
 
-  const allDone = isScopeLoaded(loaded, scope);
-  const activeLoading =
-    filter === 'all'
-      ? streaming && !allDone
-      : isSupportedService(filter) && !loaded.has(`${scope}:${filter}`);
+  const submitLocal = async (input: LocalAccountInput) => {
+    const res = editorTarget
+      ? await window.launcher.localAccounts.update(editorTarget.id, input)
+      : await window.launcher.localAccounts.create(input);
+    if (res.ok) await qc.invalidateQueries({ queryKey: ['accounts'] });
+    return res.ok ? { ok: true } : { ok: false, message: res.message };
+  };
 
-  const fullySettled = !streaming && !query.isLoading && !query.isFetching;
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `visible.length` re-arms the observer when streamed items land while the sentinel is already in view
-  useEffect(() => {
-    if (!hasMore) return;
-    const node = sentinelRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          setLimit((n) => n + CHUNK);
-        }
-      },
-      { root: node.closest('[data-scroll-root]'), rootMargin: '400px' },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasMore, visible.length]);
-
-  const refresh = () => {
-    if (streaming) return;
-    // On a single-category tab, refresh only that category; on "all", refresh everything.
-    const only = filter !== 'all' && isStreamService(filter) ? filter : undefined;
-    startAccountsStream(only, scope);
-    // The profile (balance/currency) may also have changed on the web — refetch
-    // it so the top bar reflects a currency switched outside the launcher.
-    void qc.invalidateQueries({ queryKey: ['auth-status'] });
+  const confirmDelete = async () => {
+    if (!deleteTarget || deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await window.launcher.localAccounts.remove(deleteTarget.itemId);
+    if (res.ok) {
+      await qc.invalidateQueries({ queryKey: ['accounts'] });
+      setDeleteTarget(null);
+    } else {
+      setDeleteError(localErrorText(t, res.message));
+    }
+    setDeleting(false);
   };
 
   // Hard error with nothing cached to fall back on.
   if (query.isError && rawItems.length === 0) {
     return (
-      <div className={s.state}>
+      <div ref={trackRef} className={s.state}>
         <div className={`${s.stateBadge} ${s.stateBadgeDanger}`}>
           <AlertCircle size={26} />
         </div>
@@ -357,209 +270,105 @@ export const InventoryView = () => {
     );
   }
 
-  if (scope === 'purchased' && rawItems.length === 0 && fullySettled) {
+  /** Nothing arrived, and the reason is that nothing was successfully asked. */
+  if (scope !== 'local' && rawScopedItems.length === 0 && fullySettled && failed) {
     return (
-      <div className={s.state}>
-        <div className={s.stateBadge}>
-          <Inbox size={26} />
+      <div ref={trackRef} className={s.state}>
+        <div className={`${s.stateBadge} ${s.stateBadgeDanger}`}>
+          <AlertCircle size={26} />
         </div>
-        <p className={s.stateText}>{t('inventory.empty')}</p>
-        <button
-          type="button"
-          className={s.retry}
-          onClick={() => window.launcher.app.openExternal('https://lzt.market/orders')}
-        >
-          {t('inventory.openMarket')}
-        </button>
+        <p className={s.stateText}>{t('inventory.loadFailed')}</p>
+        <div className={s.stateActions}>
+          <button type="button" className={s.retry} disabled={streaming} onClick={reload}>
+            <RefreshCw size={15} className={streaming ? s.spin : undefined} />
+            <span>{t('inventory.refresh')}</span>
+          </button>
+          <button type="button" className={s.retrySecondary} onClick={openOrders}>
+            {t('inventory.openMarket')}
+          </button>
+        </div>
       </div>
     );
   }
 
-  if (scope === 'purchased' && items.length === 0 && fullySettled) {
+  if (scope === 'purchased' && rawScopedItems.length === 0 && fullySettled) {
     return (
-      <div className={s.state}>
+      <div ref={trackRef} className={s.state}>
         <div className={s.stateBadge}>
           <Inbox size={26} />
         </div>
-        <p className={s.stateText}>{t('inventory.emptyUnsupported')}</p>
-        <button
-          type="button"
-          className={s.retry}
-          onClick={() => window.launcher.app.openExternal('https://lzt.market/orders')}
-        >
-          {t('inventory.openMarket')}
-        </button>
+        <p className={s.stateText}>{t('inventory.empty')}</p>
+        <div className={s.stateActions}>
+          <button type="button" className={s.retry} disabled={streaming} onClick={reload}>
+            <RefreshCw size={15} className={streaming ? s.spin : undefined} />
+            <span>{t('inventory.refresh')}</span>
+          </button>
+          <button type="button" className={s.retrySecondary} onClick={openOrders}>
+            {t('inventory.openMarket')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (scope === 'purchased' && scopedItems.length === 0 && fullySettled) {
+    return (
+      <div ref={trackRef} className={s.state}>
+        <div className={s.stateBadge}>
+          <Inbox size={26} />
+        </div>
+        <p className={s.stateText}>
+          {t('inventory.emptyUnsupported', {
+            services: SUPPORTED_SERVICES.map((id) => serviceLabel(id)).join(', '),
+          })}
+        </p>
+        <div className={s.stateActions}>
+          <button type="button" className={s.retry} disabled={streaming} onClick={reload}>
+            <RefreshCw size={15} className={streaming ? s.spin : undefined} />
+            <span>{t('inventory.refresh')}</span>
+          </button>
+          <button type="button" className={s.retrySecondary} onClick={openOrders}>
+            {t('inventory.openMarket')}
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
     <div className={s.view}>
-      <div className={s.toolbar}>
-        <div className={s.scopeTabs} role="tablist" aria-label={t('inventory.scope.label')}>
-          {(['purchased', 'listed'] as const).map((sc) => (
-            <button
-              key={sc}
-              type="button"
-              role="tab"
-              aria-selected={scope === sc}
-              className={`${s.scopeTab} ${scope === sc ? s.scopeTabActive : ''}`}
-              onClick={() => {
-                setScope(sc);
-                setFilter('all');
-              }}
-            >
-              <span>{t(`inventory.scope.${sc}`)}</span>
-              <span className={s.filterCount}>{scopeCounts[sc]}</span>
-            </button>
-          ))}
+      {hiddenCount > 0 && (
+        <div className={s.hiddenNotice} role="status">
+          <AlertCircle size={14} />
+          <span>
+            {t('inventory.hiddenAccounts', {
+              count: hiddenCount,
+              categories: [...hiddenByCategory.keys()]
+                .map((id) => (isServiceId(id) ? serviceLabel(id) : id))
+                .join(', '),
+            })}
+          </span>
         </div>
-        <div className={s.filters}>
-          {buckets.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              className={`${s.filter} ${filter === b.id ? s.filterActive : ''}`}
-              onClick={() => setFilter(b.id)}
-            >
-              <span>{b.label}</span>
-              {b.loading ? (
-                <span className={s.filterCountSkeleton} aria-hidden />
-              ) : (
-                <span className={s.filterCount}>{b.count}</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className={s.controls}>
-        <div className={s.searchBox}>
-          <Search size={15} className={s.searchIcon} />
-          <input
-            type="text"
-            className={s.searchInput}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('inventory.searchPlaceholder')}
-          />
-          {search && (
-            <button
-              type="button"
-              className={s.searchClear}
-              onClick={() => setSearch('')}
-              aria-label={t('inventory.searchClear')}
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-
-        <div className={s.controlsActions}>
-          <button type="button" className={s.refresh} onClick={refresh} disabled={streaming}>
-            <RefreshCw size={14} className={streaming ? s.spin : ''} />
-            <span>{t('inventory.refresh')}</span>
-          </button>
-          {filter === 'llm' && (
-            <LlmServiceFilter value={llmServiceFilter} onChange={setLlmServiceFilter} />
-          )}
-          <button
-            type="button"
-            className={`${s.filterBtn} ${filtersActive ? s.filterBtnActive : ''}`}
-            onClick={() => setFilterOpen(true)}
-            aria-haspopup="dialog"
-          >
-            <ListFilter size={15} />
-            <span>{t('inventory.filters.title')}</span>
-            {filtersActive && <span className={s.filterDot} aria-hidden />}
-          </button>
-        </div>
-      </div>
-
-      {filterOpen && (
-        <Modal title={t('inventory.filters.title')} onClose={() => setFilterOpen(false)}>
-          <div className={s.filterModal}>
-            <div className={s.filterGroup}>
-              <span className={s.filterGroupLabel}>{t('inventory.filters.sortLabel')}</span>
-              <div className={s.sortRow}>
-                <div className={s.sortKeys}>
-                  {SORT_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`${s.sortBtn} ${sortKey === key ? s.sortBtnActive : ''}`}
-                      onClick={() => setSortKey(key)}
-                    >
-                      {t(`inventory.sort.${key}`)}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  className={s.sortDir}
-                  onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
-                >
-                  <ArrowDownUp size={14} />
-                  <span>{t(sortDir === 'asc' ? 'inventory.sort.asc' : 'inventory.sort.desc')}</span>
-                </button>
-              </div>
-            </div>
-
-            {labels.length > 0 && (
-              <>
-                <LabelMultiSelect
-                  title={t('inventory.filters.labelInclude')}
-                  labels={labels}
-                  selected={includeLabels}
-                  onToggle={toggleInclude}
-                  variant="include"
-                />
-                <LabelMultiSelect
-                  title={t('inventory.filters.labelExclude')}
-                  labels={labels}
-                  selected={excludeLabels}
-                  onToggle={toggleExclude}
-                  variant="exclude"
-                />
-              </>
-            )}
-
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={hideInvalid}
-              className={s.filterOption}
-              onClick={() => void toggleHideInvalid()}
-            >
-              <span className={`${s.checkbox} ${hideInvalid ? s.checkboxOn : ''}`}>
-                {hideInvalid && <Check size={12} />}
-              </span>
-              <span>{t('inventory.filters.hideInvalid')}</span>
-            </button>
-            <button
-              type="button"
-              className={s.filterReset}
-              onClick={() => void resetFilters()}
-              disabled={!filtersActive}
-            >
-              {t('inventory.filters.reset')}
-            </button>
-          </div>
-        </Modal>
       )}
 
       {visible.length === 0 && (activeLoading || !allDone) ? (
-        <div className={s.grid}>
-          {Array.from({ length: SKELETON_INITIAL }, (_, i) => (
-            <SkeletonCard key={i} />
-          ))}
+        <div ref={trackRef} className={trackClass}>
+          <div className={placeholderClass}>{skeletons(SKELETON_INITIAL, 'init-')}</div>
         </div>
       ) : visible.length === 0 ? (
-        <div className={s.noResults}>
-          <div className={s.stateBadge}>
-            <Search size={24} />
+        <div ref={trackRef} className={s.noResults}>
+          <div className={`${s.stateBadge} ${filterFailed ? s.stateBadgeDanger : ''}`}>
+            {filterFailed ? <AlertCircle size={24} /> : <Search size={24} />}
           </div>
-          {scope === 'listed' && scopedItems.length === 0 ? (
+          {filterFailed ? (
+            <>
+              <p className={s.stateText}>{t('inventory.loadFailed')}</p>
+              <button type="button" className={s.retry} disabled={streaming} onClick={reload}>
+                <RefreshCw size={15} className={streaming ? s.spin : undefined} />
+                <span>{t('inventory.refresh')}</span>
+              </button>
+            </>
+          ) : scope === 'listed' && scopedItems.length === 0 ? (
             <>
               <p className={s.stateText}>{t('inventory.scope.emptyListed')}</p>
               <button
@@ -570,22 +379,121 @@ export const InventoryView = () => {
                 {t('inventory.scope.manageListings')}
               </button>
             </>
+          ) : scope === 'local' && scopedItems.length === 0 ? (
+            <>
+              <p className={s.stateText}>{t('inventory.local.empty')}</p>
+              <button type="button" className={s.retry} onClick={openLocalCreate}>
+                {t('inventory.local.add')}
+              </button>
+            </>
           ) : (
             <p className={s.stateText}>{t('inventory.noResults')}</p>
           )}
         </div>
       ) : (
-        <div key={filter} className={s.grid}>
-          {shown.map((item) => (
-            <AccountCard key={item.itemId} item={item} />
-          ))}
-          {!hasMore &&
-            activeLoading &&
-            Array.from({ length: SKELETON_TAIL }, (_, i) => <SkeletonCard key={`tail-${i}`} />)}
+        <div ref={trackRef} className={trackClass}>
+          {table && (
+            <div className={s.tableHead}>
+              <span className={`${s.headCell} ${s.headCellSelect}`}>
+                {selectionOn ? (
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={allSelected ? 'true' : someSelected ? 'mixed' : 'false'}
+                    aria-label={t('base.selectAll')}
+                    title={t('base.selectAll')}
+                    className={`${s.headCheck} ${allSelected || someSelected ? s.headCheckOn : ''}`}
+                    onClick={toggleAllVisible}
+                  >
+                    {allSelected ? (
+                      <Check size={12} strokeWidth={3} />
+                    ) : (
+                      someSelected && <Minus size={12} strokeWidth={3} />
+                    )}
+                  </button>
+                ) : (
+                  '#'
+                )}
+              </span>
+              <span className={s.headCell}>
+                {sortCaption('title', t('inventory.table.account'))}
+              </span>
+              <span className={s.headCell}>{t('inventory.table.status')}</span>
+              {/* Одна колонка на метки и на то, что приложение знает об аккаунте: это одна строка фишек. */}
+              <span className={s.headCell}>{t('inventory.table.labelsInfo')}</span>
+              <span className={`${s.headCell} ${s.headCellPurchased}`}>
+                {sortCaption(
+                  'purchased',
+                  t(
+                    scope === 'local'
+                      ? 'inventory.card.addedLabel'
+                      : 'inventory.card.purchasedLabel',
+                  ),
+                )}
+              </span>
+              <span className={`${s.headCell} ${s.headCellMarket} ${s.headCellRight}`}>
+                {sortCaption('price', t('inventory.card.priceLabel'))}
+              </span>
+              <span className={`${s.headCell} ${s.headCellRight}`}>
+                {t('inventory.table.actions')}
+              </span>
+            </div>
+          )}
+          <InventoryGrid
+            // A different scope is a different list, not the same one filtered: remounting drops the measured row heights with it.
+            key={`${scope}:${filter}`}
+            items={visible}
+            table={table}
+            selectionOn={selectionOn}
+            candidateIds={candidateIds}
+            selectedIds={selectedIds}
+            onSelect={handleSelect}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            pending={activeLoading ? SKELETON_TAIL : 0}
+          />
         </div>
       )}
 
-      {hasMore && <div ref={sentinelRef} className={s.sentinel} aria-hidden />}
+      {(chosenCount > 0 || running) && <MassBar candidates={candidates} />}
+
+      {editorOpen && (
+        <LocalAccountModal edit={editorTarget} onClose={closeLocalEditor} onSubmit={submitLocal} />
+      )}
+
+      {deleteTarget && (
+        <Modal
+          title={t('inventory.local.deleteTitle')}
+          subtitle={deleteTarget.title}
+          size="sm"
+          closable={!deleting}
+          onClose={deleting ? undefined : () => setDeleteTarget(null)}
+          footer={
+            <>
+              <ModalSpacer />
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={deleting}
+                onClick={() => setDeleteTarget(null)}
+              >
+                {t('inventory.local.cancel')}
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                busy={deleting}
+                onClick={() => void confirmDelete()}
+              >
+                {t('inventory.local.deleteConfirm')}
+              </Button>
+            </>
+          }
+        >
+          <ModalHint>{t('inventory.local.deleteBody', { title: deleteTarget.title })}</ModalHint>
+          <ModalError>{deleteError}</ModalError>
+        </Modal>
+      )}
     </div>
   );
 };

@@ -1,0 +1,60 @@
+/** «Приватность»: перечень полей и сырая посылка. */
+
+/* Перечень живёт внутри карточки группы, а отступы в ней носят сами строки — у списка их нет. */
+.fields {
+  list-style: none;
+  margin: 0;
+  padding: 12px 16px;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid v2.$primary;
+  }
+}
+
+/* Название и пояснение — колонкой, как в диалоге согласия: пояснение к «IP-адресу» — целое предложение. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+
+  & + & {
+    border-top: 1px solid $color-hairline;
+  }
+
+  /* У краёв списка своих полей нет: 8px строки складывались бы с 12px самого списка. */
+  &:first-child {
+    padding-top: 0;
+  }
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.fieldName {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: $color-text;
+}
+
+.fieldValue {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+/** The payload verbatim. */
+.preview {
+  margin: 0;
+  padding: 12px;
+  border-radius: $radius-md;
+  background: $color-field-bg;
+  border: 1px solid $color-field-border;
+  color: $color-text;
+  font-size: 14px;
+  line-height: $lh-base;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

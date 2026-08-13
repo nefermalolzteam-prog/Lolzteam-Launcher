@@ -1,0 +1,479 @@
+
+/** Ровно `.groupLabel` из `SettingsControls`: подписи разделов должны совпасть. */
+.sectionLabel {
+  margin: 0;
+  color: v2.$textMuted;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.listSection {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+
+/** Карточка списка. */
+.listCard {
+  display: flex;
+  flex-direction: column;
+  background-color: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 8px 8px 14px;
+  background: v2.$primaryDarker;
+  border-radius: v2.$radiusLG v2.$radiusLG 0 0;
+}
+
+.toolbarInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.listCount {
+  font-size: 14px;
+  color: v2.$textContent;
+  white-space: nowrap;
+}
+
+/* ── Метки состояния ───────────────────────────────────────────────────── */
+
+.pill {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pillOk {
+  color: v2.$accentText;
+  background: rgba(v2.$accent, .14);
+}
+
+.pillBad {
+  color: #e8706f;
+  background: rgba($color-danger-solid, .16);
+}
+
+/* ── Переключатель папки ───────────────────────────────────────────────── */
+
+/** Обёртка нужна не для вида, а для места: `Menu` встаёт. */
+.picker {
+  position: relative;
+  display: inline-flex;
+}
+
+.pickerTrigger {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 6px 10px;
+  border-radius: v2.$radiusMD;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  color: v2.$textContent;
+  font-size: 14px;
+  transition: border-color $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover {
+    border-color: $color-border-strong;
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.pickerIcon {
+  flex-shrink: 0;
+  color: v2.$textMuted;
+}
+
+.pickerValue {
+  @include truncate(1);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: v2.$textMuted;
+  transition: transform $duration-fast $ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/** Та же роль, что и у `.picker`: якорь для меню «Ещё». */
+.moreWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Строка меню с числом справа: `.itemLabel` отдаёт всю ширину, делим её сами. */
+.optionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.optionCount {
+  font-size: 14px;
+  font-weight: 600;
+  color: v2.$textMuted;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b6b6b6;
+  background: #ffffff10;
+  border: 1px solid transparent;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out,
+    border-color $duration-fast $ease-out, transform $duration-fast $ease-out;
+
+  &:hover {
+    background: #ffffff1f;
+    color: $color-text;
+  }
+
+  &:active {
+    transform: scale(0.96);
+    background: #ffffff2b;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  /** Знак сервиса в фишке. */
+  .chipLogo {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    object-fit: contain;
+    filter: grayscale(1);
+    opacity: .5;
+    transition: filter $duration-fast $ease-out, opacity $duration-fast $ease-out;
+  }
+
+  // Под курсором знак оживает раньше клика — фишка показывает, что будет, если по ней нажать.
+  &:hover .chipLogo {
+    opacity: .75;
+  }
+
+  // У «проверять на валид» знака нет, есть галочка.
+  .chipCheck {
+    flex-shrink: 0;
+    opacity: .35;
+    transition: opacity $duration-fast $ease-out;
+  }
+}
+
+/** Включённая фишка. */
+.chipOn {
+  color: $color-text;
+  background: rgba(v2.$accent, .12);
+  border-color: rgba(v2.$accent, .4);
+
+  .chipLogo {
+    filter: none;
+    opacity: 1;
+  }
+
+  .chipCheck {
+    opacity: 1;
+  }
+
+  // Перебивает ховер и нажатие базовой фишки, которые красят её по-своему.
+  &:hover {
+    color: $color-text;
+    background: rgba(v2.$accent, .18);
+    border-color: rgba(v2.$accent, .55);
+
+    .chipLogo {
+      opacity: 1;
+    }
+  }
+
+  // Нажатие возвращает фишку к цвету покоя — то есть темнее ховера, а не светлее.
+  &:active:not(:disabled):not([aria-disabled='true']) {
+    transform: scale(0.96);
+    background: rgba(v2.$accent, .12);
+  }
+}
+
+/** «Проверять на валид» — не действие, а условие; уезжает к правому краю. */
+.chipTrailing {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 14px;
+  padding: 6px 12px;
+}
+
+/* ── Форма добавления ──────────────────────────────────────────────────── */
+
+/** Панель добавления приезжает по кнопке и стоит между шапкой и списком. */
+.addPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  background: v2.$background;
+  border-bottom: 1px solid v2.$primary;
+}
+
+.editorScroll {
+  max-height: 220px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+  background: #161616;
+
+  @include scrollbar(transparent, rgba(255, 255, 255, 0.14));
+
+  &:focus-within {
+    @include focus-ring;
+  }
+}
+
+.editor {
+  display: flex;
+  align-items: stretch;
+  min-height: 100%;
+  /* Гарнитура общая, как везде: нумерация строк держится не на ширине знака. */
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.gutter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 0;
+  background: #121212;
+  border-right: 1px solid $color-border;
+  color: #5a5a5a;
+  text-align: right;
+  user-select: none;
+}
+
+.lineNo {
+  padding: 0 10px;
+  min-width: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  min-height: calc(3 * 1.6 * 14px + 24px);
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: $color-text;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  @include scrollbar(transparent, rgba(255, 255, 255, 0.14));
+
+  &::placeholder {
+    color: #6b6b6b;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/** Куда уедет вставленный список — подсказка прямо под редактором. */
+.addTarget {
+  margin: 0;
+  font-size: 14px;
+  color: #949494;
+}
+
+.forumMsg {
+  margin: 0;
+  font-size: $fs-sm;
+  color: $color-text-muted;
+}
+
+/* ── Список ────────────────────────────────────────────────────────────── */
+
+.empty {
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: #949494;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  transition: background $duration-fast $ease-out;
+
+  & + & {
+    border-top: 1px solid v2.$primary;
+  }
+
+  /* Последняя строка скругляет себе низ сама: карточка списка без `overflow: clip`. */
+  &:last-child {
+    border-radius: 0 0 v2.$radiusLG v2.$radiusLG;
+  }
+
+  &:hover {
+    background-color: v2.$primary;
+  }
+}
+
+.rowInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rowHost {
+  font-size: 14px;
+  color: $color-text;
+  @include truncate(1);
+}
+
+.rowSub {
+  font-size: 14px;
+  color: v2.$textMuted;
+  @include truncate(1);
+}
+
+.rowStatus {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/** Колонка задержки. */
+.rowPing {
+  min-width: 56px;
+  text-align: right;
+  font-size: 14px;
+  color: v2.$textMuted;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rowActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: #8a8a85;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
+
+  &:hover:not(:disabled) {
+    background: #ffffff1f;
+    color: $color-text;
+  }
+
+  &:disabled {
+    opacity: .5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.iconBtnDanger {
+  &:hover:not(:disabled) {
+    background: #c0392b33;
+    color: #e06453;
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Модалки ───────────────────────────────────────────────────────────── */
+
+/* Единственное, чего у кита диалога нет: подсветка порта, когда он не число от 1 до 65535. */
+.inputError {
+  border-color: $color-danger-solid;
+}

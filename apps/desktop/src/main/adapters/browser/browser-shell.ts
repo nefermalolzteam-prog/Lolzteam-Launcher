@@ -4,9 +4,15 @@ import type { AdapterLogger } from '@adapter-contract';
 import type { BrowserNavState, ProxyTestResult } from '@shared-ipc';
 import { IPC_CHANNELS } from '@shared-ipc';
 import type { ProxyEntry } from '@shared-types';
-import { type BrowserWindow, WebContentsView, clipboard, ipcMain, shell } from 'electron';
+import { type BrowserWindow, WebContentsView, clipboard, ipcMain, session } from 'electron';
 import { testProxy } from '../../services/proxy';
 import { getMainWindow, showMainWindow } from '../../window/main-window';
+import {
+  guardLocalWebContents,
+  guardSessionPermissions,
+  guardWebContents,
+  openExternalIfWeb,
+} from './guards';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -124,6 +130,10 @@ export const createBrowserShell = (
   // by the renderer's own backdrop.
   toolbarView.setBackgroundColor('#00000000');
 
+  guardSessionPermissions(session.fromPartition(opts.partition), opts.log);
+  guardWebContents(siteView.webContents, opts.log);
+  guardLocalWebContents(toolbarView.webContents, opts.log);
+
   win.contentView.addChildView(siteView);
   win.contentView.addChildView(toolbarView);
 
@@ -186,10 +196,7 @@ export const createBrowserShell = (
       }
     },
     copyUrl: () => clipboard.writeText(site.getURL()),
-    openExternal: () => {
-      const url = site.getURL();
-      if (/^https?:\/\//i.test(url)) void shell.openExternal(url);
-    },
+    openExternal: () => openExternalIfWeb(site.getURL()),
     expand: () => {
       expanded = true;
       layout();

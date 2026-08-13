@@ -1,9 +1,16 @@
 import type { UserLabel } from '@shared-types';
-import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { labelColors } from '~/lib/labelColor';
+import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
+import {
+  ModalError,
+  ModalField,
+  ModalGroup,
+  ModalInput,
+  ModalSpacer,
+} from '~/widgets/Modal/ModalKit';
 import s from './LabelEditorModal.module.scss';
 
 const PRESET_COLORS = [
@@ -26,6 +33,7 @@ interface LabelEditorModalProps {
   onSubmit: (title: string, bc: string) => Promise<{ ok: boolean; message?: string }>;
 }
 
+/** Метка форума: название, цвет и то, как она будет выглядеть. */
 export const LabelEditorModal = ({ label, onClose, onSubmit }: LabelEditorModalProps) => {
   const { t } = useTranslation();
   const [title, setTitle] = useState(label?.title ?? '');
@@ -62,11 +70,29 @@ export const LabelEditorModal = ({ label, onClose, onSubmit }: LabelEditorModalP
   return (
     <Modal
       title={label ? t('settings.profile.labelEdit') : t('settings.profile.labelNew')}
-      closable
-      onClose={onClose}
+      size="sm"
+      closable={!busy}
+      onClose={busy ? undefined : onClose}
+      footer={
+        <>
+          <ModalSpacer />
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onClose}>
+            {t('settings.profile.cancel')}
+          </Button>
+          <Button
+            variant="accent"
+            size="sm"
+            busy={busy}
+            disabled={!valid}
+            onClick={() => void submit()}
+          >
+            {t('settings.profile.save')}
+          </Button>
+        </>
+      }
     >
+      {/* `<form>` ради Enter: кнопка сохранения живёт в футере каркаса, то есть вне этого дерева. */}
       <form
-        className={s.form}
         onSubmit={(e) => {
           e.preventDefault();
           void submit();
@@ -81,58 +107,53 @@ export const LabelEditorModal = ({ label, onClose, onSubmit }: LabelEditorModalP
           </span>
         </div>
 
-        <label className={s.field}>
-          <span className={s.fieldLabel}>{t('settings.profile.labelTitle')}</span>
-          <input
-            className={s.input}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={MAX_TITLE}
-            placeholder={t('settings.profile.labelTitlePlaceholder')}
-            spellCheck={false}
-            autoFocus
-          />
-          <span className={s.counter}>
-            {trimmed.length}/{MAX_TITLE}
-          </span>
-        </label>
-
-        <div className={s.field}>
-          <span className={s.fieldLabel}>{t('settings.profile.labelColor')}</span>
-          <div className={s.colorRow}>
-            <input
-              type="color"
-              className={s.colorInput}
-              value={color}
-              onChange={(e) => pickColor(e.target.value)}
-              aria-label={t('settings.profile.labelColor')}
+        <ModalField label={t('settings.profile.labelTitle')}>
+          {/* Счётчик поверх поля, а не под ним: он про то же самое, что и `maxLength`, и своей строки под собой не стоит. */}
+          <span className={s.inputWrap}>
+            <ModalInput
+              className={s.input}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={MAX_TITLE}
+              placeholder={t('settings.profile.labelTitlePlaceholder')}
+              spellCheck={false}
+              disabled={busy}
+              autoFocus
             />
-            <div className={s.swatches}>
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`${s.swatch} ${color.toLowerCase() === c ? s.swatchOn : ''}`}
-                  style={{ backgroundColor: c }}
-                  onClick={() => pickColor(c)}
-                  aria-label={c}
-                />
-              ))}
-            </div>
+            <span className={s.counter}>
+              {trimmed.length}/{MAX_TITLE}
+            </span>
+          </span>
+        </ModalField>
+
+        {/* `<ModalGroup/>`, а не `<ModalField/>`: обернуть `<label>`-ом девять кнопок нельзя — подпись досталась бы первой из них. */}
+        <ModalGroup>{t('settings.profile.labelColor')}</ModalGroup>
+        <div className={s.colorRow}>
+          <input
+            type="color"
+            className={s.colorInput}
+            value={color}
+            onChange={(e) => pickColor(e.target.value)}
+            disabled={busy}
+            aria-label={t('settings.profile.labelColor')}
+          />
+          <div className={s.swatches}>
+            {PRESET_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`${s.swatch} ${color.toLowerCase() === c ? s.swatchOn : ''}`}
+                style={{ backgroundColor: c }}
+                onClick={() => pickColor(c)}
+                disabled={busy}
+                aria-label={c}
+                aria-pressed={color.toLowerCase() === c}
+              />
+            ))}
           </div>
         </div>
 
-        {error && <p className={s.error}>{error}</p>}
-
-        <div className={s.actions}>
-          <button type="button" className={s.cancel} onClick={onClose} disabled={busy}>
-            {t('settings.profile.cancel')}
-          </button>
-          <button type="submit" className={s.save} disabled={!valid || busy}>
-            {busy && <Loader2 size={14} className={s.spin} />}
-            <span>{t('settings.profile.save')}</span>
-          </button>
-        </div>
+        <ModalError>{error}</ModalError>
       </form>
     </Modal>
   );

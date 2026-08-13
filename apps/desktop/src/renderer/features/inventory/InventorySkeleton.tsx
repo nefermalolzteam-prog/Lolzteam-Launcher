@@ -35,3 +35,17 @@ export const SkeletonCard = () => (
     <div className={s.skeletonButton} />
   </div>
 );
+
+/** The same placeholder for table mode — one line per column, same tracks. */
+export const SkeletonRow = () => (
+  <div className={s.skeletonRow}>
+    <div className={`${s.skeletonCell} ${s.skeletonCellLead}`} />
+    <div className={`${s.skeletonCell} ${s.skeletonCellWide}`} />
+    <div className={s.skeletonCell} />
+    {/* Метки и информация — один трек, значит и одна полоса: лишняя съехала бы под «Куплен» и утащила бы за собой всё правее. */}
+    <div className={`${s.skeletonCell} ${s.skeletonCellWide}`} />
+    <div className={`${s.skeletonCell} ${s.skeletonCellPurchased}`} />
+    <div className={`${s.skeletonCell} ${s.skeletonCellMarket}`} />
+    <div className={s.skeletonRowButton} />
+  </div>
+);

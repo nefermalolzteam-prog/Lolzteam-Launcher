@@ -1,79 +1,161 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  display: grid;
-  place-items: center;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   z-index: $z-modal;
-  padding: $space-4;
-  animation: fade-in $duration-base $ease-out;
+  padding: 60px $space-5 $space-5;
+  animation: modal-fade $duration-base $ease-out;
 }
 
 .card {
-  background: $color-surface-raised;
-  border: 1px solid $color-border-strong;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
   border-radius: $radius-lg;
-  box-shadow: $shadow-lg;
-  width: min(440px, 100%);
-  max-height: 90vh;
-  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  width: 100%;
+  max-height: calc(100vh - 60px - #{$space-5});
   display: flex;
   flex-direction: column;
-  animation: pop-in $duration-base $ease-out;
+  animation: modal-pop $duration-base $ease-out;
 }
+
+.sm { max-width: 380px; }
+.md { max-width: 460px; }
+.lg { max-width: 560px; }
 
 .head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: $space-3;
-  padding: $space-4 $space-5;
-  border-bottom: 1px solid $color-border;
+  padding: 16px 16px 16px ;
+  flex: none;
+  border-bottom: 1px solid v2.$primary;
+}
+
+.heading {
+  flex: 1;
+  min-width: 0;
 }
 
 .title {
   margin: 0;
-  font-size: $fs-lg;
-  font-weight: 600;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
   color: $color-text;
-  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: v2.$textMuted;
+  @include truncate(1);
 }
 
 .close {
-  background: transparent;
-  border: none;
-  color: $color-text-muted;
-  cursor: pointer;
-  padding: $space-1;
-  border-radius: $radius-sm;
+  @include button-reset;
+  @include clickable;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: v2.$radiusFull;
+  color: v2.$textMuted;
   display: grid;
   place-items: center;
-  transition: color $duration-fast $ease-out, background $duration-fast $ease-out;
+  margin: -4px;
 
   &:hover {
+    background: v2.$primary;
     color: $color-text;
-    background: $color-surface-overlay;
+  }
+
+  /* Крестик есть, но пока не нажимается (`closeDisabled`): диалог ждёт, пока прочтут. */
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+
+    &:hover {
+      background: none;
+      color: v2.$textMuted;
+    }
+  }
+
+  &:focus-visible { @include focus-ring; }
+}
+
+/* Расстояние между блоками тела задаёт сам контейнер, а не поля его детей. */
+.body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: $color-text-soft;
+  font-size: 14px;
+  line-height: 20px;
+  @include scrollbar(transparent, #2c2c2c);
+
+  > * { flex: none; }
+
+  /* Форма — не блок содержимого, а обёртка вокруг него: сама она ничего не рисует. */
+  > :where(form) {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 }
 
-.body {
-  padding: $space-5;
-  overflow-y: auto;
-  @include scrollbar;
+/* Тело во всю ширину карточки — для списков, которые рисуют свои разделители до краёв. */
+.bodyFlush {
+  padding: 0;
+  gap: 0;
 }
 
-@keyframes fade-in {
+/* Полоса кнопок внизу карточки. */
+.foot {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  flex: none;
+  flex-wrap: wrap;
+  // По бокам — как у шапки и тела, сверху и снизу теснее: кнопка сама по себе высокая.
+  padding: 12px 16px;
+  border-top: 1px solid v2.$primary;
+
+  > button {
+    padding: 10px 18px;
+    font-size: $fs-sm;
+    line-height: 20px;
+  }
+}
+
+@keyframes modal-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes pop-in {
+@keyframes modal-pop {
   from {
     opacity: 0;
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(6px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .card {
+    animation: none;
   }
 }

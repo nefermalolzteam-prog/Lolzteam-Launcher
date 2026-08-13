@@ -1,15 +1,29 @@
 import type { LocalePreference } from '@shared-types';
-import { Check, ExternalLink, Globe, Languages, Loader2, Wifi, WifiOff } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { SUPPORTED_SERVICE_IDS, serviceLabel } from '@shared-types';
+import { Check, Globe, KeyRound, Languages, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import backgroundUrl from '~/assets/background.svg';
 import logoUrl from '~/assets/logolzt.svg';
 import { LOCALE_FLAG } from '~/lib/flags';
+import { serviceLogo } from '~/lib/serviceLogos';
+import { useDismiss } from '~/lib/useDismiss';
+import { Button } from '~/widgets/Button/Button';
 import { Flag } from '~/widgets/Flag/Flag';
+import { Tooltip } from '~/widgets/Tooltip/Tooltip';
+import { EnterIcon } from '~/widgets/icons/Icons';
 import { AppProxyModal } from './AppProxyModal';
 import s from './LoginScreen.module.scss';
+import { TokenLoginModal } from './TokenLoginModal';
 
 const LOCALE_OPTIONS: readonly LocalePreference[] = ['ru', 'en'] as const;
+
+/** Во что здесь можно войти — с логотипами, под описанием. */
+const SERVICE_CHIPS = SUPPORTED_SERVICE_IDS.map((id) => ({
+  id,
+  label: serviceLabel(id),
+  logo: serviceLogo(id),
+}));
 
 type NetState = { kind: 'checking' } | { kind: 'online'; ms: number } | { kind: 'offline' };
 
@@ -20,8 +34,9 @@ export const LoginScreen = () => {
   const [locale, setLocale] = useState<LocalePreference>('ru');
   const [langOpen, setLangOpen] = useState(false);
   const [proxyOpen, setProxyOpen] = useState(false);
+  const [tokenOpen, setTokenOpen] = useState(false);
   const [net, setNet] = useState<NetState>({ kind: 'checking' });
-  const langRef = useRef<HTMLDivElement>(null);
+  const langRef = useDismiss<HTMLDivElement>(langOpen, () => setLangOpen(false));
 
   const checkNetwork = useCallback(async () => {
     setNet({ kind: 'checking' });
@@ -36,17 +51,6 @@ export const LoginScreen = () => {
     void checkNetwork();
     return off;
   }, [checkNetwork]);
-
-  useEffect(() => {
-    if (!langOpen) return;
-    const onClick = (e: MouseEvent) => {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
-        setLangOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, [langOpen]);
 
   const handleBrowser = async () => {
     setBusy('browser');
@@ -111,35 +115,66 @@ export const LoginScreen = () => {
             <span className={s.title}>{t('login.title')}</span>
             <span className={s.description}>{t('login.lede')}</span>
           </div>
+          <ul className={s.services} aria-label={t('login.services')}>
+            {SERVICE_CHIPS.map((svc) => (
+              <li key={svc.id} className={s.service}>
+                {/* Логотип — украшение при своей же подписи: озвучивать «Steam Steam» скринридеру незачем. */}
+                {svc.logo && <img className={s.serviceLogo} src={svc.logo} alt="" aria-hidden />}
+                <span>{svc.label}</span>
+              </li>
+            ))}
+          </ul>
           <div className={s.actions}>
-            <button
-              type="button"
-              className={s.button}
-              onClick={handleBrowser}
-              disabled={busy !== null || net.kind !== 'online'}
-            >
-              <ExternalLink size={16} />
-              <span>{busy === 'browser' ? t('login.busyBrowser') : t('login.openBrowser')}</span>
-            </button>
-            <button
-              type="button"
-              className={s.langButton}
-              aria-label={t('settings.proxy.appLabel')}
-              onClick={() => setProxyOpen(true)}
-            >
-              <Globe size={18} />
-            </button>
-            <div className={s.langWrap} ref={langRef}>
-              <button
-                type="button"
-                className={s.langButton}
-                aria-label={t('login.language')}
-                aria-haspopup="menu"
-                aria-expanded={langOpen}
-                onClick={() => setLangOpen((v) => !v)}
+            <Tooltip label={t('login.openBrowserTooltip')} placement="bottom">
+              <Button
+                variant="accent"
+                size="lg"
+                shape="pill"
+                icon={EnterIcon}
+                className={s.button}
+                busy={busy === 'browser'}
+                disabled={busy !== null || net.kind !== 'online'}
+                onClick={handleBrowser}
               >
-                <Languages size={18} />
-              </button>
+                {busy === 'browser' ? t('login.busyBrowser') : t('login.openBrowser')}
+              </Button>
+            </Tooltip>
+            <Tooltip label={t('login.token.tooltip')} placement="bottom">
+              <Button
+                iconOnly
+                icon={KeyRound}
+                label={t('login.token.title')}
+                variant="neutral"
+                size="lg"
+                shape="pill"
+                onClick={() => setTokenOpen(true)}
+              />
+            </Tooltip>
+            <Tooltip label={t('settings.proxy.appLabel')} placement="bottom">
+              <Button
+                iconOnly
+                icon={Globe}
+                label={t('settings.proxy.appLabel')}
+                variant="neutral"
+                size="lg"
+                shape="pill"
+                onClick={() => setProxyOpen(true)}
+              />
+            </Tooltip>
+            <div className={s.langWrap} ref={langRef}>
+              <Tooltip label={t('login.language')} placement="bottom" disabled={langOpen}>
+                <Button
+                  iconOnly
+                  icon={Languages}
+                  label={t('login.language')}
+                  variant="neutral"
+                  size="lg"
+                  shape="pill"
+                  aria-haspopup="menu"
+                  aria-expanded={langOpen}
+                  onClick={() => setLangOpen((v) => !v)}
+                />
+              </Tooltip>
               {langOpen && (
                 <div className={s.langMenu} role="menu">
                   {LOCALE_OPTIONS.map((opt) => {
@@ -171,6 +206,7 @@ export const LoginScreen = () => {
       </div>
 
       {proxyOpen && <AppProxyModal onClose={() => setProxyOpen(false)} onChanged={checkNetwork} />}
+      {tokenOpen && <TokenLoginModal onClose={() => setTokenOpen(false)} />}
     </>
   );
 };

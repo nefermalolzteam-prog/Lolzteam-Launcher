@@ -1,9 +1,4 @@
-// =============================================================================
-//  LZT palette (1:1 from the source CSS the user provided 2026-05-27).
-//  Do NOT add Tailwind / utility frameworks here.
-// =============================================================================
-
-// brand
+// ============================================================================= LZT palette.
 $color-brand:                  rgb(0, 186, 120);     // --dad_mbabc_color / primary
 $color-loaderbar:              rgb(18, 76, 50);
 
@@ -53,11 +48,37 @@ $color-text:                   $color-faint-text;
 $color-text-soft:              $color-content-text;
 $color-text-muted:             $color-muted-text;
 $color-text-dim:               $color-dimmed-text;
-$color-accent:                 $color-brand;
+// Тише брендового: #00BA78 остаётся тем, чем был — цветом форума.
+$color-accent:                 #108d61;
+// Прежний акцент, теперь — ховер заливки: кнопка светлеет под курсором вместо того, чтобы темнеть.
+$color-accent-hover:           $color-brand;
+// Осторожно: rgb(34,142,93) и потемневший акцент — одной светлоты.
 $color-accent-soft:            $color-primary-lighter;
 $color-danger:                 $color-secondary-light;
 $color-warning:                $color-secondary-medium;
 $color-info:                   $color-primary-lightish;
+
+// One colour cannot be both a fill and a label on that fill.
+$color-accent-solid:           $color-accent;
+$color-on-accent:              #ffffff;
+// Зелёный как надпись, а не как заливка: активный пункт дока, «Валид» в строке, галка в бейдже, ссылка.
+$color-accent-text:            #02BB77;
+$color-danger-solid:           #c0392b;
+$color-on-danger:              #ffffff;
+$color-danger-text:            #ff8f8f;
+
+// ── Слой диалогов ────────────────────────────────────────────────────────────
+$color-panel:                  #191919;   // сама карточка
+$color-panel-sunken:           #141414;   // футер и всё утопленное в карточку
+$color-panel-raised:           #1f1f1f;   // строки выбора, вторичные кнопки
+$color-hairline:               #262626;   // разделитель внутри карточки
+$color-hairline-strong:        #313131;   // граница карточки и вторичных кнопок
+$color-field-bg:               #131313;
+$color-field-border:           #2a2a2a;
+
+// Две ступени ниже `$color-text-muted`.
+$color-text-subtle:            #6e6e69;
+$color-text-ghost:             #5a5a56;
 
 // spacing scale (4px grid)
 $space-1: 0.25rem;   //  4
@@ -79,9 +100,8 @@ $radius-lg: 14px;
 $radius-xl: 20px;
 $radius-pill: 999px;
 
-// typography
+// typography Один шрифт на всё приложение.
 $font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-$font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
 
 $fs-xs: 0.75rem;
 $fs-sm: 0.875rem;
@@ -99,7 +119,8 @@ $lh-loose: 1.6;
 $shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
 $shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-$shadow-focus: 0 0 0 2px rgba(0, 186, 120, 0.45);
+// Two rings, not one.
+$shadow-focus: 0 0 0 2px $color-page-bg, 0 0 0 4px $color-accent;
 
 // motion
 $ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -113,8 +134,19 @@ $z-base: 1;
 $z-sticky: 10;
 $z-overlay: 100;
 $z-modal: 1000;
+// Список, раскрытый из поля внутри диалога.
+$z-popover: 1500;
 $z-toast: 2000;
 
 // layout
 $sidebar-width: 240px;
 $topbar-height: 56px;
+// The custom scrollbar's width, and therefore the width `scrollbar-gutter` reserves.
+$scrollbar-width: 10px;
+
+// Inventory table mode: one column template shared by the caption row (rendered from `InventoryView`) and the account.
+$row-columns: 34px minmax(140px, 2.4fr) 132px minmax(132px, 4.6fr) 128px 104px 212px;
+// Local accounts have no market data — no price, no column.
+$row-columns-local: 34px minmax(140px, 2.4fr) 132px minmax(132px, 4.6fr) 128px 212px;
+// An own listing has no buyer yet, and `purchasedAt` is the buyer's date.
+$row-columns-listed: 34px minmax(140px, 2.4fr) 132px minmax(132px, 4.6fr) 104px 212px;

@@ -1,5 +1,5 @@
 import { LOLZ_CONFIG } from '@lolzteam/shared-ipc';
-import ky, { type KyInstance } from 'ky';
+import ky, { HTTPError, type KyInstance } from 'ky';
 import type {
   CheckAccountResponse,
   EmailCodeResponse,
@@ -21,6 +21,36 @@ export interface MarketClientOptions {
   fetch?: typeof globalThis.fetch;
 }
 
+/** Longest we will sit on a `429`. */
+const MAX_RETRY_WAIT_MS = 70_000;
+
+/** Enough that the window has demonstrably rolled over when we ask again. */
+const RESET_SLACK_MS = 500;
+
+const sleep = (ms: number, signal?: AbortSignal | null): Promise<void> =>
+  new Promise((resolve) => {
+    if (ms <= 0 || signal?.aborted) {
+      resolve();
+      return;
+    }
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+
+/** How long to hold off after a `429`, from the response that carried it. */
+const waitAfterRateLimit = (response: Response, now: number): number => {
+  const reset = Number(response.headers.get('X-RateLimit-Reset'));
+  if (!Number.isFinite(reset) || reset <= 0) return MAX_RETRY_WAIT_MS;
+  return Math.min(Math.max(reset * 1000 - now + RESET_SLACK_MS, 0), MAX_RETRY_WAIT_MS);
+};
+
 export class MarketClient {
   private readonly http: KyInstance;
   private readonly getToken: MarketClientOptions['getToken'];
@@ -41,6 +71,12 @@ export class MarketClient {
             req.headers.set('Accept', 'application/json');
           },
         ],
+        beforeRetry: [
+          async ({ request, error }) => {
+            if (!(error instanceof HTTPError) || error.response.status !== 429) return;
+            await sleep(waitAfterRateLimit(error.response, Date.now()), request.signal);
+          },
+        ],
       },
     });
   }
@@ -56,8 +92,7 @@ export class MarketClient {
     return this.http.get('user/orders', { searchParams: search, signal }).json<RawOrdersResponse>();
   }
 
-  /** `Get Proxy` — the user's saved proxy list. Shape is not modeled; the caller
-   * validates defensively. */
+  /** `Get Proxy` — the user's saved proxy list. */
   async listProxies(signal?: AbortSignal): Promise<unknown> {
     return this.http.get('proxy', { signal }).json<unknown>();
   }
@@ -75,41 +110,44 @@ export class MarketClient {
   }
 
   /** `Managing.Get` — full details for a single item (login/password/etc). */
-  async getItem(itemId: number): Promise<{ item?: RawMarketItem }> {
-    return this.http.get(String(itemId)).json<{ item?: RawMarketItem }>();
+  async getItem(itemId: number, signal?: AbortSignal): Promise<{ item?: RawMarketItem }> {
+    return this.http.get(String(itemId), { signal }).json<{ item?: RawMarketItem }>();
   }
 
   /** `Managing.Steam.GetMafile` — Steam Guard mafile for the item. */
-  async getSteamMafile(itemId: number): Promise<unknown> {
-    return this.http.get(`${itemId}/mafile`).json<unknown>();
+  async getSteamMafile(itemId: number, signal?: AbortSignal): Promise<unknown> {
+    return this.http.get(`${itemId}/mafile`, { signal }).json<unknown>();
   }
 
-  async checkAccount(itemId: number): Promise<CheckAccountResponse> {
+  async checkAccount(itemId: number, signal?: AbortSignal): Promise<CheckAccountResponse> {
     return this.http
-      .post(`${itemId}/check-account`, { throwHttpErrors: false })
+      .post(`${itemId}/check-account`, { throwHttpErrors: false, signal })
       .json<CheckAccountResponse>();
   }
 
   /** `Managing.EmailCode` — fetch parsed email confirmation code for the item. */
-  async getEmailCode(itemId: number): Promise<EmailCodeResponse> {
+  async getEmailCode(itemId: number, signal?: AbortSignal): Promise<EmailCodeResponse> {
     return this.http
-      .get(`${itemId}/email-code`, { throwHttpErrors: false })
+      .get(`${itemId}/email-code`, { throwHttpErrors: false, signal })
       .json<EmailCodeResponse>();
   }
 
-  async getLetters(params: {
-    emailPassword?: string;
-    email?: string;
-    password?: string;
-    limit?: number;
-  }): Promise<RawLettersResponse> {
+  async getLetters(
+    params: {
+      emailPassword?: string;
+      email?: string;
+      password?: string;
+      limit?: number;
+    },
+    signal?: AbortSignal,
+  ): Promise<RawLettersResponse> {
     const search = new URLSearchParams();
     if (params.emailPassword) search.set('email_password', params.emailPassword);
     if (params.email) search.set('email', params.email);
     if (params.password) search.set('password', params.password);
     if (params.limit) search.set('limit', String(params.limit));
     return this.http
-      .get('letters2', { searchParams: search, throwHttpErrors: false })
+      .get('letters2', { searchParams: search, throwHttpErrors: false, signal })
       .json<RawLettersResponse>();
   }
 
@@ -132,6 +170,18 @@ export class MarketClient {
     return this.http
       .put('me', { json: { user: { currency } }, throwHttpErrors: false })
       .json<RawEditMeResponse>();
+  }
+
+  /** `Managing.NoteEdit` — replace the private note on an item. */
+  async setItemNote(itemId: number, text: string): Promise<RawStatusResponse> {
+    return this.http
+      .put(`${itemId}/note`, { json: { text }, throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.NoteDelete` — remove it. */
+  async deleteItemNote(itemId: number): Promise<RawStatusResponse> {
+    return this.http.delete(`${itemId}/note`, { throwHttpErrors: false }).json<RawStatusResponse>();
   }
 
   /** `Market.UserTags.Get` — the user's own tag palette. */
@@ -160,10 +210,7 @@ export class MarketClient {
       .json<RawStatusResponse>();
   }
 
-  /**
-   * `Market.UserTags.Order` — set the tag order. WARNING: any tag id NOT present
-   * in `tagOrder` is removed from the set, so always pass the complete list.
-   */
+  /** `Market.UserTags.Order` — set the tag order. */
   async reorderUserTags(tagOrder: number[]): Promise<RawStatusResponse> {
     return this.http
       .post('user/tags/order', { json: { tag_order: tagOrder }, throwHttpErrors: false })
@@ -175,10 +222,7 @@ export class MarketClient {
     return this.http.get('me').json<RawProfileResponse>();
   }
 
-  /**
-   * Current authenticated user from the forum API (`/users/me`). Unlike the
-   * market `me()`, this returns `links.avatar*` URLs and the account balance.
-   */
+  /** Current authenticated user from the forum API (`/users/me`). */
   async meForum(): Promise<RawProfileResponse> {
     return this.http
       .get('users/me', { prefixUrl: LOLZ_CONFIG.forumApiUrl })

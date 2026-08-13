@@ -1,13 +1,17 @@
 import type { UserLabel } from '@shared-types';
 import { Check, ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { labelColors } from '~/lib/labelColor';
+import { useDismiss } from '~/lib/useDismiss';
 import s from './LabelMultiSelect.module.scss';
+
+/** All a picker needs of a label. */
+export type LabelChoice = Pick<UserLabel, 'id' | 'title' | 'bc'>;
 
 interface LabelMultiSelectProps {
   title: string;
-  labels: UserLabel[];
+  labels: readonly LabelChoice[];
   selected: number[];
   onToggle: (id: number) => void;
   variant: 'include' | 'exclude';
@@ -22,16 +26,7 @@ export const LabelMultiSelect = ({
 }: LabelMultiSelectProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
+  const rootRef = useDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   const selectedLabels = labels.filter((l) => selected.includes(l.id));
 

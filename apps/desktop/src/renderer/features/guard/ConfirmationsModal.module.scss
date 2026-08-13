@@ -1,0 +1,124 @@
+
+/* Подпись и обновление в один ряд: кнопка относится к списку под ними обоими. */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+
+  > p { flex: 1; }
+}
+
+/* Своя прокрутка, а не прокрутка всего тела: над списком стоит подпись с кнопкой обновления. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: $radius-md;
+  background: $color-panel-raised;
+  border: 1px solid transparent;
+}
+
+/* Одна и та же клетка с картинкой и без: пока иконка не пришла (или её нет вовсе), место под неё уже занято. */
+.icon,
+.iconFallback {
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-sm;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: $color-field-bg;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.headline {
+  @include truncate;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: $color-text;
+}
+
+.summary {
+  @include truncate;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+}
+
+.rowWarning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-warning;
+
+  > svg { flex-shrink: 0; }
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Решение по строке — подкрашенным квадратом, а не заливкой `<Button/>`. */
+.allow,
+.deny {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-sm;
+
+  &:focus-visible { @include focus-ring; }
+  &:disabled { opacity: 0.45; cursor: default; }
+}
+
+.allow {
+  background: rgba($color-accent, 0.14);
+  color: $color-accent-text;
+
+  &:hover:not(:disabled) { background: rgba($color-accent, 0.24); }
+}
+
+.deny {
+  background: rgba($color-danger, 0.14);
+  color: $color-danger-text;
+
+  &:hover:not(:disabled) { background: rgba($color-danger, 0.24); }
+}
+
+.spin {
+  animation: guard-confirm-spin 1s linear infinite;
+}
+
+@keyframes guard-confirm-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 3s; }
+}

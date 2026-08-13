@@ -1,0 +1,10 @@
+// The stored avatar is 160×160 — see `downloadAvatar` in the checker, which takes Telegram's «small» size on purpose.
+.preview {
+  display: block;
+  width: 160px;
+  height: 160px;
+  border-radius: $radius-md;
+  object-fit: cover;
+  // A thumbnail is loaded, not drawn: until it arrives the bubble is a hole in the list.
+  background: $color-surface-overlay;
+}

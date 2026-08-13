@@ -1,0 +1,62 @@
+
+/* Цветной прямоугольник с названием — то же, что носит карточка, поэтому цвета приходят из `labelColors`, а не отсюда. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  @include truncate(1);
+}
+
+/* ── Редактор метки ────────────────────────────────────────────────────────── */
+
+/* На месте строки, а не поверх неё: новый цвет выбирают, глядя на соседние. */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border-radius: $radius-md;
+  border: 1px solid $color-hairline-strong;
+  background: $color-panel-raised;
+}
+
+.palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swatch {
+  @include button-reset;
+  @include clickable;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  /* Прозрачная рамка, а не её отсутствие: выбранный кружок иначе становился бы на 4px больше остальных и вся палитра. */
+  border: 2px solid transparent;
+  transition: border-color $duration-fast $ease-out;
+
+  &:focus-visible { @include focus-ring; }
+}
+
+.swatchOn {
+  border-color: $color-text;
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: $space-2;
+}
+
+/* ── Прочее ────────────────────────────────────────────────────────────────── */
+
+/* Отбивку от списка несёт зазор тела диалога — здесь остался только цвет: «добавить» не выбирает из списка. */
+.add {
+  color: $color-accent-text;
+}

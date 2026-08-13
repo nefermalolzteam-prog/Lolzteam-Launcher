@@ -1,0 +1,107 @@
+
+/* Одного слоя со строками кита под ним: код тоже нажимается. */
+.codeRow {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: $radius-md;
+  background: $color-hairline-strong;
+  border: 1px solid transparent;
+
+  &:hover { border-color: $color-hairline-strong; }
+  &:focus-visible { @include focus-ring; }
+}
+
+.code {
+  flex: 1;
+  text-align: left;
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 5px;
+  color: $color-accent-text;
+}
+
+.ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+
+  svg { transform: rotate(-90deg); }
+}
+
+.ringTrack {
+  fill: none;
+  stroke: rgba(v2.$text, 0.18);
+  stroke-width: 3;
+}
+
+.ringFill {
+  fill: none;
+  stroke: $color-accent-text;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.ringLabel {
+  position: absolute;
+  font-size: 12px;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  color: v2.$textMuted;
+}
+
+.copyIcon {
+  display: flex;
+  flex: none;
+  color: v2.$textMuted;
+}
+
+/* Та же коробка, что и у кода: без неё окно на секунду становится ниже, а потом подпрыгивает обратно. */
+.codePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 58px;
+  padding: 12px 14px;
+  border-radius: $radius-md;
+  background: v2.$primary;
+  border: 1px solid transparent;
+}
+
+.placeholderText {
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  color: v2.$textMuted;
+}
+
+.spin {
+  color: v2.$textMuted;
+  animation: sda-modal-spin 1s linear infinite;
+}
+
+@keyframes sda-modal-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 3s; }
+  .ringFill { transition: none; }
+}
+
+/* Строки кита отступов не носят: между соседями в теле диалога расстояние задаёт само тело. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

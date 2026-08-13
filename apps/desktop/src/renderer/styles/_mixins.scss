@@ -1,11 +1,17 @@
 @use './tokens' as *;
+// Своим `@use`, хотя сборщик и подставляет его каждому модулю.
+@use './v2/tokens' as v2;
 
+// The outline is transparent rather than absent.
 @mixin focus-ring {
-  outline: none;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   box-shadow: $shadow-focus;
 }
 
+// `min-width: 0` is part of truncating, not an extra: a flex or grid child keeps `min-width: auto` by default.
 @mixin truncate($lines: 1) {
+  min-width: 0;
   @if $lines == 1 {
     overflow: hidden;
     white-space: nowrap;
@@ -20,8 +26,8 @@
 
 @mixin scrollbar($track: transparent, $thumb: rgba(255, 255, 255, 0.12)) {
   &::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: $scrollbar-width;
+    height: $scrollbar-width;
   }
   &::-webkit-scrollbar-track {
     background: $track;
@@ -50,6 +56,16 @@
   border-radius: $radius-md;
 }
 
+// Заливка акцентом и подпись на ней — пара, которую нельзя было собирать по частям.
+@mixin accent-button {
+  background: $color-accent-solid;
+  color: $color-on-accent;
+
+  &:hover:not(:disabled):not([aria-disabled='true']) {
+    background: $color-accent-hover;
+  }
+}
+
 @mixin button-reset {
   appearance: none;
   background: none;
@@ -61,10 +77,40 @@
   cursor: pointer;
 }
 
+// «Это интерактивно»: курсор и общий набор переходов.
 @mixin clickable {
   cursor: pointer;
   transition: background-color $duration-base $ease-out, transform $duration-fast $ease-out,
-    box-shadow $duration-base $ease-out, border-color $duration-base $ease-out;
+    scale $duration-fast $ease-out, box-shadow $duration-base $ease-out,
+    border-color $duration-base $ease-out;
+}
+
+// «Это нажимается» — отдельно от `clickable`, потому что это разные вещи.
+@mixin pressable {
+  &:active:not(:disabled):not([aria-disabled='true']) {
+    scale: 0.96;
+  }
+}
+
+// Плавающая над содержимым «таблетка» нижнего ряда: три дока — задачи слева, навигация по центру.
+@mixin dock-pill {
+  border-radius: v2.$radiusFull;
+  background: v2.$primary;
+  outline: 1px solid rgba(v2.$text, .06);
+  outline-offset: -1px;
+  backdrop-filter: blur(12px);
+  color: v2.$text;
+}
+
+// Круглый колодец под значком или кольцом внутри такой таблетки.
+@mixin dock-well($size: 58px) {
+  flex: none;
+  display: grid;
+  place-items: center;
+  height: $size;
+  width: $size;
+  border-radius: v2.$radiusFull;
+  background-color: rgba(v2.$text, .06);
 }
 
 @mixin skeleton {

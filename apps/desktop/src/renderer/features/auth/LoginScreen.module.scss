@@ -47,8 +47,9 @@
     border-color: rgba(30, 163, 96, 0.32);
   }
 
+  /* The offline pill is the one of the pair that needed lifting: #E5484D on its own 12 % tint is 4.41:1, just under the 4.5. */
   .netOffline {
-    color: #E5484D;
+    color: $color-danger-text;
     background: rgba(229, 72, 77, 0.12);
     border-color: rgba(229, 72, 77, 0.32);
   }
@@ -88,13 +89,14 @@
   .loginBlock {
     position: relative;
     z-index: 1;
-    padding: 40px 20px 40px 20px;
+    padding: 32px;
     background: #1A1A1A;
     border-radius: 24px;
     display: flex;
     flex-direction: column;
-    gap: 40px;
-    max-width: 420px;
+    gap: 28px;
+    // Ширину диктует содержимое, а не карточка: полосы внутри и так ограничены своими 380px, а ряд кнопок — короче их.
+    width: fit-content;
     align-items: center;
     text-align: center;
     border: 1px solid #222222;
@@ -108,6 +110,8 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+      // Мера читаемости, а не рамка блока: строка длиннее примерно 70 знаков теряет начало следующей.
+      max-width: 380px;
 
       .title {
         font-size: 24px;
@@ -121,67 +125,56 @@
       }
     }
 
+    /** Во что можно войти — сразу под описанием. */
+    .services {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: $space-2;
+      max-width: 380px;
+    }
+
+    .service {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: $radius-pill;
+      border: 1px solid #222222;
+      background: rgba(255, 255, 255, 0.03);
+      // Светлее и плотнее описания над ним: это не продолжение объяснения, а перечень названий, и каждое читается само по себе.
+      color: v2.$textContent;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 18px;
+      white-space: nowrap;
+    }
+
+    // Логотипы приходят разными: у одних поле внутри рисунка, у других его нет.
+    .serviceLogo {
+      flex: none;
+      height: 16px;
+      width: 16px;
+      object-fit: contain;
+    }
+
     .actions {
       display: flex;
       align-items: center;
       gap: $space-2;
     }
 
+    // Everything about this button is `Button`'s, bar the height: 12 instead of the 16 `lg` gives.
     .button {
-      @include button-reset;
-      @include clickable;
-      display: inline-flex;
-      width: fit-content;
-      align-items: center;
-      justify-content: center;
-      gap: $space-2;
-      padding: 12px 24px;
-      border-radius: 96px;
-      background: #1EA360;
-      color: #fff;
-      font-weight: 500;
-      font-size: 16px;
-      transition: filter $duration-fast $ease-out, background $duration-fast $ease-out;
-
-      &:hover:not(:disabled) {
-        filter: brightness(1.2);
-      }
-
-      &:disabled {
-        background: $color-surface-overlay;
-        color: $color-text-muted;
-        cursor: not-allowed;
-      }
-
-      &:focus-visible {
-        @include focus-ring;
-      }
+      padding-top: 12px;
+      padding-bottom: 12px;
     }
 
     .langWrap {
       position: relative;
-    }
-
-    .langButton {
-      @include button-reset;
-      @include clickable;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      border-radius: 96px;
-      background: $color-surface-overlay;
-      color: $color-text;
-      transition: filter $duration-fast $ease-out, background $duration-fast $ease-out;
-
-      &:hover {
-        filter: brightness(1.2);
-      }
-
-      &:focus-visible {
-        @include focus-ring;
-      }
     }
 
     .langMenu {

@@ -1,6 +1,7 @@
 {
   "common": {
     "close": "Close",
+    "done": "Done",
     "retry": "Retry"
   },
   "changelog": {
@@ -13,31 +14,479 @@
     "downloading": "Downloading update…",
     "ready": "Version {{version}} is ready to install",
     "restart": "Restart",
-    "error": "Update failed"
+    "error": "Update failed",
+    "dock": {
+      "available": "New version {{version}}",
+      "downloaded": "Version {{version}} is ready"
+    }
   },
   "sidebar": {
     "inventory": "My accounts",
     "mail": "Mail",
-    "settings": "Settings"
+    "settings": "Settings",
+    "scrollTop": "Back to top"
+  },
+  "telegram": {
+    "formats": {
+      "tdata": "tdata",
+      "telethon-session": "Telethon .session",
+      "pyrogram-session": "Pyrogram .session",
+      "telethon-string": "Telethon string",
+      "pyrogram-string": "Pyrogram string",
+      "gramjs-string": "GramJS string",
+      "mtkruto-string": "MTKruto string",
+      "mtcute-string": "mtcute string",
+      "json": "JSON"
+    },
+    "problems": {
+      "unreadable": "unreadable",
+      "unknown_format": "not recognised",
+      "bad_auth_key": "broken key",
+      "unknown_dc": "no data center",
+      "empty": "empty"
+    }
+  },
+  "base": {
+    "clearSelection": "Clear selection",
+    "selectAll": "Select all",
+    "selectedCount": "{{count}} of {{total}} selected",
+    "selectedOf": "of {{total}}",
+    "soon": "Coming soon",
+    "mixedServices": "Select accounts of one service: a mass operation works with one service at a time.",
+    "only": {
+      "telegram": "Telegram only: Steam has no such thing.",
+      "steam": "Steam only: Telegram has no such thing."
+    },
+    "actions": {
+      "check": "Check",
+      "profile": "Profile",
+      "cleanup": "Clean up",
+      "privacy": "Privacy",
+      "friends": "Friends",
+      "link": "Link"
+    },
+    "proxySpread": {
+      "all": "All"
+    },
+    "check": {
+      "title": "Check accounts",
+      "lead": "Check {{count}} account(s): whether the key still works, who is behind it, and whether it has Premium. No new authorization appears — the key the account already has is reused.",
+      "avatar": "Download profile pictures",
+      "avatarHint": "The picture is stored next to the account in the database folder. This is a read — the account does nothing.",
+      "spam": "Ask @SpamBot about restrictions",
+      "spamHint": "Sends /start to the bot from the account. It is what a real user would do, but it is still an action — hence a switch of its own.",
+      "sessions": "Count active sessions",
+      "sessionsHint": "How many devices currently have access to the account.",
+      "spread": "Spread across proxies ({{count}})",
+      "spreadHint": "Accounts go round-robin through every proxy instead of out from one address.",
+      "noProxy": "No proxy is set up for Telegram — the whole batch goes out from your IP. Fifty accounts from one address is the quickest way to lose them.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "No account is selected."
+      },
+      "cancel": "Cancel",
+      "start": "Check"
+    },
+    "profile": {
+      "title": "Filling profiles",
+      "lead": "Puts a name, a bio and a picture on {{count}} account(s). The @username is left alone: it is unique across all of Telegram, so freeing the old one hands it to whoever asks next and every link to the account breaks quietly.",
+      "gender": "Gender",
+      "genders": {
+        "male": "Male",
+        "female": "Female",
+        "mixed": "Mixed"
+      },
+      "locale": "Name language",
+      "locales": {
+        "ru": "Russian",
+        "en": "English",
+        "mixed": "Mixed"
+      },
+      "withName": "First and last name",
+      "withNameHint": "Ordinary names, agreeing with the gender. No pair is repeated within one run while there is still something to pick from.",
+      "withBio": "Bio",
+      "withBioHint": "A short line under 70 characters, written without a past-tense verb — in Russian those carry gender and read as automated.",
+      "avatars": "Avatars",
+      "pickDir": "Pick a folder",
+      "changeDir": "Another folder",
+      "pickTitle": "Folder with avatars",
+      "clearDir": "Leave the picture alone",
+      "scanning": "Reading the folder…",
+      "noDirHint": "No folder picked — the pictures stay as they are. Supported inside: .jpg, .png, .webp and .mp4 (an animated avatar). Add male and female subfolders and the picture will match the generated name.",
+      "packFound": "Found {{photos}} photo(s) and {{videos}} video(s). Every picture goes to its own account: repeats only start once the folder runs out.",
+      "packGendered": "{{male}} male, {{female}} female — matched to the generated name.",
+      "packError": {
+        "empty": "No usable pictures in this folder (.jpg, .png, .webp, .mp4 up to 10 MB).",
+        "unreadable": "The folder could not be read."
+      },
+      "replaceAvatar": "Delete the old profile photos",
+      "replaceAvatarHint": "Telegram stacks a new avatar on top of the old ones instead of replacing them — without this the previous owner's face is one swipe away.",
+      "nothingToDo": "Nothing to change: turn on the name or the bio, or pick a folder with avatars.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "No accounts selected.",
+        "no_avatars": "No usable pictures in the chosen folder."
+      },
+      "start": "Fill"
+    },
+    "cleanup": {
+      "title": "Clearing chats and channels",
+      "lead": "Empties the dialog list on {{count}} account(s): the previous owner's subscriptions, their chats, their bots, their folders, their contacts.",
+      "targets": "What to remove",
+      "target": {
+        "channels": "Channels",
+        "groups": "Groups and supergroups",
+        "bots": "Bots",
+        "private": "Private conversations",
+        "saved": "Saved Messages",
+        "service": "Telegram service chats",
+        "folders": "Folders",
+        "contacts": "Contacts"
+      },
+      "targetHint": {
+        "channels": "Leaves the channel. A private one cannot be rejoined without a new invite.",
+        "groups": "Leaves the group and removes what is left of the dialog.",
+        "bots": "Deletes the conversation for yourself. The bot is not blocked.",
+        "private": "Deletes the conversation for yourself only — the other side keeps their copy.",
+        "privateRevoke": "Deletes the conversation on both sides — yours and theirs.",
+        "saved": "The previous owner's own notes: files, links, forwarded messages. A chat with itself — there is nobody else to delete it for.",
+        "service": "Chat 777000 and Telegram support: old login codes and warnings. Comes back empty at the next sign-in.",
+        "folders": "Removes the tabs above the chat list. The chats themselves stay: a folder is only a view over the list.",
+        "contacts": "Empties the address book. Conversations stay: a contact is a name in a list, not a chat."
+      },
+      "revokePrivate": "Delete on the other side too",
+      "revokePrivateHint": "Telegram allows this in private chats with no time limit. Bots are not affected: a bot keeps its half of the conversation either way.",
+      "includeArchived": "Also go through the archive",
+      "includeArchivedHint": "Off by default: an archived chat is already out of the way, and an account arrives with its junk in the main list.",
+      "warn": "This cannot be undone. Leaving a private channel means the invite is gone with it, and a deleted conversation is deleted for good — on this account, and with «delete on the other side too» on theirs as well. Saved Messages is ticked by default: untick it if the previous owner's notes are wanted.",
+      "nothingToDo": "Nothing chosen: tick at least one kind.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "Nothing to remove — nothing was chosen."
+      },
+      "start": "Clean up"
+    },
+    "privacy": {
+      "title": "Privacy settings",
+      "lead": "Writes the chosen switches onto {{count}} account(s). Anything left at «leave as is» is not touched: a run that quietly set the ones you did not think about would be a run that opened the account up.",
+      "presets": "Fill in at once",
+      "preset": {
+        "keep": "Leave everything",
+        "private": "Close down",
+        "open": "Open up"
+      },
+      "key": {
+        "lastSeen": "Last seen",
+        "profilePhoto": "Profile photo",
+        "phone": "Phone number",
+        "forwards": "Link when forwarding",
+        "calls": "Calls",
+        "groups": "Adding to groups",
+        "voices": "Voice messages",
+        "bio": "Bio",
+        "birthday": "Birthday"
+      },
+      "value": {
+        "keep": "Leave as is",
+        "nobody": "Nobody",
+        "contacts": "Contacts",
+        "everybody": "Everybody"
+      },
+      "premiumWarn": "Voice messages are a Premium-only switch. On an account without it Telegram refuses this one and every other switch still goes through.",
+      "nothingToDo": "Nothing chosen: at least one switch has to move off «leave as is».",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "Nothing to write — every switch is left as is."
+      },
+      "start": "Apply ({{count}})"
+    },
+    "friends": {
+      "title": "Steam friends",
+      "lead": "Clears the friends list on {{count}} account(s): the previous owner's friends, the invites they were sent and the ones they sent. The account writes to nobody — it simply stops being on their list.",
+      "targets": "What to remove",
+      "target": {
+        "friends": "Friends",
+        "incoming": "Incoming invites",
+        "outgoing": "Outgoing invites"
+      },
+      "targetHint": {
+        "friends": "Including the ones the previous owner muted — those are friends too.",
+        "incoming": "Declines everything sent to the account.",
+        "outgoing": "Cancels the invites the previous owner sent out."
+      },
+      "block": "And block them",
+      "blockHint": "On Steam a block is the removal: the same call ends the relationship. They can no longer message the account or invite it.",
+      "noProxy": "No proxy is set up for Steam — the whole batch goes out from your IP. Fifty accounts clearing their lists from one address is something Steam notices.",
+      "warn": "There is no undo: a removed friend has to be added again and confirmed, and a cancelled invite does not come back. A list of two hundred is not instant — the writes are paced, or Steam reads them as a hijack.",
+      "nothingToDo": "Nothing chosen: tick at least one kind.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "Nothing to remove — nothing was chosen."
+      },
+      "start": "Remove",
+      "startBlock": "Remove and block"
+    },
+    "link": {
+      "title": "Link Steam Guard",
+      "lead": "Attaches the mobile authenticator to {{count}} account(s). The ones that already have it are skipped — no second sign-in happens.",
+      "warn": "The app signs in to Steam once as the mobile app: a device session appears on the account and can only be removed by hand. The run has no undo.",
+      "spreadHint": "Accounts go round-robin through every proxy instead of out from one address.",
+      "noProxy": "No proxy is set up for Steam — the whole batch goes out from your IP. Forty mobile sign-ins from one address in two minutes is what loses accounts.",
+      "emailHint": "If Steam asks for an email code the account is reported in the list and skipped: a run cannot stop and ask. Link those one at a time, from the account card.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "Nothing in the selection can be linked."
+      },
+      "start": "Link"
+    },
+    "delete": {
+      "action": "Delete",
+      "title": "Delete from the base",
+      "lead": "Delete {{count}} account(s) from the base.",
+      "warn": "The account's folder goes with the record: the tdata or maFile, the cookies of every session opened from it, the avatar, the authenticator and the last check. The launcher keeps no bin — there will be nothing to restore it from.",
+      "confirm": "Delete {{count}} account(s)",
+      "progress": "{{done}} of {{total}} deleted",
+      "failed": "{{count}} account(s) could not be deleted."
+    },
+    "run": {
+      "progress": "{{done}} of {{total}} checked",
+      "finished": "Done: {{ok}} ok, {{failed}} failed",
+      "cancel": "Stop",
+      "clear": "Hide",
+      "stopped": {
+        "cancelled": "stopped by hand",
+        "too_many_failures": "stopped: too many failures in a row",
+        "internal_error": "stopped: the app failed"
+      }
+    },
+    "steps": {
+      "resolving": "reading the key…",
+      "connecting": "connecting…",
+      "me": "asking Telegram…",
+      "spam": "asking @SpamBot…",
+      "sessions": "counting sessions…",
+      "name": "writing the name…",
+      "photo": "uploading the picture…",
+      "avatar": "reading the profile back…",
+      "dialogs": "reading the dialog list…",
+      "leaving": "clearing…",
+      "contacts": "clearing contacts…",
+      "folders": "removing folders…",
+      "privacy": "writing the switches…",
+      "friends": "reading the friends list…",
+      "purging": "clearing the list…",
+      "linking": "signing in to Steam…",
+      "waiting": "waiting…"
+    },
+    "status": {
+      "queued": "queued",
+      "skipped": "skipped",
+      "done": "done",
+      "filled": "profile filled",
+      "filledPhoto": "avatar",
+      "filledVideo": "avatar (video)",
+      "cleaned": "cleared {{count}}",
+      "cleanedNothing": "nothing to clear",
+      "cleanedHint": "{{scanned}} dialog(s) looked at",
+      "cleanedContacts": "{{count}} contact(s) removed",
+      "cleanedFolders": "{{count}} folder(s) removed",
+      "cleanFailed": "{{count}} refused",
+      "privacyApplied": "{{count}} switch(es) set",
+      "privacyPremium": "{{count}} needs Premium",
+      "privacyFailed": "{{count}} refused",
+      "friendsRemoved": "{{count}} removed",
+      "friendsBlocked": "{{count}} blocked",
+      "friendsNothing": "nobody to remove",
+      "friendsHint": "{{scanned}} relationship(s) looked at, {{kept}} kept",
+      "linked": "linked",
+      "linkedAlready": "already linked",
+      "alive": "alive",
+      "dead": "dead",
+      "frozen": "frozen",
+      "sessions": "{{count}} session(s)",
+      "waiting": "waiting {{seconds}}s",
+      "floodWait": "rate limit, {{seconds}}s"
+    },
+    "spam": {
+      "geo": "geo spam block",
+      "limited": "limited",
+      "blocked": "spam block",
+      "unknown": "reply unparsed"
+    },
+    "steam": {
+      "unlinked": "not linked",
+      "unlinkedHint": "The launcher holds no session for this account, so Steam was never asked anything. Link Guard and the check becomes possible.",
+      "vac": "VAC ban",
+      "trade": "trade ban",
+      "limited": "limited",
+      "detail": {
+        "refused": "Steam turned the stored session down: signed out everywhere, or the authenticator was removed. Link Guard again.",
+        "unknown": "Steam refused, and the reason could not be placed — the details are in the log."
+      }
+    },
+    "steamCheck": {
+      "title": "Check Steam accounts",
+      "lead": "Checks {{count}} account(s): whether the session still works, and what the public profile shows — nickname, bans, join date. No new sign-in appears, no password is needed, nothing on the account is changed.",
+      "spreadHint": "Accounts go round-robin through every proxy instead of out from one address.",
+      "noProxy": "No proxy is set up for Steam — the whole batch goes out from your IP. Fifty accounts from one address is something Steam notices.",
+      "volatile": "The verdict is written into the base folder and survives a restart — it is a snapshot from when the check ran, not what Steam thinks right now.",
+      "refused": {
+        "busy": "Another run is already going.",
+        "empty": "Nothing in the selection can be checked."
+      }
+    },
+    "errors": {
+      "no_account": "account not found",
+      "not_telegram": "not a Telegram account",
+      "no_auth_key": "no auth_key",
+      "bad_auth_key": "unreadable key",
+      "not_in_base": "account is not in the base",
+      "not_linked": "Guard not linked",
+      "session_refused": "session refused",
+      "no_credentials": "no login or password",
+      "needs_email_code": "email code required",
+      "no_avatars": "no pictures in the folder",
+      "flood_wait": "Telegram rate limit",
+      "network": "network or proxy",
+      "cancelled": "cancelled",
+      "unknown": "error"
+    },
+    "converter": {
+      "title": "Converter",
+      "lead": "Moves a base from one format to another right on disk: tdata, Telethon and Pyrogram .session, string sessions. Nothing connects to Telegram, and the source folder is left untouched.",
+      "pickSource": "Source folder",
+      "pickSourceTitle": "Folder with sessions",
+      "pickOut": "Output folder",
+      "pickOutTitle": "Where to write the result",
+      "rescan": "Rescan",
+      "scanning": "Reading the folder…",
+      "nothingFound": "No sessions and no tdata in this folder.",
+      "found": "{{count}} found, {{skipped}} skipped",
+      "target": "Convert to",
+      "withJson": "Write a .json sidecar next to each session",
+      "willConvert": "To convert: {{count}}",
+      "run": "Convert",
+      "done": "Done: {{count}} written to \"{{dir}}\""
+    }
+  },
+  "guard": {
+    "title": "Steam Guard",
+    "card": {
+      "linked": "Linked",
+      "notLinked": "Not linked",
+      "link": "Link",
+      "unlink": "Unlink",
+      "linkFirst": "Link the account first",
+      "copyHint": "Click to copy the code",
+      "noSecret": "No shared_secret — link the account",
+      "codeFailed": "Could not get a code",
+      "noIdentity": "No identity_secret in the maFile — confirmations are unavailable"
+    },
+    "link": {
+      "title": "Link the authenticator",
+      "explain": "The launcher signs in once as the Steam mobile app and keeps the session. The password and the secrets stay in the app and are never sent anywhere, but they sit in the database folder in plain text — keep it somewhere nobody else can reach.",
+      "warrantyWarning": "A bought account needs its maFile requested from the market — that cancels the item's guarantee.",
+      "sessionWarning": "Signing in as the mobile app registers a new device session on the account. This happens once.",
+      "proxy": "Proxy",
+      "noProxy": "No proxy",
+      "proxyHint": "Token refreshes will take the same route.",
+      "emailCode": "Email code",
+      "emailCodeHint": "Steam sent a code to the account's mailbox.",
+      "cancel": "Cancel",
+      "confirm": "Link"
+    },
+    "approve": {
+      "action": "Approve a login",
+      "title": "Approve a login",
+      "explain": "Give the launcher the Steam QR code. The login will be approved as \"{{account}}\".",
+      "sourceLink": "Link",
+      "sourceImage": "Image",
+      "sourceScreen": "Screen",
+      "urlLabel": "Link from the QR code",
+      "urlHint": "For example: https://s.team/q/1/1234567890123456789",
+      "dropTitle": "Drop a screenshot here",
+      "dropHint": "Or click to pick a file, or paste one with Ctrl+V",
+      "notAnImage": "That is not an image.",
+      "qrNotFound": "No QR code in that image.",
+      "screenExplain": "Leave the QR code visible on any display and press scan.",
+      "scan": "Scan the screen",
+      "rescan": "Scan again",
+      "back": "Back",
+      "captureFailed": "Could not capture the screen.",
+      "qrNotOnScreen": "No QR code found. Pick the display and select the area around the code.",
+      "cropHint": "Drag a box around the QR code.",
+      "qrNotInArea": "No QR code in that area — try a wider selection.",
+      "continue": "Continue",
+      "reviewHint": "Check who is actually signing in. Approving blind hands the account to whoever holds the QR code.",
+      "ip": "IP address",
+      "location": "Location",
+      "device": "Device",
+      "unknown": "Unknown",
+      "locationMismatch": "Steam thinks this login is coming from an unusual place.",
+      "highUsage": "Steam flagged this login as unusually frequent.",
+      "allow": "Approve",
+      "deny": "Deny",
+      "approved": "Login approved.",
+      "denied": "Login denied."
+    },
+    "confirm": {
+      "action": "Confirmations",
+      "title": "Confirmations",
+      "explain": "Pending trade and market confirmations for \"{{account}}\".",
+      "refresh": "Refresh",
+      "loading": "Loading confirmations…",
+      "failed": "Could not load confirmations",
+      "empty": "Nothing to confirm.",
+      "noIdentitySecret": "The maFile has no identity_secret, so Steam will not show this account's confirmations. Codes and login approval still work.",
+      "allow": "Confirm",
+      "cancel": "Reject",
+      "allowAll": "Confirm all",
+      "cancelAll": "Reject all",
+      "allowAllAsk": "Confirm all {{count}} item(s)? Trades and sales will go through immediately.",
+      "cancelAllAsk": "Reject all {{count}} item(s)?",
+      "back": "Back",
+      "confirm": "Yes, do it"
+    },
+    "error": {
+      "no_account": "Account not found",
+      "no_credentials": "The account has no usable secrets",
+      "not_linked": "The account is not linked to the authenticator",
+      "session_expired": "The session expired — link the account again",
+      "needs_email_code": "An email code is required",
+      "login_failed": "Could not sign in to the account",
+      "bad_qr": "The QR link was not recognised",
+      "no_identity_secret": "The maFile has no identity_secret",
+      "steam_error": "Steam refused the request — try again later",
+      "network": "Could not reach Steam — check the network or the proxy"
+    }
   },
   "mail": {
     "title": "Mail",
     "subtitle": "View an account's mailbox by its login and password",
-    "placeholder": "email:password",
-    "history": "Mail history",
+    "emailPlaceholder": "email",
+    "passwordPlaceholder": "password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "history": "Recent",
     "removeFromHistory": "Remove from history",
-    "lettersTitle": "Letters ({{count}})",
     "fetch": "Get letters",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search letters",
+    "onlyCodes": "With codes only",
+    "allLetters": "All",
+    "copyCode": "Copy code",
+    "copied": "Copied",
     "loading": "Loading…",
     "loadingHint": "Fetching letters, this may take a few seconds…",
-    "idle": "Enter email:password and press \"Get letters\"",
+    "idle": "Enter the mailbox email and password, then press \"Get letters\"",
     "empty": "No letters found",
-    "invalidInput": "Enter credentials in email:password format",
+    "nothingFound": "Nothing found",
+    "invalidInput": "Enter the mailbox email and password",
     "unknownSender": "Unknown sender",
     "noPreview": "(no text)",
     "error": {
       "not_authenticated": "Sign in to your account first",
-      "invalid_credentials": "Enter credentials in email:password format",
+      "invalid_credentials": "Enter the mailbox email and password",
       "retry_request": "The server didn't respond in time, try again",
       "letters_failed": "Failed to fetch letters"
     }
@@ -47,17 +496,94 @@
     "logout": "Sign out",
     "language": "Language",
     "currency": "Currency",
-    "loadingAccounts": "Loading your accounts",
-    "loadingCategory": "Loading {{service}} · {{count}} loaded",
-    "loadingCategoryPage": "Loading {{service}} · page {{page}}/{{total}} · {{count}} loaded",
-    "loggingIn": "Signing in",
     "proxyDirect": "Ping",
     "pingFail": "failed",
+    "pingChecking": "Checking connection",
     "proxyRefresh": "Refresh ping"
+  },
+  "tasks": {
+    "count_one": "{{count}} task",
+    "count_other": "{{count}} tasks",
+    "percent": "{{percent}}%",
+    "cancel": "Stop",
+    "accounts": {
+      "bundlePurchased": "Refreshing purchased accounts",
+      "bundleListed": "Refreshing listed accounts",
+      "bundleDetail": "{{done}} of {{total}} categories · {{loaded}} loaded",
+      "title": "{{service}}",
+      "detail": "{{loaded}} loaded",
+      "detailPage": "p. {{page}}/{{total}} · {{loaded}}",
+      "childWaiting": "queued",
+      "childDone": "done · {{loaded}}",
+      "childFailed": "failed"
+    },
+    "proxy": {
+      "title": "Checking proxies",
+      "detail": "{{done}} of {{total}}",
+      "stopping": "stopping · {{done}} of {{total}}"
+    },
+    "run": {
+      "check": "Checking accounts",
+      "profile": "Filling in profiles",
+      "cleanup": "Clearing chats and channels",
+      "privacy": "Privacy settings",
+      "steam-check": "Checking Steam accounts",
+      "steam-friends": "Cleaning up the friends list",
+      "detail": "{{done}} of {{total}}"
+    },
+    "login": {
+      "title": "Signing in",
+      "detail": "{{account}}"
+    },
+    "update": {
+      "title": "Downloading update",
+      "detail": "{{percent}}%"
+    }
+  },
+  "notify": {
+    "bell": "Notifications",
+    "bellUnread_one": "Notifications · {{count}} new",
+    "bellUnread_other": "Notifications · {{count}} new",
+    "empty": "Nothing has happened yet",
+    "markAllRead": "Mark all as read",
+    "clear": "Clear the list",
+    "remove": "Dismiss",
+    "accounts": {
+      "title": "Purchased accounts refreshed",
+      "titleListed": "Listed accounts refreshed",
+      "body": "{{loaded}} loaded",
+      "bodyFailed": "{{loaded}} loaded · {{failed}} categories failed"
+    },
+    "login": {
+      "done": "Signed in",
+      "failed": "Could not sign in",
+      "account": "{{account}}"
+    },
+    "run": {
+      "check": "Account check finished",
+      "profile": "Profiles filled in",
+      "cleanup": "Chats and channels cleared",
+      "privacy": "Privacy settings applied",
+      "steam-check": "Steam account check finished",
+      "steam-friends": "Friends list cleaned up",
+      "body": "{{ok}} succeeded · {{failed}} failed",
+      "bodyStopped": "stopped · {{ok}} succeeded · {{failed}} failed · {{skipped}} skipped"
+    },
+    "update": {
+      "available": "Update available",
+      "downloaded": "Update downloaded — restart when ready",
+      "version": "version {{version}}"
+    },
+    "proxy": {
+      "done": "Proxy check finished",
+      "stopped": "Proxy check stopped",
+      "body": "{{ok}} of {{done}} working (out of {{total}})"
+    }
   },
   "login": {
     "title": "Authorization",
-    "lede": "Sign in with your LZT account to access purchased accounts and log into Steam, Telegram, and other services in one click.",
+    "lede": "Sign in with your LZT account to access purchased accounts and log into them in one click.",
+    "services": "Supported services",
     "language": "Change language",
     "network": {
       "checking": "Checking connection to API…",
@@ -68,7 +594,31 @@
     "openInApp": "Sign in here",
     "busyInApp": "Opening…",
     "openBrowser": "Use browser",
+    "openBrowserTooltip": "Opens lzt.market — confirm the sign-in there and the app receives a token",
     "busyBrowser": "Opening browser…",
+    "token": {
+      "title": "Sign in with a token",
+      "tooltip": "Sign in with an API token, without a browser",
+      "hint": "A personal forum API token. It is checked against the market and stored locally, encrypted by the system keystore.",
+      "scopesTitle": "The token needs these scopes:",
+      "scope": {
+        "basic": "your profile name and avatar",
+        "market": "access to purchased accounts"
+      },
+      "placeholder": "Token",
+      "label": "Token",
+      "note": "Paste it whole, as one line. It is never read back — the field is empty again next time you open this.",
+      "show": "Show token",
+      "hide": "Hide token",
+      "where": "Where to get a token",
+      "submit": "Sign in",
+      "checking": "Checking…",
+      "error": {
+        "empty": "Enter a token.",
+        "rejected": "The market rejected this token. Check that you copied all of it and that it has market access.",
+        "offline": "Couldn't reach the market — the token wasn't checked. Check your connection or proxy and try again."
+      }
+    },
     "hint": "Authorization runs through lzt.market OAuth. The token is stored locally, encrypted by the system keystore (DPAPI on Windows / Keychain on macOS)."
   },
   "deepLink": {
@@ -93,6 +643,7 @@
     "fetchingCredentials": "Fetching account data",
     "acquiringToken": "Acquiring Steam token",
     "fetchingEmailCode": "Waiting for email code",
+    "approvingDeviceConfirm": "Approving with Steam Guard",
     "killingSteam": "Closing Steam",
     "writingVdf": "Writing configs",
     "encryptingToken": "Encrypting token",
@@ -114,20 +665,31 @@
   "inventory": {
     "loading": "Loading your accounts…",
     "error": "Couldn’t load accounts from lzt.market.",
+    "loadFailed": "Couldn’t fetch the account list — some requests to lzt.market didn’t go through. This doesn’t mean you have no accounts: try refreshing.",
     "empty": "You don’t have any purchased accounts yet.",
-    "emptyUnsupported": "Your inventory has no accounts for supported services (Steam, Telegram).",
+    "emptyUnsupported": "Your inventory has no accounts for supported services ({{services}}).",
+    "hiddenAccounts_one": "{{count}} account hidden: login for these services is not supported yet ({{categories}}).",
+    "hiddenAccounts_other": "{{count}} accounts hidden: login for these services is not supported yet ({{categories}}).",
     "openMarket": "Open lzt.market",
     "refresh": "Refresh",
     "llmService": {
       "all": "All services"
     },
-    "searchPlaceholder": "Search by name, game, country…",
+    "searchPlaceholder": "Search by title",
     "searchClear": "Clear search",
     "noResults": "No accounts match your search.",
+    "table": {
+      "account": "Account",
+      "status": "Status",
+      "labelsInfo": "Labels and details",
+      "actions": "Actions"
+    },
     "sort": {
       "purchased": "Date",
       "price": "Price",
       "warranty": "Warranty",
+      "title": "Name",
+      "checked": "Checked",
       "asc": "Ascending",
       "desc": "Descending"
     },
@@ -138,8 +700,141 @@
       "label": "Account source",
       "purchased": "Purchased",
       "listed": "Listed",
+      "local": "Local",
       "emptyListed": "You have no listed accounts of supported services.",
       "manageListings": "Manage my listings"
+    },
+    "layout": {
+      "table": "Table view",
+      "grid": "Card view"
+    },
+    "local": {
+      "add": "Add account",
+      "addTitle": "New local account",
+      "editTitle": "Edit account",
+      "empty": "Accounts you add by hand show up here. They are stored on this computer only.",
+      "service": "Service",
+      "label": "Name",
+      "labelPlaceholder": "How to show it in the list",
+      "steamLogin": "Steam login",
+      "steamPassword": "Password",
+      "steamGuard": "Steam Guard",
+      "guardHint": "Paste the whole maFile or just the shared_secret. Optional.",
+      "guardNoIdentity": "Only the shared_secret is stored: codes work, confirmations do not. Paste the whole maFile to open them.",
+      "keepSecret": "Leave empty to keep the stored value",
+      "clearGuard": "Remove Steam Guard",
+      "authKey": "auth_key",
+      "authKeyHint": "512 hex characters. You can paste it as \"key:dc\" — the DC number is picked up automatically.",
+      "session": "Session or auth_key",
+      "sessionHint": "Paste a session string (Telethon, Pyrogram, GramJS, MTKruto, mtcute) or a 512-character auth_key. Use the buttons below for a tdata folder or a .session file.",
+      "pickFile": "Pick a file",
+      "pickDir": "Pick a folder",
+      "pickFileTitle": "Session file",
+      "pickDirTitle": "tdata folder or a folder with a base",
+      "detecting": "Working out the format…",
+      "detected": "Recognised: {{format}}",
+      "notRecognised": "Could not recognise this. Check that it is a Telegram session.",
+      "moreInFolder": "{{count}} more account(s) in this folder",
+      "importAll": "Import all",
+      "dcId": "Data center",
+      "phone": "Phone (optional)",
+      "userId": "user_id (optional)",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteTitle": "Delete account?",
+      "deleteBody": "\"{{title}}\" will be removed from this computer along with its stored login data. This cannot be undone.",
+      "deleteConfirm": "Delete",
+      "errors": {
+        "invalid_input": "Check the fields you filled in.",
+        "invalid_service": "Unknown service.",
+        "service_mismatch": "The service cannot be changed — delete the account and create it again.",
+        "invalid_login": "Enter a login.",
+        "invalid_password": "Enter a password.",
+        "invalid_guard": "Could not parse Steam Guard: a maFile or a shared_secret is expected.",
+        "invalid_auth_key": "auth_key must be 512 hex characters.",
+        "invalid_dc": "The data center number must be between 1 and 5.",
+        "dc_conflict": "The data center in the key does not match the selected one.",
+        "invalid_phone": "Invalid phone number.",
+        "invalid_user_id": "Invalid user_id.",
+        "not_found": "Account not found.",
+        "expired": "The analysis is stale — start the import again.",
+        "session_expired": "That session is no longer held in memory — pick the file or folder again.",
+        "store_unreadable": "The local accounts file is damaged — writing is blocked so nothing gets lost.",
+        "store_write_failed": "Could not save the local accounts file.",
+        "invalid_item": "Wrong item.",
+        "already_copied": "This account is already in the base.",
+        "unreachable": "The market did not answer. Check the connection and try again.",
+        "not_owned": "This item is no longer yours.",
+        "unsupported": "The base cannot hold accounts of this service yet.",
+        "no_credentials": "The item carries no login data to copy."
+      }
+    },
+    "localImport": {
+      "title": "Add accounts",
+      "back": "Back",
+      "next": "Next",
+      "clear": "Clear",
+      "analyze": "Analyze",
+      "done": "Done",
+      "steps": {
+        "service": "Service",
+        "mode": "Mode",
+        "single": "Account",
+        "mafiles": "maFiles",
+        "credentials": "Logins and passwords",
+        "authKeys": "auth_key",
+        "report": "Report"
+      },
+      "serviceLead": "Pick the service — it decides what data is needed.",
+      "serviceText": {
+        "steam": "Login, password and a maFile with Steam Guard.",
+        "telegram": "auth_key and a data center number."
+      },
+      "modeLead": "Fill in a single account by hand, or upload a whole batch at once.",
+      "mode": {
+        "single": "One account",
+        "bulk": "Bulk upload"
+      },
+      "modeText": {
+        "single": "The usual form — the same fields as when editing an account.",
+        "bulk": "Files and a list of lines; everything is matched automatically."
+      },
+      "mafilesLead": "Drop maFiles or a folder with them. You can add them in several batches.",
+      "dropMafiles": "Drop files or a folder here",
+      "dropMafilesHint": "Or click to pick .maFile",
+      "filesCount": "Files: {{count}}",
+      "credentialsLead": "Paste login:pass lines. Each login is matched to its maFile by account name.",
+      "credentialsPlaceholder": "login:password\nlogin;password\nlogin password",
+      "linesCount": "Lines recognized: {{count}}",
+      "dropText": "Drop a .txt with the list, or click to pick one",
+      "authKeysLead": "Point at the folder holding the base — tdata directories, .session files and .txt lists are found inside it. You can paste keys as well, one auth_key per line; a \":dc\" suffix wins over the selection below.",
+      "pickBase": "Pick the base folder",
+      "pickBaseTitle": "Folder with a Telegram base",
+      "authKeysPlaceholder": "abcdef… (512 hex characters)\nabcdef…:2",
+      "keysCount": "Keys recognized: {{count}}",
+      "dcLabel": "Default data center",
+      "reportLead": "Check the result. Only the rows in \"Ready to add\" will be created.",
+      "groups": {
+        "matched": "Ready to add",
+        "missingGuard": "Without a maFile",
+        "orphanFiles": "maFiles with no login and password",
+        "duplicates": "Duplicates",
+        "invalid": "Not recognized",
+        "failed": "Could not be saved"
+      },
+      "includeMissingGuard": "Also add the ones without a maFile",
+      "importBtn": "Import ({{count}})",
+      "created": "Accounts added: {{count}}",
+      "reasons": {
+        "file_too_big": "File is too large",
+        "no_secret": "No shared_secret",
+        "no_account_name": "No account_name",
+        "duplicate_input": "Repeated in the uploaded data",
+        "limit": "Per-run limit exceeded",
+        "bad_line": "Line cannot be parsed",
+        "already_stored": "Already in the database",
+        "no_credentials": "No login and password found"
+      }
     },
     "filters": {
       "title": "Filters",
@@ -148,6 +843,34 @@
       "labelExclude": "Exclude labels",
       "labelAny": "Any",
       "hideInvalid": "Hide invalid accounts",
+      "validityLabel": "State",
+      "folderLabel": "Folder",
+      "folderAny": "All folders",
+      "attrsLabel": "Quality",
+      "attrs": {
+        "hasEmail": "With email",
+        "hasNote": "With a note",
+        "steamNoBan": "No bans",
+        "steamMafile": "With maFile",
+        "steamNotLimited": "Not limited",
+        "steamBalance": "With balance",
+        "steamInventory": "With inventory",
+        "steamFaceit": "Faceit",
+        "tgNoSpam": "No spam block",
+        "tgPremium": "Premium",
+        "tgNoPassword": "No 2FA password",
+        "dcVerified": "Verified",
+        "dcNitro": "Nitro",
+        "dcBilling": "Valid billing",
+        "dcClean": "No spam",
+        "igCookies": "With cookies",
+        "igMobile": "Phone attached",
+        "igFollowers": "With followers",
+        "ttVerified": "Verified",
+        "ttStream": "Can go live",
+        "ttEmail": "With email",
+        "ttFollowers": "With followers"
+      },
       "reset": "Reset filters"
     },
     "card": {
@@ -164,10 +887,13 @@
         "remember": "Remember my choice"
       },
       "labelsMenu": "Labels",
+      "labelsEdit": "Edit labels",
+      "labelsAdd": "Add a label",
+      "none": "None",
       "emailMenu": "Email",
+      "sdaMenu": "Steam Guard (SDA)",
       "labelsTitle": "Account labels",
       "labelsEmpty": "You don't have any labels yet. Create them on the website, then refresh the list.",
-      "labelsManageWeb": "Manage labels on the website",
       "busy": "Launching…",
       "rateLimited": "Rate limit · {{sec}}s",
       "loginTooltip": "Sign in to this account",
@@ -182,18 +908,69 @@
       "checkInvalidResult": "Account is invalid",
       "checkErrorBody": "Couldn't check the account",
       "checkClose": "Close",
+      "copyToBase": {
+        "menu": "Copy to the base",
+        "title": "Copying to the base",
+        "running": "Reading the item's login data…",
+        "mafileBody": "A copy in the base signs in from what is on this disk alone: if the account is protected by Steam Guard, without the maFile it cannot answer a code prompt — and there will be nowhere to ask for one later. Requesting the maFile cancels the item's active guarantee ({{warranty}}).",
+        "mafileFetch": "Take the maFile",
+        "mafileSkip": "Copy without it",
+        "done": "The account is in the base",
+        "doneSub": "It now signs in offline, without asking the market, and mass operations — check, profile, cleanup — can see it.",
+        "failed": "Could not copy the account"
+      },
+      "origin": {
+        "fromMarket": "From the market",
+        "fromMarketTitle": "Copied from item #{{itemId}} · click to show the item",
+        "inBase": "In the base",
+        "inBaseTitle": "This account has a copy in the local base · click to show it"
+      },
       "loginFailedFallback": "Sign-in failed",
       "callError": "Call error",
       "warrantyWarnTitle": "This account has an active warranty",
       "warrantyWarnBody": "If sign-in needs a Steam Guard code, the launcher will request the mafile — that action cancels the account's active warranty ({{warranty}}). Continue signing in?",
       "warrantyWarnConfirm": "Sign in anyway",
       "warrantyWarnCancel": "Cancel",
-      "statusValid": "Valid",
-      "statusInvalid": "Invalid",
+      "validity": {
+        "valid": "Valid",
+        "invalid": "Invalid",
+        "unknown": "Not checked"
+      },
+      "openFolder": "Open folder",
+      "editLocal": "Edit",
+      "deleteLocal": "Delete",
+      "localLabels": {
+        "menu": "Labels",
+        "title": "Your labels",
+        "loading": "Loading labels",
+        "add": "New label",
+        "empty": "No labels yet — create your first one.",
+        "hint": "Labels live in the database folder, so they travel with it. Deleting one removes it from every account."
+      },
+      "note": {
+        "menu": "Add a note",
+        "menuEdit": "Edit the note",
+        "title": "Account note",
+        "placeholder": "For example: work account, CS2 farm — do not sell",
+        "hint": "The note is kept on the market with the account, so it shows up on the website and in the app on any device. Nobody but you can see it.",
+        "delete": "Delete the note"
+      },
+      "moveFolder": {
+        "menu": "Move to folder",
+        "title": "Account folder",
+        "root": "Database root",
+        "current": "current",
+        "newLabel": "New folder",
+        "newPlaceholder": "New folder…",
+        "submit": "Move"
+      },
       "purchasedLabel": "Purchased",
+      "addedLabel": "Added",
       "priceLabel": "Price",
       "warrantyLabel": "Warranty",
       "purchasedRecently": "Just now",
+      "purchasedMinutes_one": "{{count}} minute ago",
+      "purchasedMinutes_other": "{{count}} minutes ago",
       "purchasedDays_one": "{{count}} day ago",
       "purchasedDays_other": "{{count}} days ago",
       "purchasedHours_one": "{{count}} hour ago",
@@ -206,23 +983,73 @@
         "banTrade": "Trade ban",
         "noBan": "No ban",
         "limited": "Limited",
-        "mfa": "SDA",
+        "mafileYes": "maFile",
+        "mafileNo": "No maFile",
         "hoursShort": "h",
         "games_one": "{{count}} game",
         "games_other": "{{count}} games",
         "lastSeenToday": "Online today",
         "lastSeenDays_one": "{{count}} day ago",
-        "lastSeenDays_other": "{{count}} days ago"
+        "lastSeenDays_other": "{{count}} days ago",
+        "banVacCount": "VAC ban ×{{count}}",
+        "cs2Ban": "CS2 ban",
+        "cs2BanUntil": "CS2 ban until {{date}}",
+        "marketBanUntil": "Market ban until {{date}}",
+        "chinese": "Chinese account",
+        "limitedSpent": "Limited, {{amount}} spent",
+        "levelTitle": "Steam level",
+        "hoursRecent": "{{hours}}h in 2 weeks",
+        "hoursRecentTitle": "Hours played over the last two weeks",
+        "lastActivityTitle": "Last activity",
+        "faceit": "FACEIT level {{level}}",
+        "balance": "Balance {{amount}}",
+        "inventoryValue": "Inventory {{amount}}",
+        "gifts_one": "{{count}} gift",
+        "gifts_other": "{{count}} gifts",
+        "friends_one": "{{count}} friend",
+        "friends_other": "{{count}} friends",
+        "points": "{{points}} points",
+        "lastTransaction": "Transaction {{date}}",
+        "lastTransactionTitle": "Last transaction",
+        "registered": "Reg. {{date}}",
+        "registeredTitle": "Account creation date"
       },
       "telegram": {
         "premium": "Premium",
         "spamBlock": "Spam block",
         "noSpamBlock": "No spam block",
-        "premiumUntil": "Premium until {{date}}"
+        "premiumUntil": "Premium until {{date}}",
+        "checkedAt": "Checked {{date}}",
+        "spamBlockForever": "Spam block forever",
+        "spamBlockGeo": "Geo spam block",
+        "spamBlockUnknown": "Spam block not checked",
+        "spamBlockExpired": "Spam block expired",
+        "spamBlockUntil": "Spam block until {{date}}",
+        "passwordSet": "Password set",
+        "lastSeenTitle": "Last seen: {{date}}",
+        "adminSubs": "{{value}} subscribers",
+        "adminSubsTitle": "Subscribers of the channels the account admins",
+        "conversations_one": "{{count}} conversation",
+        "conversations_other": "{{count}} conversations",
+        "chats_one": "{{count}} chat",
+        "chats_other": "{{count}} chats",
+        "channels_one": "{{count}} channel",
+        "channels_other": "{{count}} channels",
+        "admin_one": "Admin in {{count}}",
+        "admin_other": "Admin in {{count}}",
+        "contacts_one": "{{count}} contact",
+        "contacts_other": "{{count}} contacts",
+        "stars": "{{count}} Stars"
       },
       "proxy": {
         "selectTitle": "Choose a proxy for sign-in",
         "none": "No proxy",
+        "pinTitle": "Account proxy",
+        "pinHint": "This account will always go through the chosen proxy — on sign-in and in mass runs, even when a run was given a different pool.",
+        "pinNone": "Do not pin",
+        "pinMenu": "Pin a proxy",
+        "pinMenuChange": "Proxy: {{name}}",
+        "pinnedTooltip": "Pinned proxy: {{name}}",
         "checking": "Checking proxy…",
         "failTitle": "Proxy is not working",
         "failBody": "Could not connect through the selected proxy.",
@@ -233,22 +1060,378 @@
         "statusInvalid": "Invalid",
         "statusUnchecked": "Not checked",
         "ping": "{{ms}} ms"
+      },
+      "steamCheck": {
+        "privacyTitle": "Profile privacy, as our own check found it",
+        "privacy": {
+          "public": "Public profile",
+          "friendsonly": "Friends only",
+          "private": "Private profile"
+        },
+        "checkedAt": "Checked {{date}}"
+      },
+      "discord": {
+        "verified": "Phone attached",
+        "billing": "Valid billing",
+        "nitro": "Nitro",
+        "nitroUntil": "{{tier}} until {{date}}",
+        "boosts_one": "{{count}} boost",
+        "boosts_other": "{{count}} boosts",
+        "gifts_one": "{{count}} gift",
+        "gifts_other": "{{count}} gifts",
+        "chats_one": "{{count}} chat",
+        "chats_other": "{{count}} chats",
+        "adminServers_one": "Admin on {{count}} server",
+        "adminServers_other": "Admin on {{count}} servers",
+        "adminMembers": "{{value}} members",
+        "adminMembersTitle": "Members of the servers the account admins",
+        "locale": "Locale {{locale}}",
+        "registered": "Reg. {{date}}",
+        "condition": {
+          "clear": "Clear",
+          "spam": "Spam",
+          "unknown": "Condition unknown"
+        }
+      },
+      "instagram": {
+        "followers": "{{value}} followers",
+        "following": "{{value}} following",
+        "posts_one": "{{count}} post",
+        "posts_other": "{{count}} posts",
+        "cookies": "With cookies",
+        "passwordOnly": "Login by password",
+        "noCookies": "No cookies",
+        "mobile": "Phone attached",
+        "registered": "Reg. {{date}}"
+      },
+      "tiktok": {
+        "followers": "{{value}} followers",
+        "following": "{{value}} following",
+        "likes": "{{value}} likes",
+        "videos": "{{value}} videos",
+        "verified": "Verified",
+        "private": "Private",
+        "stream": "Live",
+        "streamHint": "Live streaming is unlocked",
+        "streamStudio": "LIVE Studio",
+        "email": "With email",
+        "mobile": "Phone attached",
+        "coins": "{{value}} coins",
+        "topCountry": "Top audience country",
+        "registered": "Reg. {{date}}"
+      },
+      "llm": {
+        "planShort": "{{plan}} until {{date}}",
+        "planUntil": "Subscription runs until {{date}}",
+        "planEnded": "{{plan}} ended {{date}}",
+        "planEndedTitle": "Subscription ended on {{date}}",
+        "autoRenew": "Auto-renews",
+        "autoRenewTitle": "The subscription renews itself",
+        "usage": "{{value}}% used",
+        "usageTitle": "Share of the plan's quota already spent",
+        "balance": "Balance {{value}}",
+        "balanceTitle": "Prepaid API credit on the account",
+        "kycYes": "KYC passed",
+        "kycNo": "No KYC",
+        "phone": "Phone attached",
+        "phoneTitle": "A phone number is attached (SMS verification)",
+        "cookies": "With cookies",
+        "cookiesTitle": "Session cookies included — one-click login",
+        "registered": "Reg. {{date}}"
       }
     }
   },
   "settings": {
     "heading": "Settings",
     "subheading": "Launcher options and connected services",
+    "nav": {
+      "aria": "Settings sections",
+      "groups": {
+        "app": "Application",
+        "accounts": "Accounts",
+        "network": "Network",
+        "services": "Services",
+        "system": "System",
+        "dev": "Development"
+      },
+      "sections": {
+        "locale": "Language and currency",
+        "data": "Data",
+        "categories": "Categories",
+        "window": "Window",
+        "client": "Client",
+        "limits": "Limits",
+        "behavior": "Behaviour",
+        "session": "Session",
+        "storage": "Storage",
+        "maintenance": "Maintenance",
+        "metrics": "Anonymous stats",
+        "version": "Version"
+      },
+      "general": {
+        "title": "General",
+        "hint": "Language, currency and window behaviour."
+      },
+      "notifications": {
+        "title": "Notifications",
+        "hint": "What to show, what shows it, and what it is about."
+      },
+      "accountsList": {
+        "title": "Account list",
+        "hint": "When to refresh the list and how many accounts to load at once."
+      },
+      "proxy": {
+        "title": "Proxies",
+        "hint": "The proxy list and which services go through it."
+      },
+      "about": {
+        "title": "About",
+        "hint": "Version, updates, cache and logs."
+      },
+      "localDb": {
+        "title": "Local database",
+        "hint": "The folder holding accounts you added by hand."
+      },
+      "labels": {
+        "title": "Labels",
+        "hint": "Profile labels: order, titles and colours."
+      },
+      "login": {
+        "title": "Login methods",
+        "hint": "How to open an account when a service supports more than one way."
+      },
+      "telegram": {
+        "title": "Telegram",
+        "hint": "The Telegram Desktop client and limits for account operations."
+      },
+      "steam": {
+        "title": "Steam",
+        "hint": "Login behaviour and the shared Steam session."
+      },
+      "actionLog": {
+        "title": "Action log",
+        "hint": "What the app did, how it ended and how long it took."
+      },
+      "privacy": {
+        "title": "Metrics",
+        "hint": "Anonymous stats: what leaves, where it goes and how to switch it off."
+      },
+      "debug": {
+        "title": "Debug Menu",
+        "hint": "Screens that will not show up on their own."
+      }
+    },
+    "debug": {
+      "note": "This section exists only in a development build, under `pnpm dev`. A shipping build has neither the page nor its code.",
+      "sections": {
+        "metrics": "Metrics",
+        "update": "Update",
+        "notify": "Notifications"
+      },
+      "metrics": {
+        "consentLabel": "Show the consent dialog",
+        "consentHint": "The same question asked once per installation. Answering it here changes nothing — the window simply closes.",
+        "resetLabel": "Forget the metrics answer",
+        "resetHint": "The setting goes back to «never asked», so the question asks itself again as it would on a first launch. Currently: {{value}}.",
+        "availableLabel": "Pretend the receiver is configured",
+        "availableHint": "With no receiver key the Metrics page shows a single «unavailable» line. This lifts that stub; the controls on it are the real ones."
+      },
+      "update": {
+        "downloadingLabel": "Play the download",
+        "downloadingHint": "Progress shows in the task dock on the left; it runs to the end in about five seconds and finishes by offering a restart.",
+        "availableLabel": "Dock: update available",
+        "availableHint": "Version 9.9.9 — no such release exists.",
+        "downloadedLabel": "Dock: update downloaded",
+        "downloadedHint": "The state with the «Restart» button.",
+        "errorLabel": "Dock: update failed",
+        "errorHint": "The error text is deliberately a debug one.",
+        "clearLabel": "Clear the dock",
+        "clearHint": "Puts the state back to «no updates»."
+      },
+      "notify": {
+        "levels": {
+          "info": "Notification: plain",
+          "success": "Notification: success",
+          "warning": "Notification: warning"
+        },
+        "hint": "Goes the usual way, in the «Updates» category: with notifications switched off nothing appears — and that is correct.",
+        "title": "Notification check",
+        "body": "A debug event, level «{{level}}». It does not exist in a shipping build."
+      }
+    },
+    "metrics": {
+      "enabledLabel": "Anonymous stats",
+      "enabledHint": "One request per start: how many installs there are and on which versions.",
+      "unavailable": "This build collects nothing — no receiver key was baked into it.",
+      "stopped": "Sending is paused right now: the receiver asked for it.",
+      "whatLabel": "What leaves the machine",
+      "never": "Never sent: accounts, logins, passwords, mail, proxies, file paths, the contents of the action log.",
+      "retention": "Raw events are kept for at most 30 days; after that only anonymous totals remain.",
+      "previewLabel": "Show what is sent",
+      "previewHint": "The next request's body in full, exactly as it goes out.",
+      "resetLabel": "Reset the identifier",
+      "resetHint": "Currently: {{id}}",
+      "resetHintNone": "No identifier has been created yet.",
+      "resetConfirm": "This install gets a new identifier and anything not yet sent is dropped. What was already sent stays on the server: it lives there for up to 30 days and is removed automatically.",
+      "cancel": "Cancel",
+      "fields": {
+        "install": {
+          "name": "Install identifier",
+          "value": "A random UUID, tied to no account"
+        },
+        "version": {
+          "name": "App version",
+          "value": "For example, 0.7.1"
+        },
+        "os": {
+          "name": "System",
+          "value": "Windows 11, x64 — no build number"
+        },
+        "locale": {
+          "name": "Interface language",
+          "value": "ru or en"
+        },
+        "events": {
+          "name": "Events",
+          "value": "Launch, update, and counters such as «Steam login — 12 times that day»"
+        },
+        "ip": {
+          "name": "IP address",
+          "value": "Visible to the server and used to derive the country; kept for up to 30 days"
+        }
+      },
+      "consent": {
+        "title": "Anonymous stats",
+        "lead": "Allow sending anonymous data about launches? It shows how many people use the launcher and which versions can stop being supported.",
+        "retention": "You can switch it off at any time — collecting stops at once and what was collected is deleted within 30 days.",
+        "later": "Settings → Privacy, where you can also read the request body in full and reset the identifier.",
+        "accept": "Allow",
+        "decline": "Don't send",
+        "declineWait": "Don't send ({{seconds}} s)"
+      }
+    },
+    "actionLog": {
+      "search": "Search the log",
+      "refresh": "Refresh",
+      "export": "Save to a file",
+      "exported": "Saved: {{exported}}",
+      "clear": "Clear the log",
+      "clearConfirm": "The entries will be deleted for good. Continue?",
+      "cancel": "Cancel",
+      "loading": "Reading the log…",
+      "empty": "Nothing has been recorded yet.",
+      "emptyFiltered": "Nothing found — try clearing the filters.",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "count_one": "{{count}} entry",
+      "count_other": "{{count}} entries",
+      "status": {
+        "all": "All",
+        "ok": "Succeeded",
+        "fail": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "groups": {
+        "all": "all areas",
+        "accounts": "list",
+        "account": "account",
+        "auth": "lzt profile",
+        "profile": "profile",
+        "mail": "mail",
+        "proxy": "proxy",
+        "steam": "steam",
+        "guard": "guard",
+        "telegram": "telegram",
+        "local": "database",
+        "localDb": "database folder",
+        "run": "tasks",
+        "update": "updates",
+        "settings": "settings"
+      },
+      "actions": {
+        "accounts.refresh": "Account list refreshed",
+        "account.check": "Account checked",
+        "account.login": "Logged into an account",
+        "account.note": "Account note",
+        "account.tag.add": "Label added",
+        "account.tag.remove": "Label removed",
+        "auth.token": "Signed in with a token",
+        "auth.logout": "Signed out",
+        "profile.currency": "Currency changed",
+        "profile.label.create": "Label created",
+        "profile.label.update": "Label edited",
+        "profile.label.delete": "Label deleted",
+        "profile.label.reorder": "Labels reordered",
+        "mail.letters": "Mail fetched",
+        "proxy.check": "Proxies checked",
+        "proxy.fetchMarket": "Proxies loaded from the forum",
+        "steam.session.clear": "Steam session cleared",
+        "guard.link": "Steam Guard linked",
+        "guard.unlink": "Steam Guard unlinked",
+        "guard.approve": "Login approval",
+        "guard.confirm": "Steam confirmations",
+        "telegram.convert": "Sessions converted",
+        "local.create": "Account added",
+        "local.fromMarket": "Copied to the base",
+        "local.update": "Account edited",
+        "local.delete": "Account deleted",
+        "local.import": "Accounts imported",
+        "local.move": "Moved to a group",
+        "local.labels": "Account labels",
+        "local.label.save": "Database label saved",
+        "local.label.delete": "Database label deleted",
+        "localDb.setDir": "Database folder changed",
+        "localDb.switch": "Database switched",
+        "localDb.forget": "Database forgotten",
+        "run.check": "Telegram accounts checked",
+        "run.profile": "Profiles filled",
+        "run.cleanup": "Accounts cleaned up",
+        "run.privacy": "Privacy applied",
+        "run.steam-check": "Steam accounts checked",
+        "run.steam-friends": "Friend lists cleared",
+        "settings.save": "Settings changed",
+        "update.check": "Checked for updates",
+        "update.download": "Update downloaded",
+        "update.install": "Update installed"
+      },
+      "more": "More",
+      "statusLabel": "Status",
+      "groupsLabel": "Section",
+      "repeats": "{{count}} identical entries in a row. Click to expand",
+      "collapse": "Collapse",
+      "errors_one": "{{count}} error",
+      "errors_other": "{{count}} errors"
+    },
     "app": {
       "title": "Application",
       "refreshOnLaunchLabel": "Refresh accounts on launch",
       "refreshOnLaunchHint": "Re-fetch your account list every time the app starts.",
       "backgroundRefreshLabel": "Background refresh",
       "backgroundRefreshHint": "Auto-refresh the account list on an interval while running.",
+      "backgroundRefreshOff": "Off",
+      "backgroundRefreshEvery_one": "{{count}} minute",
+      "backgroundRefreshEvery_other": "{{count}} minutes",
       "concurrencyLabel": "Account load threads",
       "concurrencyHint": "How many categories to load at once.",
+      "concurrencyValue_one": "{{count}} thread",
+      "concurrencyValue_other": "{{count}} threads",
       "minimizeToTrayLabel": "Minimize to tray",
       "minimizeToTrayHint": "Keep the app running in the tray when you close the window."
+    },
+    "notify": {
+      "enabledLabel": "Notifications",
+      "enabledHint": "The bell in the header and desktop toasts.",
+      "systemLabel": "System notifications",
+      "systemHint": "Raise a desktop toast as well, not only the in-app bell.",
+      "onlyHiddenLabel": "Only when the window is hidden",
+      "onlyHiddenHint": "Stay quiet while the app is the window you are looking at.",
+      "category": {
+        "accounts": "Account list refresh",
+        "login": "Signing in",
+        "run": "«База» runs",
+        "update": "App updates",
+        "proxy": "Proxy checks"
+      }
     },
     "profile": {
       "title": "Profile",
@@ -313,7 +1496,44 @@
       "releaseHint": "Open the GitHub release page — portable builds and installers",
       "accountsLabel": "Account limit",
       "accountsHint": "The official client shows at most 3 accounts (4 with Premium).",
-      "accountsUnlimited": "No limit"
+      "accountsUnlimited": "No limit",
+      "accountsValue_one": "{{count}} account",
+      "accountsValue_other": "{{count}} accounts",
+      "taskConcurrencyLabel": "Accounts at once in Base",
+      "taskConcurrencyValue_one": "{{count}} account at a time",
+      "taskConcurrencyValue_other": "{{count}} accounts at a time",
+      "taskConcurrencyHint": "How many accounts a run touches at the same time. The lower it is, the calmer it looks from Telegram's side."
+    },
+    "localDb": {
+      "prefix": "Local database",
+      "basesLabel": "Account databases",
+      "currentBase": "Open right now",
+      "switchButton": "Open this database",
+      "openFolder": "Open folder",
+      "forgetButton": "Remove from the list",
+      "counts": "Steam {{steam}} · Telegram {{telegram}}",
+      "unavailable": "Folder is not there — the drive may be unplugged or the folder renamed",
+      "unknownCounts": "Could not read the folder",
+      "addLabel": "Add a database",
+      "addHint": "Pick a folder and the app starts reading it. Every file stays where it is — nothing is moved.",
+      "moveLabel": "Moving the database",
+      "moveButton": "Move to another folder",
+      "folderLabel": "Local accounts folder",
+      "pickButton": "Choose folder",
+      "defaultPath": "Default app folder",
+      "reset": "Restore the default",
+      "alert": "The database is a plain folder holding telegram and steam subfolders, and inside those, one folder per account with everything known about it. Copy a folder and you have moved that account — or the whole database — to another computer or a flash drive. Passwords, auth_key values and Steam Guard tokens sit in it in the clear, so keep it somewhere nobody else can reach and out of public cloud storage.",
+      "conflictTitle": "This folder already has a database",
+      "conflictBody": "\"{{dir}}\" already holds local accounts. Open that database, or replace it with yours?",
+      "conflictAdopt": "Open that one",
+      "conflictReplace": "Replace with mine",
+      "conflictCancel": "Cancel",
+      "errors": {
+        "not_writable": "This folder is not writable — pick another one.",
+        "move_failed": "Could not move the database.",
+        "missing": "The folder is not there — check that the drive is plugged in.",
+        "target_exists": "This folder already has a database."
+      }
     },
     "language": {
       "title": "Language",
@@ -352,12 +1572,15 @@
       "native": "Via the app",
       "web": "Via browser",
       "steamLabel": "Steam",
-      "steamHint": "Sign into the Steam client or the in-app browser."
+      "steamHint": "Sign into the Steam client or the in-app browser.",
+      "telegramHint": "Sign into Telegram Desktop or Telegram Web in the in-app browser. The desktop client needs the path to Telegram.exe in the Telegram settings."
     },
     "proxy": {
       "menuLabel": "Proxy",
       "menuHint": "HTTP proxy list and pick-on-login",
       "back": "Back",
+      "sectionConnection": "Connection",
+      "sectionList": "List",
       "appLabel": "App proxy",
       "appHint": "Routes lzt.market API requests and the sign-in window. Helps when the site is blocked.",
       "appNone": "No proxy (direct)",
@@ -366,13 +1589,32 @@
       "toggleHint": "When signing in you'll be able to pick a proxy from the list",
       "servicesLabel": "Services using proxy",
       "servicesHint": "A proxy will only be offered for the selected services. For Steam, the proxy applies only to browser sign-in.",
-      "addTitle": "Add proxies",
       "addLabel": "Add proxies",
+      "addShort": "Add",
+      "addCollapse": "Collapse",
+      "moreLabel": "More",
       "loadFromForum": "Load from forum",
       "forumAdded": "Added {{count}} proxy(ies) from the forum",
       "forumFailed": "Couldn't load proxies from the forum",
       "checkOnAdd": "Check validity",
       "bulkPlaceholder": "ip:port or ip:port:login:password - one per line",
+      "bulkMoved": "Moved into the folder: {{count}}",
+      "foldersLabel": "Proxy folders",
+      "folderAll": "All",
+      "folderNone": "No folder",
+      "folderNew": "New folder",
+      "folderCreateTitle": "New folder",
+      "folderRenameTitle": "Rename folder",
+      "folderNameField": "Folder name",
+      "folderNamePlaceholder": "For example: Telegram",
+      "folderRenameLabel": "Rename folder",
+      "folderDeleteLabel": "Delete folder",
+      "folderDeleteTitle": "Delete folder?",
+      "folderDeleteBody": "Folder “{{name}}” holds {{count}} proxy(ies). You can keep them — they'll move to “No folder”.",
+      "folderDeleteOnly": "Folder only",
+      "folderDeleteWithProxies": "With proxies ({{count}})",
+      "folderEmpty": "This folder has no proxies yet",
+      "addTargetHint": "Will be added to “{{name}}”",
       "listEmpty": "Proxy list is empty",
       "testLabel": "Test",
       "testing": "Testing…",
@@ -384,13 +1626,18 @@
       "editLabel": "Edit",
       "deleteLabel": "Delete",
       "listCount": "Proxies: {{count}}",
-      "checkAll": "Check all",
+      "invalidCount": "{{count}} failing",
+      "checkAll": "Check",
       "checkAllProgress": "Checking {{done}}/{{total}}…",
       "deleteInvalid": "Delete invalid ({{count}})",
       "deleteAll": "Delete all",
+      "deleteAllVisible": "Delete shown",
       "deleteAllConfirmTitle": "Delete all proxies?",
       "deleteAllConfirmBody": "The entire proxy list will be cleared. This action cannot be undone.",
+      "deleteAllFolderBody": "{{count}} proxy(ies) will be deleted from “{{name}}”. This action cannot be undone.",
       "editTitle": "Edit proxy",
+      "fieldLabel": "Name",
+      "fieldFolder": "Folder",
       "fieldHost": "Host",
       "fieldPort": "Port",
       "fieldUser": "Username",

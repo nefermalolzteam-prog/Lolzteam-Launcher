@@ -1,11 +1,24 @@
 .card {
-  background-color: #1F1F1F;
+  position: relative;
+  background-color: v2.$primaryDarker;
   padding: 16px;
   border-radius: 24px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
+
+  // Selection is not a mode: the box is always on the card, next to the verdict in the header.
+  &.cardSelectable {
+    outline: 1px solid #ffffff00;
+    outline-offset: -1px;
+    transition: outline-color .1s ease-in-out, background-color .1s ease-in-out;
+  }
+
+  &.cardSelected {
+    outline-color: rgba(v2.$accent, .5);
+    background-color: rgba(v2.$accent, .06);
+  }
 
   .topSection {
     width: 100%;
@@ -28,6 +41,18 @@
           object-fit: contain;
         }
 
+        // The account's own picture, once a check has fetched one: round.
+        .logoAvatar {
+          border-radius: 50%;
+          object-fit: cover;
+        }
+
+        .premiumTag {
+          display: inline-flex;
+          align-items: center;
+          color: #E5B84B;
+        }
+
         .category {
           font-size: 14px;
           color: #fff;
@@ -35,22 +60,28 @@
         }
       }
 
+      // The verdict, and the tick when a mass run can reach this account.
+      .headRight {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
       .status {
         display: flex;
         align-items: center;
         gap: 6px;
-
         .dot {
           width: 4px;
           height: 4px;
           border-radius: 50%;
-          background-color: #02BB77;
+          background-color: $color-accent-text;
         }
 
         .text {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 500;
-          color: #02BB77;
+          color: $color-accent-text;
         }
 
         &.statusInvalid {
@@ -60,6 +91,17 @@
 
           .text {
             color: #E5484D;
+          }
+        }
+
+        // Nobody has checked this account yet, so the header says so instead of claiming it is valid.
+        &.statusUnknown {
+          .dot {
+            background-color: $color-text-muted;
+          }
+
+          .text {
+            color: $color-text-muted;
           }
         }
       }
@@ -73,26 +115,457 @@
     }
 
     .tagsBlock {
+      @include button-reset;
+      @include clickable;
       display: flex;
       flex-wrap: wrap;
-      margin-bottom: 16px;
-      gap: 6px;
+      // Left, like the text above it: a button lays its content out centred by default.
+      justify-content: flex-start;
+      text-align: left;
+      // 4px, like `.badges` above it: the two strips sit one under the other and a chip that stood wider apart than a badge.
+      gap: 4px;
+      // As wide as the chips, no wider: the pointer answers where the labels are.
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+
+      &:focus-visible {
+        @include focus-ring;
+      }
 
       .tagsItem {
-        font-size: 13px;
-        line-height: 1;
-        padding: 5px 10px;
+        font-size: 14px;
+        // 20px and 2px of padding rather than 1 and 5: the chip keeps the same 24px height.
+        line-height: 20px;
+        padding: 2px 10px;
         background-color: #303030;
         color: $color-text;
-        border-radius: 8px;
+        border-radius: 56px;
         display: inline-flex;
         align-items: center;
       }
     }
+
+    // The user's own note, under the labels and above the divider.
+    .noteBlock {
+      @include button-reset;
+      @include clickable;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      text-align: left;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background-color: #ffffff08;
+      border: 1px solid #ffffff14;
+      width: fit-content;
+      max-width: 100%;
+      min-width: 0;
+      transition: background-color .12s ease, border-color .12s ease;
+
+      &:hover {
+        background-color: #ffffff0f;
+        border-color: #ffffff24;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+
+    .noteIcon {
+      flex: none;
+      // Optically on the first line of the text rather than on the box's top edge.
+      margin-top: 2px;
+      color: $color-text-muted;
+    }
+
+    .noteText {
+      @include truncate(2);
+      font-size: 14px;
+      line-height: 20px;
+      color: $color-text-muted;
+      // A note is whatever was typed, including a URL with no spaces in it.
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
   }
 }
 
+// ============================================================================= Table mode — the same account as one row.
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--row-columns);
+  align-items: start;
+  gap: 12px;
+  padding: 14px 16px;
+  min-height: 56px;
+  box-sizing: border-box;
+  background-color: v2.$primaryDarker;
+  transition: background-color .1s ease-in-out, outline-color .1s ease-in-out;
 
+  &:hover {
+    background-color: v2.$primaryDark;
+  }
+
+  &.cardSelectable {
+    outline: 1px solid #ffffff00;
+    outline-offset: -1px;
+  }
+
+  &.cardSelected {
+    outline-color: rgba(v2.$accent, .5);
+    background-color: rgba(v2.$accent, .06);
+  }
+}
+
+// «Вот он» — карточка, которую список открыл по чужой просьбе.
+@keyframes card-reveal {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  45% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.cardRevealed::after {
+  content: '';
+  position: absolute;
+  // Ряд таблицы скруглён обёрткой, а не собой, так что здесь `inherit` даёт ноль.
+  inset: 0;
+  border-radius: inherit;
+  // Слой лежит поверх всей карточки, включая её кнопки.
+  pointer-events: none;
+  background-color: rgba(#fff, .12);
+  box-shadow: inset 0 0 0 1px rgba(#fff, .3);
+  opacity: 0;
+  animation: card-reveal 2s ease-out forwards;
+}
+
+// Без анимации подсветка не исчезает сама — `animationend` не наступит.
+@media (prefers-reduced-motion: reduce) {
+  .cardRevealed::after {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+// The tick itself, shared by both layouts: the leading column of a row and the header of a card.
+.selectCheck {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: v2.$onAccent;
+  border-radius: 6px;
+  background-color: rgba(v2.$primaryDark, .9);
+  outline: 1px solid rgba(v2.$text, .22);
+  outline-offset: -1px;
+  transition: all .1s ease-in-out;
+
+  &:hover {
+    outline-color: rgba(v2.$accent, .6);
+  }
+
+  &.selectCheckOn {
+    background-color: v2.$accent;
+    outline-color: v2.$accent;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// Leading column: the row number, or the checkbox that replaces it.
+.cellSelect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rowIndex {
+  font-size: 14px;
+  color: #5a5a5a;
+}
+
+.cellAccount {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rowLogo {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rowAvatar {
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+// Stands in for a picture that does not exist as a file anywhere — see `InitialsAvatar`.
+.initialsAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+
+.rowTitles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+// The text is a child of its own so the ellipsis still works.
+.rowTitleText {
+  @include truncate(2);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  // 20px rather than a ratio: this is a two-line clamp.
+  line-height: 20px;
+  font-weight: 500;
+  color: $color-text;
+}
+
+// Premium next to the name rather than in the badge strip.
+.premiumMark {
+  flex-shrink: 0;
+  color: #E5B84B;
+}
+
+// Who the account is — a Telegram name and handle, an e-mail elsewhere.
+.rowIdentity {
+  @include truncate(1);
+  min-width: 0;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 16px;
+  color: $color-text-muted;
+}
+
+// The country, in every category that ships one.
+.rowSub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  padding: 4px 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 16px;
+  color: $color-text-muted;
+  outline: 1px solid #262626;
+  border-radius: $radius-pill;
+
+  > span {
+    @include truncate(1);
+    min-width: 0;
+  }
+
+  .flag {
+    width: 16px;
+    height: 12px;
+    flex-shrink: 0;
+  }
+}
+
+.cellStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+// The header dot of the card, flattened into one line.
+.rowStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  color: $color-accent-text;
+  white-space: nowrap;
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
+    flex-shrink: 0;
+  }
+}
+
+.rowStatusInvalid {
+  color: #E5484D;
+}
+
+// Nobody has checked this account yet — nothing here may claim it is valid.
+.rowStatusUnknown {
+  color: $color-text-muted;
+}
+
+// Everything known about the account, as one strip of badges — written once for both shapes.
+.cellFacts,
+.parsedInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+
+  .panel,
+  .badges {
+    display: contents;
+  }
+}
+
+// Строка — это ячейка «Метки и информация»: тот же strip, что и у карточки, но начинается он с кнопки меток.
+.cellFacts {
+  overflow: hidden;
+
+  .badge {
+    font-size: 14px;
+    line-height: 16px;
+    padding: 4px 8px;
+
+    // The row is one line tall and holds a dozen of these; the card's 14px icon would set the pill's height on its own here.
+    > svg {
+      width: 12px;
+      height: 12px;
+    }
+  }
+}
+
+// A label chip. Shaped after `.badge` below — same padding, same pill.
+.rowTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 16px;
+  padding: 4px 10px;
+  border-radius: $radius-pill;
+  background-color: #303030;
+  color: $color-text;
+  white-space: nowrap;
+}
+
+// Метки — первое, что стоит в ячейке «Метки и информация».
+.labelsEdit {
+  @include button-reset;
+  @include clickable;
+  display: flex;
+  align-items: center;
+  // Chips go to a second line rather than squeezing each other to nothing.
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  color: $color-text-soft;
+  transition: color .1s ease-in-out;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  // A single chip still gives way rather than widen the column past its track; it wraps onto the next line first.
+  .rowTag {
+    @include truncate(1);
+    min-width: 0;
+  }
+}
+
+// Та же кнопка, когда меток нет: круглый «+» размером с фишку вместо строки текста.
+.labelsAdd {
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #303030;
+  color: $color-text-muted;
+
+  // Единственное состояние ячейки, которому нечего показать самому, — значит единственное.
+  &:hover {
+    color: $color-text;
+  }
+}
+
+.cellText {
+  font-size: 14px;
+  color: $color-text-soft;
+  // Stated, not inherited: the row's own line-height is set for the title.
+  line-height: 20px;
+  @include truncate(1);
+}
+
+// «Нет» — the absence of a value, in the size of the value it stands.
+.cellEmpty {
+  font-size: 14px;
+  color: #5a5a5a;
+}
+
+.cellRight {
+  text-align: right;
+}
+
+// Price and warranty exist only for bought accounts.
+.cellMarket {
+  display: var(--cell-market, block);
+}
+
+// The same for the purchase date, which only a bought account has: an own listing has no buyer.
+.cellPurchased {
+  display: var(--cell-purchased, block);
+}
+
+.cellActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+// The same icon buttons on a table row: one line high instead of a card's corner.
+.actionIcon.actionCompact {
+  padding: 8px;
+  flex-shrink: 0;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+}
 
 .aboutBlock {
   display: flex;
@@ -123,17 +596,31 @@
   color: $color-text;
   margin: 0;
   @include truncate(2);
+  // Same one-long-word titles as in the row: clamping alone does not save a card from a word that has nowhere to break.
+  overflow-wrap: anywhere;
   line-height: $lh-tight;
 }
 
-.steam {
+// A panel that has something under its badge strip — today only Steam, whose games list follows it.
+.factsBlock {
   display: flex;
   flex-direction: column;
-  gap: $space-3;
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
+// The card's half of the strip declared next to `.cellFacts` above, with the two things only the card needs.
 .parsedInfo {
-  margin-bottom: 20px;
+  // Every panel decides on its own whether it has anything to say.
+  &:empty {
+    display: none;
+  }
+
+  // The one child of the strip that is not a badge: Steam's games list.
+  .games {
+    flex-basis: 100%;
+    margin-top: 12px;
+  }
 }
 
 .divider {
@@ -144,16 +631,18 @@
   margin-bottom: 20px;
 }
 
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+// A Telegram display name joined with an @username, both of them user-supplied and neither of them bounded.
+.identity {
+  @include truncate(1);
+  min-width: 0;
 }
 
 .country {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  // Never the part that gives way: it is two words next to a name that can be sixty characters of anything.
+  flex: 0 0 auto;
 }
 
 .flag {
@@ -168,6 +657,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  // Never wider than whatever holds it, and free to shrink below its own text.
+  min-width: 0;
+  max-width: 100%;
   font-size: 14px;
   line-height: 1;
   padding: 4px 10px;
@@ -175,11 +667,46 @@
   background: $color-surface-overlay;
   color: $color-text-soft;
   white-space: nowrap;
+
+  // The icon says which badge this is, so it is the last thing that should go.
+  > svg {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+// The wording, cut with an ellipsis when the column cannot hold it.
+.badgeLabel {
+  @include truncate(1);
+  min-width: 0;
+  line-height: 16px;
+}
+
+// A badge that takes the user somewhere — «В базе» / «С маркета», the two ends of one copy.
+.badgeButton {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  // Не `font: inherit`: сокращение выставляет и размер, а он у пилюли свой — 14px из `.badge` выше.
+  font-family: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  transition: filter .1s ease-in-out;
+
+  &:hover {
+    filter: brightness(1.35);
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba(v2.$accent, .7);
+    outline-offset: 1px;
+  }
 }
 
 .badgeOk {
-  background: rgba(0, 186, 120, 0.1);
-  color: $color-accent;
+  background: rgba($color-accent, 0.1);
+  color: $color-accent-text;
 }
 
 .badgeWarn {
@@ -190,6 +717,12 @@
 .badgeDanger {
   background: rgba(234, 76, 76, 0.12);
   color: $color-danger;
+}
+
+// A frozen Telegram account: the key still works.
+.badgeFrozen {
+  background: rgba(89, 165, 245, 0.12);
+  color: #59a5f5;
 }
 
 .games {
@@ -205,7 +738,7 @@
   display: inline-flex;
   align-items: center;
   gap: $space-1;
-  padding: 2px 10px;
+  padding: 4px 10px;
   border-radius: $radius-pill;
   background: $color-surface-overlay;
 }
@@ -236,7 +769,8 @@
   font-size: $fs-lg;
   font-weight: 600;
   color: $color-text;
-  font-family: $font-mono;
+  /* Цены стоят друг под другом в столбце карточек, и разряды должны совпадать по вертикали. */
+  font-variant-numeric: tabular-nums;
 }
 
 .bottomGroup {
@@ -269,8 +803,8 @@
   align-items: center;
   gap: $space-1;
   font-size: $fs-xs;
-  color: $color-accent;
-  background: rgba(0, 186, 120, 0.08);
+  color: $color-accent-text;
+  background: rgba($color-accent, 0.08);
   padding: 2px $space-2;
   border-radius: $radius-pill;
 }
@@ -281,30 +815,30 @@
   justify-content: space-between;
 }
 
-.login {
+.menuWrap {
+  position: relative;
+}
+
+// Правая половина элементов управления: заметка, закреплённая прокси, SDA и «⋯».
+.iconActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// A round icon button in that group.
+.actionIcon {
   @include button-reset;
   @include clickable;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: $space-2;
-  padding: 16px 24px;
-  border-radius: 96px;
-  background: #1EA360;
-  color: #fff;
-  font-weight: 500;
-  font-size: 16px;
-  line-height: 1;
-  transition: filter $duration-fast $ease-out, background $duration-fast $ease-out;
+  background-color: #303030;
+  padding: 12px;
+  border-radius: 50%;
 
-  &:hover:not(:disabled) {
-    filter: brightness(1.2);
-  }
-
-  &:disabled {
-    background: $color-surface-overlay;
-    color: $color-text-muted;
-    cursor: not-allowed;
+  // Диаметр кружка складывается из значка и двух padding'ов, поэтому размер глифа здесь — не оформление.
+  svg {
+    display: flex;
+    width: 24px;
+    height: 24px;
   }
 
   &:focus-visible {
@@ -312,60 +846,13 @@
   }
 }
 
-.loginInvalid {
-  background: #303030;
-  color: #9C9C9C;
-
-  &:hover:not(:disabled) {
-    filter: brightness(1.15);
-  }
-}
-
-.menuWrap {
-  position: relative;
-}
-
-.menuAccount {
-  @include button-reset;
-  @include clickable;
-  background-color: #303030;
-  padding: 12px;
-  border-radius: 50%;
-
-  svg {
-    display: flex;
-  }
-}
-
-.menu {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  right: 0;
-  z-index: $z-sticky;
-  min-width: 180px;
-  padding: 6px;
-  background: $color-surface-raised;
-  border: 1px solid $color-border;
-  border-radius: $radius-md;
-  box-shadow: $shadow-lg;
-}
-
-.menuItem {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: $radius-sm;
-  font-size: 14px;
-  color: $color-text;
-  text-wrap-mode: nowrap;
-  transition: background 120ms ease;
+// The same button when it is reporting a state rather than offering an action: the pinned-proxy globe.
+.actionIconOn {
+  background-color: rgba($color-accent, 0.18);
+  color: $color-accent-text;
 
   &:hover {
-    background: $color-surface-overlay;
+    background-color: rgba($color-accent, 0.28);
   }
 }
 
@@ -373,306 +860,17 @@
   animation: spin 1s linear infinite;
 }
 
-.warnBody {
-  margin: 0 0 $space-5;
-  font-size: $fs-sm;
-  line-height: $lh-base;
-  color: $color-text-soft;
-}
-
-.warnActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: $space-3;
-}
-
-.proxyFailActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: $space-3;
-}
-
-.warnCancel,
-.warnConfirm {
-  @include button-reset;
-  @include clickable;
-  padding: $space-2 $space-4;
-  border-radius: $radius-md;
-  font-size: $fs-sm;
-  font-weight: 500;
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.warnCancel {
-  border: 1px solid $color-border-strong;
-  background: $color-surface-overlay;
-  color: $color-text;
-
-  &:hover {
-    border-color: $color-text-muted;
-  }
-}
-
-.warnConfirm {
-  background: $color-danger;
-  color: #fff;
-
-  &:hover {
-    filter: brightness(1.1);
-  }
-}
-
-.checkBody {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 120px;
-  padding: $space-4 0;
-}
-
-.checkPending,
-.checkResult {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: $space-3;
-  text-align: center;
-}
-
-.checkResultOk {
-  color: $color-accent;
-}
-
-.checkResultBad {
-  color: $color-danger;
-}
-
-.checkResultWarn {
-  color: $color-warning;
-}
-
-.checkText {
-  margin: 0;
-  font-size: $fs-base;
-  font-weight: 600;
-  color: $color-text;
-}
-
-.checkSub {
-  margin: 0;
-  font-size: $fs-sm;
-  line-height: $lh-base;
-  color: $color-text-muted;
-}
-
-.proxyList {
-  display: flex;
-  flex-direction: column;
-  gap: $space-1;
-}
-
-.proxyScroll {
-  display: flex;
-  flex-direction: column;
-  gap: $space-1;
-  max-height: 280px;
-  overflow-y: auto;
-  // Leave room so the scrollbar doesn't overlap the option content.
-  padding-right: $space-1;
-  @include scrollbar(transparent, rgba(255, 255, 255, 0.14));
-}
-
-.proxyOption {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: $space-1;
-  padding: $space-3 $space-4;
-  border-radius: $radius-md;
-  font-size: $fs-sm;
-  color: $color-text;
-  background: #ffffff12;
-  text-align: left;
-  transition: background $duration-fast $ease-out;
-
-  &:hover {
-    background: #ffffff20;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.proxyName {
-  font-size: $fs-sm;
-  color: $color-text;
-}
-
-.proxyMeta {
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  font-size: $fs-xs;
-}
-
-.proxyOk {
-  color: $color-accent;
-}
-
-.proxyFail {
-  color: #ff6b6b;
-}
-
-.proxyPing {
-  color: $color-text-muted;
-}
-
-.proxyUnchecked {
-  color: $color-text-muted;
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-
-
-
-.labelsLoading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 28px 0;
-  color: $color-text-muted;
-}
-
-.labelsEmpty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 16px 0 8px;
-  text-align: center;
-}
-
-.labelsWebBtn {
-  @include button-reset;
-  @include clickable;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-accent;
-  background: $color-surface-overlay;
-  transition: background 120ms ease;
-
-  &:hover { background: $color-surface-raised; }
-  &:focus-visible { @include focus-ring; }
-}
-
-.labelsList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.labelRow {
-  @include button-reset;
-  @include clickable;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  transition: background 120ms ease, border-color 120ms ease;
-
-  &:hover:not(:disabled) { background: $color-surface-overlay; }
-  &:disabled { opacity: .6; cursor: default; }
-  &:focus-visible { @include focus-ring; }
-}
-
-.labelRowOn {
-  border-color: $color-border;
-  background: $color-surface-overlay;
-}
-
+/* Цветной чип метки. */
 .labelChip {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1;
   padding: 6px 12px;
   border-radius: 8px;
   display: inline-flex;
   align-items: center;
-}
-
-.labelState {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  color: $color-accent;
-}
-
-.linkHint {
-  margin: 0 0 $space-3;
-  font-size: $fs-sm;
-  line-height: 1.5;
-  color: $color-text-muted;
-  white-space: pre-line;
-}
-
-.linkInput {
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  padding: $space-3;
-  border-radius: $radius-md;
-  border: 1px solid #ffffff24;
-  background: #ffffff0d;
-  color: $color-text;
-  font-family: $font-mono;
-  font-size: $fs-xs;
-  line-height: 1.4;
-
-  &:focus-visible {
-    @include focus-ring;
-    outline: none;
-  }
-}
-
-.linkError {
-  margin: $space-2 0 0;
-  font-size: $fs-sm;
-  color: $color-warning;
-}
-
-.linkCode {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  padding: $space-3;
-  border-radius: $radius-md;
-  background: #ffffff12;
-  color: $color-text;
-  font-family: $font-mono;
-  font-size: $fs-xs;
-  word-break: break-all;
-  user-select: all;
 }

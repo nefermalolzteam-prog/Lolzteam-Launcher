@@ -2,6 +2,7 @@ import { IPC_CHANNELS } from '@shared-ipc';
 import { MARKET_CURRENCIES, type MarketCurrency, PROTECTED_LABEL_IDS } from '@shared-types';
 import { ipcMain } from 'electron';
 import {
+  type LabelResult,
   createLabel,
   deleteLabel,
   fetchLetters,
@@ -10,6 +11,7 @@ import {
   setCurrency,
   updateLabel,
 } from '../services/market';
+import { handleAction } from './handle-action';
 
 const isCurrency = (v: unknown): v is MarketCurrency =>
   typeof v === 'string' && (MARKET_CURRENCIES as readonly string[]).includes(v);
@@ -39,25 +41,36 @@ export const registerProfileIpc = (): void => {
   ipcMain.handle(IPC_CHANNELS.PROFILE_LABELS_GET, () => listUserLabels());
   ipcMain.handle(IPC_CHANNELS.PROFILE_LABELS_REFRESH, () => listUserLabels({ refresh: true }));
 
-  ipcMain.handle(IPC_CHANNELS.PROFILE_SET_CURRENCY, (_e, payload?: { currency: unknown }) => {
-    if (!isCurrency(payload?.currency)) return { ok: false, message: 'invalid_currency' };
-    return setCurrency(payload.currency);
-  });
+  handleAction(
+    IPC_CHANNELS.PROFILE_SET_CURRENCY,
+    (_e, payload?: { currency: unknown }) => {
+      if (!isCurrency(payload?.currency)) return { ok: false, message: 'invalid_currency' };
+      return setCurrency(payload.currency);
+    },
+    {
+      action: 'profile.currency',
+      target: (p?: { currency: unknown }) => (isCurrency(p?.currency) ? p.currency : null),
+    },
+  );
 
-  ipcMain.handle(
+  handleAction(
     IPC_CHANNELS.PROFILE_LABEL_CREATE,
-    (_e, payload?: { title: unknown; bc: unknown }) => {
+    (_e, payload?: { title: unknown; bc: unknown }): Promise<LabelResult> | LabelResult => {
       const title = cleanTitle(payload?.title);
       const bc = cleanColor(payload?.bc);
       if (!title) return { ok: false, message: 'invalid_title' };
       if (!bc) return { ok: false, message: 'invalid_color' };
       return createLabel(title, bc);
     },
+    { action: 'profile.label.create', target: (p?: { title: unknown }) => cleanTitle(p?.title) },
   );
 
-  ipcMain.handle(
+  handleAction(
     IPC_CHANNELS.PROFILE_LABEL_UPDATE,
-    (_e, payload?: { tagId: unknown; title: unknown; bc: unknown }) => {
+    (
+      _e,
+      payload?: { tagId: unknown; title: unknown; bc: unknown },
+    ): Promise<LabelResult> | LabelResult => {
       const tagId = editableTagId(payload?.tagId);
       const title = cleanTitle(payload?.title);
       const bc = cleanColor(payload?.bc);
@@ -66,22 +79,37 @@ export const registerProfileIpc = (): void => {
       if (!bc) return { ok: false, message: 'invalid_color' };
       return updateLabel(tagId, title, bc);
     },
+    { action: 'profile.label.update', target: (p?: { title: unknown }) => cleanTitle(p?.title) },
   );
 
-  ipcMain.handle(IPC_CHANNELS.PROFILE_LABEL_DELETE, (_e, payload?: { tagId: unknown }) => {
-    const tagId = editableTagId(payload?.tagId);
-    if (tagId === null) return { ok: false, message: 'invalid_tag' };
-    return deleteLabel(tagId);
-  });
+  handleAction(
+    IPC_CHANNELS.PROFILE_LABEL_DELETE,
+    (_e, payload?: { tagId: unknown }): Promise<LabelResult> | LabelResult => {
+      const tagId = editableTagId(payload?.tagId);
+      if (tagId === null) return { ok: false, message: 'invalid_tag' };
+      return deleteLabel(tagId);
+    },
+    {
+      action: 'profile.label.delete',
+      target: (p?: { tagId: unknown }) => {
+        const id = editableTagId(p?.tagId);
+        return id === null ? null : `#${id}`;
+      },
+    },
+  );
 
-  ipcMain.handle(IPC_CHANNELS.PROFILE_LABEL_REORDER, (_e, payload?: { tagIds: unknown }) => {
-    const raw = Array.isArray(payload?.tagIds) ? payload.tagIds : [];
-    const tagIds = raw.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0);
-    if (tagIds.length === 0) return { ok: false, message: 'invalid_order' };
-    return reorderLabels(tagIds);
-  });
+  handleAction(
+    IPC_CHANNELS.PROFILE_LABEL_REORDER,
+    (_e, payload?: { tagIds: unknown }): Promise<LabelResult> | LabelResult => {
+      const raw = Array.isArray(payload?.tagIds) ? payload.tagIds : [];
+      const tagIds = raw.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0);
+      if (tagIds.length === 0) return { ok: false, message: 'invalid_order' };
+      return reorderLabels(tagIds);
+    },
+    { action: 'profile.label.reorder' },
+  );
 
-  ipcMain.handle(
+  handleAction(
     IPC_CHANNELS.MAIL_GET_LETTERS,
     (
       _e,
@@ -98,6 +126,10 @@ export const registerProfileIpc = (): void => {
       const limitNum = Number(payload?.limit);
       const limit = Number.isInteger(limitNum) ? Math.min(50, Math.max(10, limitNum)) : undefined;
       return fetchLetters({ emailPassword, email, password, limit });
+    },
+    {
+      action: 'mail.letters',
+      detail: (r) => (r.ok ? `${r.letters.length} letters` : null),
     },
   );
 };

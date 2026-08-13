@@ -1,0 +1,543 @@
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 16px 24px 32px 24px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+
+    .back {
+      @include button-reset;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px 10px 12px;
+      font-size: 14px;
+      line-height: 20px;
+      color: v2.$textMuted;
+      border-radius: v2.$radiusFull;
+      background-color: v2.$primary;
+      transition: all .1s ease-in-out;
+
+      svg {
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        color: v2.$text;
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+
+    .title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 24px;
+      font-weight: 600;
+      color: v2.$text;
+    }
+  }
+
+  // Not a nav: the steps are a trail of where the wizard is, so they read as labels and only the current one lights up.
+  .crumbs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    align-self: flex-start;
+    padding: 2px;
+    border-radius: v2.$radiusFull;
+    background-color: rgba(v2.$primaryDark, .7);
+
+    .crumb {
+      padding: 6px 14px;
+      font-size: 12px;
+      line-height: 20px;
+      color: v2.$textMuted;
+      border-radius: v2.$radiusFull;
+      outline: 1px solid #ffffff00;
+      outline-offset: -1px;
+      transition: all .1s ease-in-out;
+
+      &.crumbOn {
+        color: v2.$text;
+        outline: 1px solid rgba(v2.$accent, .4);
+        background-color: rgba(v2.$accent, .07);
+      }
+    }
+
+    .crumbSep {
+      color: rgba(v2.$text, .2);
+    }
+  }
+
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .lead {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textMuted;
+  }
+
+  /* Service / mode picker */
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    @include button-reset;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 20px;
+    text-align: left;
+    border-radius: v2.$radiusLG;
+    outline: 1px solid rgba(v2.$text, .04);
+    outline-offset: -1px;
+    background-color: rgba(v2.$primaryDark, .7);
+    transition: all .1s ease-in-out;
+
+    .cardLogo {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      margin-bottom: 4px;
+    }
+
+    .cardTitle {
+      font-size: 16px;
+      line-height: 20px;
+      font-weight: 600;
+      color: v2.$text;
+    }
+
+    .cardText {
+      font-size: 14px;
+      line-height: 20px;
+      color: v2.$textMuted;
+    }
+
+    &:hover {
+      outline: 1px solid rgba(v2.$accent, .4);
+      background-color: rgba(v2.$accent, .07);
+    }
+
+    &:active {
+      opacity: .72;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  /* Drop zone */
+
+  .drop {
+    @include button-reset;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 24px 16px;
+    min-height: 132px;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textContent;
+    border-radius: v2.$radiusLG;
+    // Dashed on an outline, so the hover ring swaps colour without the box resizing by a pixel the way a border would.
+    outline: 1px dashed rgba(v2.$text, .12);
+    outline-offset: -1px;
+    background-color: rgba(v2.$primaryDark, .5);
+    transition: all .1s ease-in-out;
+
+    .dropHint {
+      font-size: 12px;
+      line-height: 16px;
+      color: v2.$textMuted;
+    }
+
+    &:hover {
+      outline: 1px dashed rgba(v2.$text, .2);
+      background-color: rgba(v2.$primaryDark, .9);
+    }
+
+    // Held over the zone: the same accent wash the cards use, so "let go here" reads as the active state and not as an error.
+    &.dropOver {
+      color: v2.$text;
+      outline: 1px dashed rgba(v2.$accent, .5);
+      background-color: rgba(v2.$accent, .07);
+    }
+
+    &:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  .hiddenInput {
+    display: none;
+  }
+
+  /* Text steps */
+
+  .textarea {
+    width: 100%;
+    min-height: 220px;
+    padding: 14px 16px;
+    color: v2.$text;
+    font-size: 14px;
+    line-height: 1.6;
+    border-radius: v2.$radiusMD;
+    background-color: v2.$primaryDark;
+    outline: 1px solid rgba(v2.$text, .04);
+    outline-offset: -1px;
+    resize: vertical;
+    transition: all .1s ease-in-out;
+
+    &::placeholder {
+      color: v2.$textMuted;
+    }
+
+    &:hover {
+      outline: 1px solid rgba(v2.$text, .1);
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  .dcRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textMuted;
+
+    .dcBtn {
+      @include button-reset;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      padding: 6px 0;
+      font-size: 14px;
+      line-height: 20px;
+      color: v2.$textMuted;
+      border-radius: v2.$radiusFull;
+      outline: 1px solid #ffffff00;
+      outline-offset: -1px;
+      background-color: v2.$primary;
+      transition: all .1s ease-in-out;
+
+      &:hover {
+        color: v2.$text;
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &.dcBtnOn {
+        color: v2.$text;
+        outline: 1px solid rgba(v2.$accent, .4);
+        background-color: rgba(v2.$accent, .07);
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+  }
+
+  .dirRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textMuted;
+
+    .dirPath {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      direction: rtl;
+      text-align: left;
+    }
+
+    .dirClear {
+      @include button-reset;
+      color: v2.$textMuted;
+      transition: color .1s ease-in-out;
+
+      &:hover {
+        color: v2.$text;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+  }
+
+  /* Report */
+
+  .group {
+    border-radius: v2.$radiusMD;
+    outline: 1px solid rgba(v2.$text, .04);
+    outline-offset: -1px;
+    background-color: rgba(v2.$primaryDark, .7);
+    overflow: hidden;
+
+    .groupHead {
+      @include button-reset;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 20px;
+      color: v2.$textContent;
+      transition: all .1s ease-in-out;
+
+      .groupTitle {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        svg {
+          flex-shrink: 0;
+          color: v2.$textMuted;
+        }
+      }
+
+      .groupCount {
+        font-size: 12px;
+        line-height: 20px;
+        padding: 0 8px;
+        font-variant-numeric: tabular-nums;
+        border-radius: v2.$radiusFull;
+        background-color: rgba(v2.$text, .07);
+      }
+
+      &:hover {
+        color: v2.$text;
+        background-color: rgba(v2.$text, .03);
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+
+    .rows {
+      max-height: 240px;
+      overflow-y: auto;
+      margin: 0;
+      padding: 0 16px 12px 16px;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      @include scrollbar();
+
+      .row {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 18px;
+        color: v2.$textContent;
+        word-break: break-all;
+
+        .rowMeta {
+          color: v2.$textMuted;
+        }
+      }
+    }
+  }
+
+  .checkRow {
+    @include button-reset;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    align-self: flex-start;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textContent;
+    transition: all .1s ease-in-out;
+
+    .checkbox {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      border-radius: 6px;
+      background-color: v2.$primaryDark;
+      outline: 1px solid rgba(v2.$text, .1);
+      outline-offset: -1px;
+      transition: all .1s ease-in-out;
+
+      &.checkboxOn {
+        background-color: v2.$accent;
+        outline: 1px solid v2.$accent;
+      }
+    }
+
+    &:hover {
+      color: v2.$text;
+    }
+
+    &:active {
+      opacity: .72;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  /* Footer, shared by every step */
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .btnRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .counter {
+    font-size: 12px;
+    line-height: 20px;
+    color: v2.$textMuted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .primary {
+    @include button-reset;
+    @include accent-button;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    border-radius: v2.$radiusFull;
+    transition: all .1s ease-in-out;
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &:active:not(:disabled) {
+      opacity: .72;
+    }
+
+    &:disabled {
+      color: v2.$textMuted;
+      background-color: v2.$primary;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  .secondary {
+    @include button-reset;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 14px;
+    line-height: 20px;
+    color: v2.$textContent;
+    border-radius: v2.$radiusFull;
+    background-color: v2.$primary;
+    transition: all .1s ease-in-out;
+
+    &:hover:not(:disabled) {
+      color: v2.$text;
+    }
+
+    &:active:not(:disabled) {
+      opacity: .72;
+    }
+
+    &:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      @include focus-ring;
+    }
+  }
+
+  .error {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: #e5484d;
+  }
+
+  .formWrap {
+    display: flex;
+    justify-content: center;
+  }
+
+  .spin {
+    animation: local-import-spin 1s linear infinite;
+  }
+}
+
+@keyframes local-import-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

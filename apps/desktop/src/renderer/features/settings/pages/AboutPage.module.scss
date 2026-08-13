@@ -1,0 +1,43 @@
+/** Page-specific furniture: the outbound links at the foot of «О программе». */
+.social {
+  display: flex;
+  gap: 8px;
+}
+
+/* Одеты как группа настроек над ними — та же подложка, та же рамка, тот же радиус (`.groupRows`). */
+.socialItem {
+  @include button-reset;
+  @include clickable;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: v2.$radiusLG;
+  background: v2.$primaryDark;
+  border: 1px solid v2.$primary;
+  color: $color-text;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color .1s ease-in-out;
+
+  &:hover {
+    background: v2.$primary;
+  }
+
+  &:active {
+    opacity: .72;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}

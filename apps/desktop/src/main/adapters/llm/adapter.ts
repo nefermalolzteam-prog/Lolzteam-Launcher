@@ -6,11 +6,13 @@ import type {
   ServiceAdapter,
 } from '@adapter-contract';
 import type { AccountDetails } from '@shared-types';
+import { serviceLabel } from '@shared-types';
 import type { WebContents } from 'electron';
+import { mailboxPairFor } from '../../services/mailbox';
 import { failLogin as fail } from '../_shared/fail';
 import { extractBrowserLogin } from '../browser/extract';
 import { injectCookies, openBrowserWindow } from '../browser/shell-window';
-import { emailPasswordFor, extractEmailCreds, resolveLlmCookies } from './extract';
+import { extractEmailCreds, resolveLlmCookies } from './extract';
 import { type LlmProviderConfig, resolveLlmProvider } from './provider';
 
 const loginViaBrowser = async (
@@ -48,7 +50,7 @@ const loginViaBrowser = async (
     landingUrl,
     `${provider.displayName} — ${account.title}`,
     ctx,
-    { emailPassword: emailPasswordFor(account) ?? undefined },
+    { emailPassword: mailboxPairFor(account) ?? undefined },
   );
 
   return {
@@ -59,11 +61,24 @@ const loginViaBrowser = async (
   };
 };
 
-const buildAutofillScript = (email: string, password: string): string => {
+const escapeRe = (v: string): string => v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const hostGuardFor = (provider: LlmProviderConfig): string => {
+  const hosts = provider.autofillHosts ?? [];
+  if (hosts.length === 0) return 'true';
+  const alt = hosts.map((h) => `(^|\\.)${escapeRe(h)}$`).join('|');
+  return `!new RegExp(${JSON.stringify(alt)}).test(location.hostname)`;
+};
+
+const buildAutofillScript = (
+  provider: LlmProviderConfig,
+  email: string,
+  password: string,
+): string => {
   const e = JSON.stringify(email);
   const p = JSON.stringify(password);
   return `(() => {
-    if (!/(^|\\.)openai\\.com$|(^|\\.)chatgpt\\.com$/.test(location.hostname)) return;
+    if (${hostGuardFor(provider)}) return;
     if (window.__lztAutofill) return;
     window.__lztAutofill = true;
     const EMAIL = ${e}, PW = ${p};
@@ -129,15 +144,15 @@ const loginViaEmailFill = async (
 
   ctx.onProgress?.({ step: 'launching-browser' });
   ctx.log.info(`[llm] opening ${provider.landingUrl} for email autofill #${account.itemId}`);
-  const script = buildAutofillScript(creds.email, creds.password);
+  const script = buildAutofillScript(provider, creds.email, creds.password);
   const { windowId } = openBrowserWindow(
     partition,
-    provider.landingUrl ?? 'https://chatgpt.com/',
+    provider.landingUrl ?? 'about:blank',
     `${provider.displayName} — ${account.title}`,
     ctx,
     {
       onEachLoad: (site: WebContents) => void site.executeJavaScript(script).catch(() => {}),
-      emailPassword: emailPasswordFor(account) ?? undefined,
+      emailPassword: mailboxPairFor(account) ?? undefined,
     },
   );
 
@@ -151,7 +166,7 @@ const loginViaEmailFill = async (
 
 export const llmAdapter: ServiceAdapter = {
   id: 'llm',
-  displayName: 'LLM',
+  displayName: serviceLabel('llm'),
   platforms: ['win32', 'darwin', 'linux'] as const,
   methods: ['web'] as const,
 

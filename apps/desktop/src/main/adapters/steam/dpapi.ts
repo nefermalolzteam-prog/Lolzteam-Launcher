@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import log from 'electron-log/main';
 
 const CRC32_TABLE = (() => {
   const t = new Uint32Array(256);
@@ -86,11 +87,15 @@ export const dpapiProtect = (data: Buffer, entropy: Buffer): Promise<string> =>
         return;
       }
       const hex = stdout.trim();
-      if (!/^[0-9a-f]+$/.test(hex)) {
+      if (!/^([0-9a-f]{2})+$/.test(hex)) {
         reject(new Error(`DPAPI helper returned invalid output: ${hex.slice(0, 80)}`));
         return;
       }
       resolve(hex);
+    });
+
+    child.stdin.on('error', (err) => {
+      log.warn('[dpapi] helper stdin closed early', err);
     });
 
     child.stdin.write(`${data.toString('base64')}\n`);

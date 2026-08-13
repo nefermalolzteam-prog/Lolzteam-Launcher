@@ -9,23 +9,99 @@ import type {
 } from '@adapter-contract';
 import type { StringSessionData } from '@mtcute/node/utils.js';
 import type { AccountDetails } from '@shared-types';
+import { serviceLabel } from '@shared-types';
+import type { WebContents } from 'electron';
+import { fetchSelfId } from '../../services/telegram/self';
+import {
+  TELEGRAM_WEB_URL,
+  buildWebAStorage,
+  buildWebInjectionScript,
+} from '../../services/telegram/web-login';
 import { failLogin as fail } from '../_shared/fail';
-import { extractTelegramCreds } from './extract';
+import { injectCookies, openBrowserWindow } from '../browser/shell-window';
+import { type TelegramCreds, extractTelegramCreds } from './extract';
 import { ensurePortableMarker, fileExists, getTdataDir } from './paths';
 import { killTelegramProcesses, waitForTelegramExit } from './process';
 import { buildOfflineSession } from './session';
 import { writeProxySettings } from './settings-tdf';
 import { mergeSessions, readExistingSessions, toSessionData, writeTdata } from './tdata';
 
+const loginViaWeb = async (
+  account: AccountDetails,
+  creds: TelegramCreds,
+  ctx: AdapterContext,
+): Promise<LoginResult> => {
+  const authKey = creds.authKey;
+  if (!authKey) return fail('Нет данных сессии Telegram для входа через браузер', 'web');
+
+  let userId = creds.userId;
+  if (!userId) {
+    ctx.onProgress?.({ step: 'fetching-credentials' });
+    ctx.log.info(`[telegram] no user id on #${account.itemId}, asking Telegram over the auth key`);
+    try {
+      userId = await fetchSelfId({
+        session: buildOfflineSession({
+          authKeyHex: authKey.authKeyHex,
+          dcId: authKey.dcId,
+          userId: null,
+        }),
+        apiId: creds.apiId,
+        apiHash: creds.apiHash,
+        deviceModel: creds.deviceModel,
+        proxy: ctx.proxy ?? null,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      ctx.log.warn(`[telegram] could not resolve user id for #${account.itemId}: ${msg}`);
+      return fail(`Не удалось определить user id аккаунта: ${msg}`, 'web');
+    }
+  }
+
+  let script: string;
+  try {
+    script = buildWebInjectionScript(
+      buildWebAStorage({ authKeyHex: authKey.authKeyHex, dcId: authKey.dcId, userId }),
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return fail(`Не удалось собрать сессию для Telegram Web: ${msg}`, 'web');
+  }
+
+  const partition = `persist:lzt-account-${account.itemId}`;
+  ctx.onProgress?.({ step: 'injecting-cookies' });
+  await injectCookies(partition, [], ctx);
+
+  if (ctx.abortSignal.aborted) return fail('Вход отменён', 'web');
+
+  ctx.onProgress?.({ step: 'launching-browser' });
+  ctx.log.info(`[telegram] opening Telegram Web for #${account.itemId} (dc=${authKey.dcId})`);
+  const { windowId } = openBrowserWindow(
+    partition,
+    TELEGRAM_WEB_URL,
+    `Telegram — ${account.title}`,
+    ctx,
+    { plantBeforeScripts: (site: WebContents) => site.executeJavaScript(script) },
+  );
+
+  const who = creds.phone || `аккаунт #${account.itemId}`;
+  return {
+    ok: true,
+    method: 'web',
+    windowId,
+    message: `Telegram Web открыт под ${who}`,
+  };
+};
+
 export const telegramAdapter: ServiceAdapter = {
   id: 'telegram',
-  displayName: 'Telegram',
+  displayName: serviceLabel('telegram'),
   platforms: ['win32'] as const,
-  methods: ['native'] as const,
+  methods: ['native', 'web'] as const,
 
   async probe(method: LoginMethod, ctx: AdapterContext): Promise<ProbeResult> {
+    if (method === 'web') return { available: true };
     if (method !== 'native') {
-      return { available: false, reason: 'Только native-вход поддерживается' };
+      return { available: false, reason: 'Поддерживается вход через Telegram Desktop или браузер' };
     }
     if (process.platform !== 'win32') {
       return { available: false, reason: 'Telegram-адаптер работает только на Windows' };
@@ -45,22 +121,28 @@ export const telegramAdapter: ServiceAdapter = {
     account: AccountDetails,
     ctx: AdapterContext,
   ): Promise<LoginResult> {
-    if (method !== 'native') return fail('Только native-вход поддерживается', method);
-    if (process.platform !== 'win32') return fail('Telegram-адаптер работает только на Windows');
-    if (ctx.abortSignal.aborted) return fail('Вход отменён');
-
-    const exe = ctx.settings?.telegramExePath;
-    if (!exe || !(await fileExists(exe))) {
-      return fail('Укажите путь к Telegram.exe в Настройках');
+    if (method !== 'native' && method !== 'web') {
+      return fail('Поддерживается вход через Telegram Desktop или браузер', method);
     }
+    if (ctx.abortSignal.aborted) return fail('Вход отменён', method);
 
     const creds = extractTelegramCreds(account);
-    if (!creds) return fail('У этого аккаунта нет данных Telegram в lzt.market');
+    if (!creds) return fail('У этого аккаунта нет данных Telegram в lzt.market', method);
 
     if (!creds.authKey) {
       return fail(
         'Нет данных сессии Telegram для восстановления (loginData.raw пуст или некорректен)',
+        method,
       );
+    }
+
+    if (method === 'web') return loginViaWeb(account, creds, ctx);
+
+    if (process.platform !== 'win32') return fail('Telegram-адаптер работает только на Windows');
+
+    const exe = ctx.settings?.telegramExePath;
+    if (!exe || !(await fileExists(exe))) {
+      return fail('Укажите путь к Telegram.exe в Настройках');
     }
 
     ctx.onProgress?.({ step: 'building-tdata' });

@@ -1,53 +1,71 @@
-.dock {
+.dockContainer {
   position: fixed;
   left: 50%;
   bottom: $space-5;
   transform: translateX(-50%);
   z-index: $z-sticky;
-
   display: flex;
-  align-items: center;
-  gap: $space-1;
-  padding: $space-2;
-  border-radius: $radius-pill;
-  background: rgba(28, 28, 28, 0.82);
-  border: 1px solid $color-border-strong;
-  box-shadow: $shadow-lg;
-  backdrop-filter: blur(12px);
-}
+  width: 100%;
 
-.navItem {
-  @include button-reset;
-  @include clickable;
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  padding: $space-2 $space-4;
-  border-radius: $radius-pill;
-  color: $color-text-soft;
-  font-size: $fs-sm;
+  .dock {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: $space-1;
+    padding: 4px;
+    border-radius: v2.$radiusFull;
+    background: v2.$primary;
+    outline: 1px solid rgba(v2.$text, .06);
+    outline-offset: -1px;
+    backdrop-filter: blur(12px);
 
-  &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.06);
-    color: $color-text;
+    .navItem {
+      @include button-reset;
+      display: flex;
+      outline: 1px solid #ffffff00;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 24px;
+      border-radius: $radius-pill;
+      color: v2.$textMuted;
+      font-size: 14px;
+      line-height: 20px;
+      transition: all .1s ease-in-out;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.06);
+        color: $color-text;
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+
+      // Заливка и обводка — от акцента-заливки, подпись со значком — от акцента-надписи.
+      &.navItemActive {
+        outline: 1px solid rgba(v2.$accent, .2);
+        background-color: rgba(v2.$accent, .1);
+        color: v2.$accentText;
+      }
+    }
   }
 
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  &:focus-visible {
-    @include focus-ring;
-  }
-}
-
-.navItemActive {
-  background: #1EA360;
-  color: #fff;
-
-  &:hover:not(:disabled) {
-    background: #1EA360;
-    color: #fff;
+  // The right-hand slot, mirroring the task dock on the left.
+  .topDock {
+    position: fixed;
+    right: $space-5;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: $space-2;
   }
 }

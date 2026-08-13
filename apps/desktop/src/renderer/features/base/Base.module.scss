@@ -1,0 +1,426 @@
+
+
+.massDock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 8px 0 4px;
+  pointer-events: none;
+
+  > * {
+    pointer-events: auto;
+  }
+}
+
+// Both floating surfaces — the bar and the run line above it — are the same piece of glass.
+@mixin mass-pill {
+  max-width: 100%;
+  border-radius: v2.$radiusFull;
+  outline: 1px solid rgba(v2.$text, .06);
+  outline-offset: -1px;
+  background-color: rgba(v2.$primaryDark, .96);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 32px rgba(#000, .35);
+}
+
+.massBar {
+  @include mass-pill;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+}
+
+.massChip {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: v2.$radiusMD;
+  transition: all .1s ease-in-out;
+
+  &:hover:not(:disabled) {
+    background-color: v2.$primary;
+  }
+
+  &:active:not(:disabled) {
+    opacity: .72;
+  }
+
+  &:disabled {
+    opacity: .5;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.massCount {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  color: v2.$text;
+  font-variant-numeric: tabular-nums;
+}
+
+.massTotal {
+  font-size: 12px;
+  line-height: 18px;
+  color: v2.$textMuted;
+  font-variant-numeric: tabular-nums;
+}
+
+.massDivider {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 1px;
+  margin: 6px 4px;
+  background-color: rgba(v2.$text, .08);
+}
+
+// A narrow window scrolls the operations rather than wrapping them: a pill that grows a second row jumps under the cursor.
+.massActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.massAction {
+  @include button-reset;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 62px;
+  padding: 7px 10px;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: v2.$textMuted;
+  border-radius: v2.$radiusMD;
+  transition: all .1s ease-in-out;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    color: v2.$text;
+    background-color: v2.$primary;
+  }
+
+  &:active:not(:disabled) {
+    opacity: .72;
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// The operation the bar leads with — `lead` in `actions.ts`, not a name spelled out here.
+.massActionLead:not(:disabled) {
+  color: v2.$accent;
+
+  &:hover {
+    color: v2.$accentHover;
+    background-color: rgba(v2.$accent, .1);
+  }
+}
+
+// Deleting the selection: shaped exactly like an operation, coloured like nothing else on the bar.
+.massDanger {
+  @include button-reset;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  min-width: 62px;
+  padding: 7px 10px;
+  font-size: 11px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: $color-danger-text;
+  border-radius: v2.$radiusMD;
+  transition: all .1s ease-in-out;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: rgba($color-danger, .12);
+  }
+
+  &:active:not(:disabled) {
+    opacity: .72;
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.massClose {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  color: v2.$textMuted;
+  border-radius: v2.$radiusFull;
+  transition: all .1s ease-in-out;
+
+  &:hover:not(:disabled) {
+    color: v2.$text;
+    background-color: v2.$primary;
+  }
+
+  &:active:not(:disabled) {
+    opacity: .72;
+  }
+
+  &:disabled {
+    opacity: .4;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+// What a run has to say, on its own pill above the bar.
+.massRun {
+  @include mass-pill;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+}
+
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+// Свой `gap`: строки кита отступов не носят — расстояние между соседями в теле диалога задаёт само тело.
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  max-height: 420px;
+  overflow-y: auto;
+  @include scrollbar();
+}
+
+.rowTitle {
+  font-size: 14px;
+  line-height: 20px;
+  color: $color-text;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  word-break: break-word;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 9px;
+  font-size: 12px;
+  line-height: 18px;
+  color: v2.$textMuted;
+  border-radius: 999px;
+  background-color: $color-panel-raised;
+}
+
+.badgeBad {
+  color: $color-danger-text;
+  background-color: rgba($color-danger, .12);
+}
+
+.counter {
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Result */
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: $radius-md;
+  background-color: $color-panel-raised;
+
+  .resultLine {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: $color-text;
+  }
+
+  .failures {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 180px;
+    overflow-y: auto;
+    @include scrollbar();
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 14px;
+      line-height: 20px;
+      word-break: break-all;
+    }
+  }
+}
+
+.runText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textContent;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+// «Отменить» и «Скрыть» — крестик и подпись рядом.
+.link {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: v2.$textMuted;
+  transition: color .1s ease-in-out;
+
+  svg {
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    color: v2.$text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+/* Shared controls */
+
+/* Квадратик «выделить всё» на панели массовых операций. */
+.checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  background-color: v2.$primaryDark;
+  outline: 1px solid rgba(v2.$text, .1);
+  outline-offset: -1px;
+  transition: all .1s ease-in-out;
+
+  &.checkboxOn {
+    background-color: v2.$accent;
+    outline: 1px solid v2.$accent;
+  }
+
+  // Some of the visible rows, not all of them.
+  &.checkboxSome {
+    position: relative;
+    outline: 1px solid rgba(v2.$accent, .5);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px;
+      height: 2px;
+      border-radius: 1px;
+      background-color: v2.$accent;
+    }
+  }
+}
+
+.hint {
+  font-size: 12px;
+  line-height: 16px;
+  color: v2.$textMuted;
+}
+
+.spin {
+  animation: base-spin 1s linear infinite;
+}
+
+@keyframes base-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* «Раскидать по прокси»: галочка кита, а под ней — ряд папок, если они заведены. */
+.spreadFolders {
+  padding-left: 25px;
+}

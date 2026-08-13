@@ -1,10 +1,10 @@
 import type { LocalePreference } from '@shared-types';
-import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LOCALE_FLAG } from '~/lib/flags';
 import { useSettings } from '~/stores/settings';
 import { Flag } from '~/widgets/Flag/Flag';
 import { Modal } from '~/widgets/Modal/Modal';
+import { ModalGrid, ModalOption } from '~/widgets/Modal/ModalKit';
 import s from './SelectorModal.module.scss';
 
 const LOCALE_OPTIONS: readonly LocalePreference[] = ['ru', 'en'] as const;
@@ -26,28 +26,18 @@ export const LanguageModal = ({ onClose }: LanguageModalProps) => {
   };
 
   return (
-    <Modal title={t('settings.language.modalTitle')} closable onClose={onClose}>
-      <div className={s.list} role="radiogroup" aria-label={t('settings.language.modalTitle')}>
-        {LOCALE_OPTIONS.map((opt) => {
-          const active = current === opt;
-          return (
-            <button
-              key={opt}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              className={`${s.option} ${active ? s.optionActive : ''}`}
-              onClick={() => void select(opt)}
-            >
-              <span className={s.optionMain}>
-                <Flag code={LOCALE_FLAG[opt]} className={s.flag} />
-                <span>{t(`settings.language.${opt}`)}</span>
-              </span>
-              {active && <Check size={16} />}
-            </button>
-          );
-        })}
-      </div>
+    <Modal title={t('settings.language.modalTitle')} size="sm" closable onClose={onClose}>
+      <ModalGrid>
+        {LOCALE_OPTIONS.map((opt) => (
+          <ModalOption
+            key={opt}
+            leading={<Flag code={LOCALE_FLAG[opt]} className={s.flag} />}
+            title={t(`settings.language.${opt}`)}
+            selected={current === opt}
+            onClick={() => void select(opt)}
+          />
+        ))}
+      </ModalGrid>
     </Modal>
   );
 };

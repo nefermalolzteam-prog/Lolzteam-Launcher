@@ -8,6 +8,8 @@ import type {
   ServiceAdapter,
 } from '@adapter-contract';
 import type { AccountDetails } from '@shared-types';
+import { serviceLabel } from '@shared-types';
+import { approveOwnLoginSession } from '../../services/steam-guard/approve';
 import { failLogin as fail } from '../_shared/fail';
 import { injectCookies, openBrowserWindow } from '../browser/shell-window';
 import { computeConnectCacheHdr, dpapiProtect } from './dpapi';
@@ -25,7 +27,19 @@ type Acquire<D> = (p: {
   password: string;
   sharedSecret: string | null;
   emailCode?: string;
+  approveDeviceConfirm?: (clientId: string, steamId: string) => Promise<boolean>;
 }) => Promise<{ ok: true; data: D } | { ok: false; error: SessionError }>;
+
+const deviceConfirmApprover =
+  (account: AccountDetails, ctx: AdapterContext) =>
+  async (clientId: string, steamId: string): Promise<boolean> => {
+    ctx.onProgress?.({ step: 'approving-device-confirm' });
+    ctx.log.info(`[steam] approving own login for item #${account.itemId} via Guard`);
+    const result = await approveOwnLoginSession(account.itemId, clientId, steamId);
+    if (result.ok) return true;
+    ctx.log.info(`[steam] Guard cannot approve this login: ${result.reason}`);
+    return false;
+  };
 
 const resolveSession = async <D>(
   account: AccountDetails,
@@ -33,7 +47,8 @@ const resolveSession = async <D>(
   creds: { login: string; password: string; sharedSecret: string | null },
   acquire: Acquire<D>,
 ): Promise<{ ok: true; data: D } | { ok: false; failMessage: string }> => {
-  let session = await acquire(creds);
+  const withApproval = { ...creds, approveDeviceConfirm: deviceConfirmApprover(account, ctx) };
+  let session = await acquire(withApproval);
   if (session.ok) return session;
 
   switch (session.error.kind) {
@@ -47,7 +62,7 @@ const resolveSession = async <D>(
         return { ok: false, failMessage: 'Не удалось получить код с почты — попробуйте ещё раз' };
       ctx.log.info('[steam] retrying with email code');
       ctx.onProgress?.({ step: 'acquiring-token', detail: 'с кодом из почты' });
-      session = await acquire({ ...creds, emailCode: code });
+      session = await acquire({ ...withApproval, emailCode: code });
       if (!session.ok)
         return { ok: false, failMessage: `Steam отверг код с почты: ${errMsg(session.error)}` };
       return session;
@@ -67,7 +82,7 @@ const resolveSession = async <D>(
         };
       ctx.log.info('[steam] retrying with mafile TOTP');
       ctx.onProgress?.({ step: 'acquiring-token', detail: 'с кодом Steam Guard' });
-      session = await acquire({ ...creds, sharedSecret });
+      session = await acquire({ ...withApproval, sharedSecret });
       if (!session.ok)
         return { ok: false, failMessage: `Steam отверг код Steam Guard: ${errMsg(session.error)}` };
       return session;
@@ -75,7 +90,8 @@ const resolveSession = async <D>(
     case 'needs-device-confirm':
       return {
         ok: false,
-        failMessage: 'Аккаунт ждёт подтверждения на мобильном устройстве Steam Guard',
+        failMessage:
+          'Steam ждёт подтверждения на телефоне. Подключите аутентификатор в меню аккаунта → «Steam Guard (SDA)», и лаунчер будет подтверждать вход сам',
       };
     case 'needs-email-confirm':
       return { ok: false, failMessage: 'Аккаунт ждёт подтверждения по ссылке из письма' };
@@ -91,7 +107,7 @@ const errMsg = (error: SessionError): string =>
 
 export const steamAdapter: ServiceAdapter = {
   id: 'steam',
-  displayName: 'Steam',
+  displayName: serviceLabel('steam'),
   platforms: ['win32'] as const,
   methods: ['native', 'web'] as const,
 
@@ -192,12 +208,18 @@ const loginNative = async (account: AccountDetails, ctx: AdapterContext): Promis
 
   ctx.onProgress?.({ step: 'writing-vdf' });
   ctx.log.info('[steam] merging VDF files');
-  await writeLocalConfigVdf(
-    join(userConfigDir, 'localconfig.vdf'),
-    ctx.settings?.steamInvisible ?? false,
-  );
-  await mergeConfigVdf(join(steamConfigDir, 'config.vdf'), login, steamId);
-  await mergeLoginUsersVdf(join(steamConfigDir, 'loginusers.vdf'), login, steamId);
+  try {
+    await writeLocalConfigVdf(
+      join(userConfigDir, 'localconfig.vdf'),
+      ctx.settings?.steamInvisible ?? false,
+    );
+    await mergeConfigVdf(join(steamConfigDir, 'config.vdf'), login, steamId);
+    await mergeLoginUsersVdf(join(steamConfigDir, 'loginusers.vdf'), login, steamId);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    ctx.log.error('[steam] VDF merge aborted', err);
+    return fail(`Не удалось обновить файлы Steam: ${msg}`);
+  }
 
   ctx.onProgress?.({ step: 'encrypting-token' });
   ctx.log.info('[steam] encrypting refresh token via DPAPI');
@@ -213,7 +235,13 @@ const loginNative = async (account: AccountDetails, ctx: AdapterContext): Promis
   }
 
   const hdr = computeConnectCacheHdr(login);
-  await mergeLocalVdf(join(localSteamDir, 'local.vdf'), hdr, encryptedHex);
+  try {
+    await mergeLocalVdf(join(localSteamDir, 'local.vdf'), hdr, encryptedHex);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    ctx.log.error('[steam] local.vdf merge aborted', err);
+    return fail(`Не удалось сохранить токен в local.vdf: ${msg}`);
+  }
 
   ctx.log.info('[steam] setting AutoLoginUser in registry');
   try {

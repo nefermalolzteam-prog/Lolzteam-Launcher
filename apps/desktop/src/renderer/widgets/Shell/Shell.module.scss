@@ -16,12 +16,24 @@
 .content {
   flex: 1;
   overflow: auto;
+  // The scrollbar is a real, laid-out one.
   scrollbar-gutter: stable;
-  padding-bottom: 72px;
+  padding-bottom: 108px;
   @include scrollbar();
 }
 
+// The header sits outside the scroll root and keeps its own row in the column.
+.header {
+  position: relative;
+  z-index: $z-sticky;
+  flex: none;
+}
+
+// The wrapper every view is mounted into — and the one that gives a short view the height of the screen it is shown on.
 .viewTransition {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
   animation: view-enter 320ms $ease-out;
 }
 

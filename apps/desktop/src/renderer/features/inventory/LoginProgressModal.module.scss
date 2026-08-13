@@ -1,3 +1,4 @@
+
 .steps {
   list-style: none;
   margin: 0;
@@ -13,8 +14,9 @@
   gap: $space-3;
   padding: $space-2 $space-3;
   border-radius: $radius-sm;
-  font-size: $fs-sm;
-  color: $color-text-muted;
+  font-size: 14px;
+  line-height: 20px;
+  color: v2.$textMuted;
   transition: color $duration-fast $ease-out, background $duration-fast $ease-out;
 }
 
@@ -45,7 +47,7 @@
 
 .detail {
   color: $color-text-dim;
-  font-size: $fs-xs;
+  font-size: 14px;
 }
 
 .pending {
@@ -54,12 +56,12 @@
 
 .active {
   color: $color-text;
-  background: rgba(0, 186, 120, 0.06);
+  background: rgba($color-accent, 0.06);
 
   .icon {
-    background: rgba(0, 186, 120, 0.18);
+    background: rgba($color-accent, 0.18);
     border-color: $color-accent;
-    color: $color-accent;
+    color: $color-accent-text;
   }
 }
 
@@ -69,7 +71,8 @@
   .icon {
     background: $color-accent;
     border-color: $color-accent;
-    color: $color-text-ctrl-text;
+    // Галочка на заливке — тем же, чем подписаны все акцентные кнопки.
+    color: $color-on-accent;
   }
 }
 
@@ -91,72 +94,14 @@
   to { transform: rotate(360deg); }
 }
 
-.error {
-  display: flex;
-  align-items: flex-start;
-  gap: $space-2;
-  padding: $space-3;
-  margin-top: $space-4;
-  border-radius: $radius-sm;
-  background: rgba(234, 76, 76, 0.08);
-  border: 1px solid rgba(234, 76, 76, 0.32);
-  color: $color-danger;
-  font-size: $fs-sm;
-  line-height: $lh-base;
-
-  svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-}
-
+/* Итог одной строкой, а не большим значком: последний шаг списка уже отмечен галочкой. */
 .success {
-  margin-top: $space-4;
   padding: $space-3;
   border-radius: $radius-sm;
-  background: rgba(0, 186, 120, 0.08);
-  border: 1px solid rgba(0, 186, 120, 0.32);
-  color: $color-accent;
-  font-size: $fs-sm;
+  background: rgba($color-accent, 0.08);
+  border: 1px solid rgba($color-accent, 0.32);
+  color: $color-accent-text;
+  font-size: 14px;
+  line-height: 20px;
   text-align: center;
-}
-
-.close {
-  margin-top: $space-5;
-  width: 100%;
-  padding: $space-3 $space-4;
-  border: 1px solid $color-border-strong;
-  background: $color-surface-overlay;
-  border-radius: $radius-md;
-  color: $color-text;
-  font-size: $fs-sm;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out;
-
-  &:hover {
-    background: $color-primary-dark;
-    border-color: $color-text-muted;
-  }
-}
-
-.cancel {
-  margin-top: $space-5;
-  width: 100%;
-  padding: $space-3 $space-4;
-  border: 1px solid $color-border-strong;
-  background: transparent;
-  border-radius: $radius-md;
-  color: $color-text-muted;
-  font-size: $fs-sm;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out,
-    color $duration-fast $ease-out;
-
-  &:hover {
-    background: $color-surface-overlay;
-    border-color: $color-danger;
-    color: $color-danger;
-  }
 }

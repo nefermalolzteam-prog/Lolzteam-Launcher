@@ -1,7 +1,10 @@
 import { LLM_SERVICES, LLM_SERVICE_LABELS, type LlmServiceId } from '@shared-types';
-import { Check, ChevronDown } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDismiss } from '~/lib/useDismiss';
+import { Menu } from '~/widgets/Menu/Menu';
+import { MenuItem } from '~/widgets/Menu/MenuItem';
 import s from './LlmServiceFilter.module.scss';
 
 export type LlmServiceFilterValue = LlmServiceId | 'all';
@@ -14,30 +17,14 @@ interface LlmServiceFilterProps {
 export const LlmServiceFilter = ({ value, onChange }: LlmServiceFilterProps) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [open]);
+  const rootRef = useDismiss(open, () => setOpen(false));
 
   const options: LlmServiceFilterValue[] = ['all', ...LLM_SERVICES];
   const labelOf = (v: LlmServiceFilterValue): string =>
     v === 'all' ? t('inventory.llmService.all') : LLM_SERVICE_LABELS[v];
 
   return (
-    <div className={s.wrap} ref={ref}>
+    <div className={s.wrap} ref={rootRef}>
       <button
         type="button"
         className={`${s.trigger} ${value !== 'all' ? s.triggerActive : ''}`}
@@ -48,26 +35,13 @@ export const LlmServiceFilter = ({ value, onChange }: LlmServiceFilterProps) => 
         <span>{labelOf(value)}</span>
         <ChevronDown size={14} className={`${s.chevron} ${open ? s.chevronOpen : ''}`} />
       </button>
-      {open && (
-        <div className={s.menu} role="menu">
-          {options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              className={`${s.item} ${value === opt ? s.itemActive : ''}`}
-              role="menuitemradio"
-              aria-checked={value === opt}
-              onClick={() => {
-                onChange(opt);
-                setOpen(false);
-              }}
-            >
-              <span>{labelOf(opt)}</span>
-              {value === opt && <Check size={14} />}
-            </button>
-          ))}
-        </div>
-      )}
+      <Menu open={open} onClose={() => setOpen(false)} label={t('inventory.llmService.all')}>
+        {options.map((opt) => (
+          <MenuItem key={opt} checked={value === opt} onSelect={() => onChange(opt)}>
+            {labelOf(opt)}
+          </MenuItem>
+        ))}
+      </Menu>
     </div>
   );
 };

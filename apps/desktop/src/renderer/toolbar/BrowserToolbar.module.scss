@@ -54,7 +54,7 @@
   border-radius: 10px;
   background: #111111;
   color: #e6e6e6;
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
   transition: border-color 120ms ease;
 
@@ -82,8 +82,7 @@
   color: #1ea360;
 }
 
-// Dim layer covering the whole window (the toolbar view expands to fill it)
-// so a click anywhere outside the menu closes it.
+// Dim layer covering the whole window (the toolbar view expands to fill it) so a click anywhere outside the menu closes.
 .backdrop {
   position: fixed;
   inset: 48px 0 0 0;
@@ -201,13 +200,13 @@
 }
 
 .key {
-  font-size: 13px;
+  font-size: 14px;
   color: #949494;
 }
 
 .val {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-align: right;
   word-break: break-all;

@@ -1,7 +1,7 @@
 import type { LauncherSettings, ProxyEntry } from '@shared-types';
-import { Globe, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { proxyName } from '~/lib/proxy';
 import { useSettings } from '~/stores/settings';
 import { Tooltip } from '~/widgets/Tooltip/Tooltip';
 import s from './ProxyPingPill.module.scss';
@@ -54,32 +54,39 @@ export const ProxyPingPill = () => {
     void check();
   }, [sig, check]);
 
-  const label = proxy ? proxy.host : t('topbar.proxyDirect');
+  const label = proxy ? proxyName(proxy) : t('topbar.proxyDirect');
 
-  let value: string;
-  if (state.kind === 'ok') value = t('settings.proxy.ping', { ms: state.ms });
-  else if (state.kind === 'fail') value = t('topbar.pingFail');
-  else value = '…';
+  // `idle` живёт ровно один кадр — эффект ниже запускает проверку сразу.
+  const busy = state.kind === 'checking' || state.kind === 'idle';
+  const value =
+    state.kind === 'ok' ? t('settings.proxy.ping', { ms: state.ms }) : t('topbar.pingFail');
 
   const dotClass =
     state.kind === 'ok' ? s.dotOk : state.kind === 'fail' ? s.dotFail : s.dotChecking;
 
   return (
     <Tooltip label={t('topbar.proxyRefresh')} placement="bottom">
+      {/* Кнопка не выключается на время проверки: выключенная не показывает подсказку и меняет вид. */}
       <button
         type="button"
-        className={s.pill}
-        onClick={() => void check()}
-        disabled={state.kind === 'checking'}
+        className={s.pingItem}
+        onClick={() => {
+          if (!busy) void check();
+        }}
+        aria-busy={busy}
       >
-        {state.kind === 'checking' ? (
-          <Loader2 size={12} className={s.spin} />
-        ) : (
-          <Globe size={12} className={s.icon} />
-        )}
         <span className={s.label}>{label}</span>
-        <span className={`${s.dot} ${dotClass}`} />
-        <span className={s.value}>{value}</span>
+        <span className={s.dotGroup}>
+          <span className={`${s.dot} ${dotClass}`} />
+          {busy ? (
+            <span className={s.skeleton} role="status" aria-label={t('topbar.pingChecking')} />
+          ) : (
+            // `key` по значению: новое число — новый узел, и появление проигрывается заново даже когда «87 мс» сменяется на «91 мс».
+            <span key={value} className={s.value}>
+              {value}
+            </span>
+          )}
+        </span>
       </button>
     </Tooltip>
   );

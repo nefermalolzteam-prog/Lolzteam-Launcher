@@ -1,0 +1,313 @@
+.group {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+
+  .groupLabel {
+    margin: 0;
+    color: v2.$textMuted;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .groupRows {
+    display: flex;
+    flex-direction: column;
+    background-color: v2.$primaryDark;
+    border: 1px solid v2.$primary;
+    border-radius: v2.$radiusLG;
+    overflow: clip;
+
+    .row {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      appearance: none;
+      background: none;
+      border: 0;
+      margin: 0;
+      font: inherit;
+      color: $color-text;
+      text-align: left;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid v2.$primary;
+      }
+    }
+
+    /** Строка с управлением под текстом (`SettingRow stack`). */
+    .rowStack {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+
+      .control {
+        flex-wrap: wrap;
+      }
+    }
+
+    .rowButton {
+      cursor: pointer;
+      transition: background-color .1s ease-in-out;
+
+      &:hover {
+        background-color: #282828;
+
+        .trailingIcon {
+          color: #d6d6d6;
+        }
+      }
+
+      &:active {
+        opacity: .72;
+      }
+
+      &:disabled {
+        cursor: default;
+        opacity: .6;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
+
+    /* Примечание — такая же строка карточки, как настройка над ним: те же отступы и та же черта снизу, что у `.row`. */
+    .note {
+      margin: 0;
+      padding: 12px 16px;
+      font-size: 14px;
+      line-height: 20px;
+      color: v2.$textMuted;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid v2.$primary;
+      }
+    }
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 15px;
+  line-height: 1.2;
+  color: $color-text;
+}
+
+.description,
+.descriptionGood,
+.descriptionWarn {
+  font-size: 14px;
+  line-height: 1.3;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.descriptionTruncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  color: #949494;
+}
+
+.descriptionGood {
+  color: #1EA360;
+}
+
+.descriptionWarn {
+  color: #f8a93f;
+}
+
+.alert {
+  font-size: 14px;
+  line-height: 1.35;
+  color: #f8a93f;
+  white-space: normal;
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.trailingIcon {
+  display: flex;
+  flex-shrink: 0;
+  color: #949494;
+  transition: color .1s ease-in-out;
+}
+
+.value {
+  font-size: 14px;
+  padding: 2px 10px;
+  font-weight: 500;
+  background-color: #ffffff12;
+  border-radius: 96px;
+  color: v2.$textContent;
+  white-space: nowrap;
+}
+
+.trailingIconDanger {
+  color: #c0392b;
+}
+
+.iconBtn {
+  @include button-reset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  color: #949494;
+  background: #161616;
+  transition: background-color .1s ease-in-out, color .1s ease-in-out;
+
+  &:hover {
+    background: #2e2e2e;
+    color: $color-text;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: .5;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.iconBtnHost {
+  display: inline-flex;
+}
+
+.iconBtnDanger:hover {
+  background: #3a1f1c;
+  color: #e0705f;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #161616;
+  border: 1px solid $color-border;
+}
+
+.segmentBtn {
+  @include button-reset;
+  @include clickable;
+  min-width: 34px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #949494;
+  transition: background 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    color: $color-text;
+  }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.segmentBtnActive {
+  @include accent-button;
+
+  &:hover {
+    color: $color-on-accent;
+  }
+}
+
+.input {
+  flex-shrink: 0;
+  width: 96px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #161616;
+  border: 1px solid $color-border;
+  color: $color-text;
+  font-size: 14px;
+  text-align: center;
+  outline: none;
+  transition: border-color $duration-fast $ease-out;
+
+  &:focus {
+    border-color: $color-accent;
+  }
+
+  &::placeholder {
+    color: $color-text-muted;
+  }
+}
+
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 22px;
+  border-radius: $radius-pill;
+  background: $color-surface-overlay;
+  border: 1px solid $color-border;
+  transition: background $duration-fast $ease-out, border-color $duration-fast $ease-out;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: $color-text-muted;
+  transition: transform $duration-fast $ease-out, background $duration-fast $ease-out;
+}
+
+.switchOn {
+  background: $color-accent;
+  border-color: $color-accent;
+
+  .switchKnob {
+    transform: translateX(18px);
+    background: $color-on-accent;
+  }
+}
+
+.spin {
+  animation: settings-spin 1s linear infinite;
+}
+
+.flag {
+  display: inline-block;
+  width: 18px;
+  height: auto;
+  margin-right: 6px;
+  vertical-align: -3px;
+  border-radius: 3px;
+}
+
+@keyframes settings-spin {
+  to { transform: rotate(360deg); }
+}

@@ -1,4 +1,5 @@
 import type { UpdateStatus } from '@shared-ipc';
+import { useEffect } from 'react';
 import { create } from 'zustand';
 
 interface UpdaterState {
@@ -18,3 +19,14 @@ export const useUpdater = create<UpdaterState>((set) => ({
     })),
   dismiss: () => set({ dismissed: true }),
 }));
+
+/** Подписка на главный процесс: единственный источник, наполняющий стор. */
+export const useUpdaterFeed = (): void => {
+  const setStatus = useUpdater((st) => st.setStatus);
+
+  useEffect(() => {
+    const off = window.launcher.updater.onStatus(setStatus);
+    void window.launcher.updater.check();
+    return off;
+  }, [setStatus]);
+};
