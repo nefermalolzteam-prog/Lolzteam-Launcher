@@ -1281,7 +1281,7 @@
         },
         "version": {
           "name": "App version",
-          "value": "For example, 0.7.1"
+          "value": "For example, 1.0.0"
         },
         "os": {
           "name": "System",

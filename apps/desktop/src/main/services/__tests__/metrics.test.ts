@@ -162,7 +162,12 @@ describe('one attempt per launch', () => {
     expect(url).toContain('/api/launcher/events');
     expect(init.headers['X-Telemetry-Key']).toBe('test-key');
     const body = JSON.parse(init.body);
-    expect(body).toMatchObject({ schema: 1, app_version: '1.2.3', os: 'win32', locale: 'ru' });
+    expect(body).toMatchObject({
+      schema: 1,
+      app_version: '1.2.3',
+      os: process.platform,
+      locale: 'ru',
+    });
     expect(body.events).toHaveLength(1);
     // `app.launch` carries no props on the wire; a `{}` would be a key the receiver has to decide about.
     expect(body.events[0]).toEqual({

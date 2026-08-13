@@ -9,6 +9,40 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.0.0',
+    date: '2026-08-13',
+    changes: {
+      ru: [
+        'Полный редизайн приложения',
+        'Локальная база аккаунтов — новое направление: в неё можно добавлять аккаунты Steam и Telegram. Для Steam доступны SDA, проверка валидности и удаление друзей; для Telegram — проверка валидности, заполнение профилей, удаление чатов и каналов и настройка параметров конфиденциальности',
+        'Настройки разбиты на разделы: приложение, аккаунты, сеть, сервисы, система',
+        'Поиск теперь ищет ещё и по папке, заметке, меткам, играм Steam и данным собственной проверки',
+        'Свои метки с палитрой на восемь цветов, свои папки и заметки к аккаунтам; фильтры запоминаются отдельно для каждой категории',
+        'Список аккаунтов переписан на виртуализацию: сколько бы аккаунтов ни было в базе, в интерфейсе живут только видимые строки. Прокрутка на тысячах аккаунтов идёт без рывков и без подгрузки кусками, а переключение таблица ↔ карточки оставляет вас на том же аккаунте',
+        'Добавлен SDA: подтверждение входа по QR-коду и управление мобильными подтверждениями (обмены, лоты, восстановление, API-ключи) с возможностью разрешить или отклонить',
+        'В почте появился поиск по письмам и быстрое копирование кода',
+        'Добавлены уведомления о завершённых задачах — на рабочий стол и в самом приложении',
+        'Добавлен журнал действий: что выполняло приложение, каков был результат и сколько времени это заняло',
+        'Добавлена анонимная метрика использования — по желанию и с вашего согласия',
+        'Исправления ошибок',
+      ],
+      en: [
+        'Complete redesign of the app',
+        'Local account database — a new direction: Steam and Telegram accounts can be added to it. Steam brings SDA, validity checks and friend removal; Telegram brings validity checks, profile filling, chat and channel deletion and privacy settings',
+        'Settings are split into sections: app, accounts, network, services, system',
+        'Search now also covers the folder, note, labels, Steam games and your own check results',
+        'Your own labels with an eight-colour palette, your own folders and notes on accounts; filters are remembered per category',
+        'The account list is now virtualized: however many accounts the database holds, only the visible rows exist in the interface. Scrolling through thousands of accounts is smooth and loads nothing in chunks, and switching table ↔ cards keeps you on the same account',
+        'Added SDA: QR-code sign-in confirmation and mobile confirmation management (trades, listings, recovery, API keys) with approve and decline',
+        'Mail got letter search and one-click code copying',
+        'Added notifications about finished tasks — on the desktop and inside the app',
+        'Added an action log: what the app did, how it ended and how long it took',
+        'Added anonymous usage metrics — optional, and only with your consent',
+        'Bug fixes',
+      ],
+    },
+  },
+  {
     version: '0.7.1',
     date: '2026-07-08',
     changes: {

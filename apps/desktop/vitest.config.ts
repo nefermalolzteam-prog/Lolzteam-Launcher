@@ -13,12 +13,18 @@ const alias = {
   '@market-sdk': r('../../packages/market-sdk/src/index.ts'),
 };
 
+/** `electron-log` требует `electron`, а тот падает без распакованного бинарника — в CI его нет. */
+const stubs = {
+  'electron-log/main': r('src/main/testing/electron-log.stub.ts'),
+  'electron-log/renderer': r('src/main/testing/electron-log.stub.ts'),
+};
+
 /** Two projects, split by file extension. */
 export default defineConfig({
   test: {
     projects: [
       {
-        resolve: { alias },
+        resolve: { alias: { ...alias, ...stubs } },
         test: {
           name: { label: 'node', color: 'green' },
           include: ['src/**/__tests__/**/*.test.ts'],
@@ -28,7 +34,7 @@ export default defineConfig({
       {
         // The React plugin, so JSX and Fast Refresh's `@vitejs/plugin-react` transform behave exactly as they do.
         plugins: [react()],
-        resolve: { alias },
+        resolve: { alias: { ...alias, ...stubs } },
         test: {
           name: { label: 'dom', color: 'magenta' },
           include: ['src/renderer/**/__tests__/**/*.test.tsx'],
