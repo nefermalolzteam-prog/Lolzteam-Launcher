@@ -1,4 +1,4 @@
-import type { LoginStep } from '@adapter-contract';
+import type { LocalizedText, LoginDetail, LoginStep } from '@adapter-contract';
 import type { LoginFlow, LoginMethod } from '@shared-types';
 import { create } from 'zustand';
 
@@ -12,12 +12,12 @@ interface LoginSessionState {
   service: LoginService | null;
   method: LoginMethod;
   step: LoginStep | null;
-  detail: string | undefined;
-  error: string | null;
+  detailKey: LoginDetail | undefined;
+  error: LocalizedText | null;
   isOpen: boolean;
   start: (itemId: number, title: string, service: LoginService, method?: LoginMethod) => void;
-  setStep: (step: LoginStep, detail?: string) => void;
-  fail: (error: string) => void;
+  setStep: (step: LoginStep, detailKey?: LoginDetail) => void;
+  fail: (error: LocalizedText) => void;
   close: () => void;
 }
 
@@ -27,7 +27,7 @@ export const useLoginSession = create<LoginSessionState>((set) => ({
   service: null,
   method: 'native',
   step: null,
-  detail: undefined,
+  detailKey: undefined,
   error: null,
   isOpen: false,
   start: (itemId, title, service, method = 'native') =>
@@ -37,11 +37,11 @@ export const useLoginSession = create<LoginSessionState>((set) => ({
       service,
       method,
       step: 'fetching-credentials',
-      detail: undefined,
+      detailKey: undefined,
       error: null,
       isOpen: true,
     }),
-  setStep: (step, detail) => set({ step, detail }),
+  setStep: (step, detailKey) => set({ step, detailKey }),
   fail: (error) => set({ error }),
   close: () =>
     set({
@@ -50,7 +50,7 @@ export const useLoginSession = create<LoginSessionState>((set) => ({
       service: null,
       method: 'native',
       step: null,
-      detail: undefined,
+      detailKey: undefined,
       error: null,
       isOpen: false,
     }),

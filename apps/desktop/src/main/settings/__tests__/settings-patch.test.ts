@@ -110,6 +110,26 @@ describe('sanitizeSettingsPatch', () => {
     ).toEqual(['inventoryFilters']);
   });
 
+  it('accepts a price window and rejects a bound that is not a number', () => {
+    const entry = {
+      includeLabels: [],
+      excludeLabels: [],
+      attrs: [],
+      validity: [],
+      folder: null,
+      priceMin: 100,
+      priceMax: 2500.5,
+    };
+    expect(sanitizeSettingsPatch({ inventoryFilters: { steam: entry } }).rejected).toEqual([]);
+    expect(
+      sanitizeSettingsPatch({ inventoryFilters: { steam: { ...entry, priceMin: -1 } } }).rejected,
+    ).toEqual(['inventoryFilters']);
+    expect(
+      sanitizeSettingsPatch({ inventoryFilters: { steam: { ...entry, priceMax: 'много' } } })
+        .rejected,
+    ).toEqual(['inventoryFilters']);
+  });
+
   /** A key set to `undefined` would be written as absent and read back as the default. */
   it('skips undefined without calling it a rejection', () => {
     const { patch, rejected } = sanitizeSettingsPatch({ telegramExePath: undefined });

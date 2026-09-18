@@ -1,5 +1,5 @@
 import type { AccountSummary } from '@shared-types';
-import { Mail } from 'lucide-react';
+import { Mail, Pin, PinOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { MASS_ACTIONS } from '~/features/base/actions';
 import { massServiceOf } from '~/features/base/selection';
@@ -8,9 +8,13 @@ import { proxyName } from '~/lib/proxy';
 import { Menu } from '~/widgets/Menu/Menu';
 import { MenuItem } from '~/widgets/Menu/MenuItem';
 import {
+  AutoBumpIcon,
   BrowserIcon,
   DatabaseIcon,
+  EyeIcon,
+  EyeOffIcon,
   FolderIcon,
+  InventoryIcon,
   MarketIcon,
   MoveIcon,
   NoteIcon,
@@ -39,7 +43,37 @@ export const AccountMenu = ({
   onDelete?: (item: AccountSummary) => void;
 }) => {
   const { t } = useTranslation();
-  const { item, service, canLogin, llmUnsupported, hasGuard, checkable, isLocal, copyable } = facts;
+
+  const {
+    item,
+    service,
+    canLogin,
+    llmUnsupported,
+    hasGuard,
+    checkable,
+    isLocal,
+    copyable,
+    isListing,
+  } = facts;
+
+  /**
+   * A listing cached before the launcher read these flags has none: offer
+   * everything then, exactly as before, and let the market refuse. Once the
+   * flags are there they decide, so nothing is offered that cannot run.
+   */
+  const can = item.listing ?? {
+    canOpen: true,
+    canClose: true,
+    canEdit: true,
+    canDelete: true,
+    canStick: true,
+    canUnstick: true,
+    canBump: true,
+    canAutoBump: true,
+    bumpBlockedReason: null,
+    autoBumpHours: null,
+    guaranteeSeconds: null,
+  };
   const { busy, checking, pinnedProxy, proxyForThis } = controls;
 
   return (
@@ -67,6 +101,64 @@ export const AccountMenu = ({
         >
           {t('inventory.card.loginViaBrowser')}
         </MenuItem>
+      )}
+      {/* Own listing: only what the market says is live right now. */}
+      {isListing && (
+        <>
+          {can.canEdit && (
+            <MenuItem icon={<PencilIcon size={16} />} onSelect={controls.openListingPrice}>
+              {t('inventory.card.listing.editMenu')}
+            </MenuItem>
+          )}
+          {/* One entry, not one per interval: the picker shows what is set now. */}
+          {can.canAutoBump && (
+            <MenuItem icon={<AutoBumpIcon size={16} />} onSelect={controls.openAutoBump}>
+              {can.autoBumpHours === null
+                ? t('inventory.card.listing.autoBumpMenu')
+                : t('inventory.card.listing.autoBumpMenuOn', { hour: can.autoBumpHours })}
+            </MenuItem>
+          )}
+          {can.canClose && (
+            <MenuItem
+              icon={<EyeOffIcon size={16} />}
+              onSelect={() => controls.runListingOp({ kind: 'close' })}
+            >
+              {t('inventory.card.listing.closeMenu')}
+            </MenuItem>
+          )}
+          {can.canOpen && (
+            <MenuItem
+              icon={<EyeIcon size={16} />}
+              onSelect={() => controls.runListingOp({ kind: 'open' })}
+            >
+              {t('inventory.card.listing.openMenu')}
+            </MenuItem>
+          )}
+          {can.canStick && (
+            <MenuItem
+              icon={<Pin size={16} />}
+              onSelect={() => controls.runListingOp({ kind: 'stick' })}
+            >
+              {t('inventory.card.listing.stickMenu')}
+            </MenuItem>
+          )}
+          {can.canUnstick && (
+            <MenuItem
+              icon={<PinOff size={16} />}
+              onSelect={() => controls.runListingOp({ kind: 'unstick' })}
+            >
+              {t('inventory.card.listing.unstickMenu')}
+            </MenuItem>
+          )}
+          {item.category === 'steam' && (
+            <MenuItem
+              icon={<InventoryIcon size={16} />}
+              onSelect={() => controls.runListingOp({ kind: 'update-inventory', all: true })}
+            >
+              {t('inventory.card.listing.inventoryMenu')}
+            </MenuItem>
+          )}
+        </>
       )}
       {/* Offered on exactly the accounts a proxy would be offered to at login — the same three gates. */}
       {proxyForThis && (

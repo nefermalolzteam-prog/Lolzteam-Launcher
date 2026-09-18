@@ -5,7 +5,7 @@ import { SdaCodeIcon } from '~/features/guard/SdaIcon';
 import { proxyName } from '~/lib/proxy';
 import { Button } from '~/widgets/Button/Button';
 import { Tooltip } from '~/widgets/Tooltip/Tooltip';
-import { NoteIcon } from '~/widgets/icons/Icons';
+import { BumpIcon, NoteIcon } from '~/widgets/icons/Icons';
 import s from '../AccountCard.module.scss';
 import { AccountMenu } from './AccountMenu';
 import type { AccountControls } from './controls';
@@ -26,9 +26,15 @@ export const AccountActions = ({
   onDelete?: (item: AccountSummary) => void;
 }) => {
   const { t } = useTranslation();
-  const { item, canLogin, isInvalid, hasGuard } = facts;
-  const { busy, cooldownLeft, pinnedProxy } = controls;
+  const { item, canLogin, isInvalid, hasGuard, eaUnsupported, isListing } = facts;
+  const { busy, cooldownLeft, pinnedProxy, bumping } = controls;
   const iconClass = `${s.actionIcon} ${compact ? s.actionCompact : ''}`;
+  // `null` means «go ahead»: an item cached before the flags existed has none.
+  const bumpBlocked =
+    item.listing && !item.listing.canBump
+      ? (item.listing.bumpBlockedReason ?? t('inventory.card.listing.bumpUnavailable'))
+      : null;
+  const bumpInactive = bumping || busy || bumpBlocked !== null;
 
   // Кнопка одна, а мест у неё два, и зависит это от формы.
   const loginButton = (
@@ -38,7 +44,9 @@ export const AccountActions = ({
           ? isInvalid
             ? t('inventory.card.loginInvalidTooltip')
             : t('inventory.card.loginTooltip')
-          : t('inventory.card.unsupportedTooltip')
+          : eaUnsupported
+            ? t('inventory.card.loginWindowsOnly')
+            : t('inventory.card.unsupportedTooltip')
       }
     >
       <Button
@@ -89,6 +97,27 @@ export const AccountActions = ({
               })}
             >
               <Globe />
+            </button>
+          </Tooltip>
+        )}
+        {/*
+         * Bumping is the lever a seller pulls most, so it gets a button of its
+         * own — and the only place the refusal is said, since a menu row wide
+         * enough for the market's sentence would stretch the whole menu.
+         */}
+        {isListing && (
+          <Tooltip label={bumpBlocked ?? t('inventory.card.listing.bumpMenu')}>
+            <button
+              type="button"
+              className={`${iconClass} ${bumpInactive ? s.actionIconOff : ''}`}
+              // Not `disabled`: that would silence the hover the tooltip listens for.
+              aria-disabled={bumpInactive}
+              onClick={() => {
+                if (!bumpInactive) controls.bumpListing();
+              }}
+              aria-label={bumpBlocked ?? t('inventory.card.listing.bumpMenu')}
+            >
+              <BumpIcon />
             </button>
           </Tooltip>
         )}

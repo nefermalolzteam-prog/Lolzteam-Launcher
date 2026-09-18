@@ -35,6 +35,19 @@
         align-items: center;
         gap: 6px;
 
+        // The header is the tab's shortcut: a button, dressed as the label it always was.
+        @include button-reset;
+        cursor: pointer;
+
+        &:hover .category,
+        &:focus-visible .category {
+          color: $color-accent-text;
+        }
+
+        &:focus-visible {
+          @include focus-ring;
+        }
+
         .logo {
           width: 20px;
           height: 20px;
@@ -57,6 +70,17 @@
           font-size: 14px;
           color: #fff;
           line-height: 100%;
+          transition: color $duration-fast $ease-out;
+        }
+      }
+
+      /* Категории нет — кнопке нечего открывать, и хедер остаётся подписью. */
+      .thumbBlockStatic {
+        cursor: default;
+
+        &:hover .category,
+        &:focus-visible .category {
+          color: #fff;
         }
       }
 
@@ -112,6 +136,26 @@
       font-weight: 600;
       margin-bottom: 8px;
       word-break: break-word;
+
+      // The title doubles as the link to the item page, so it keeps the
+      // heading's own type and only answers the pointer.
+      .titleLink {
+        @include button-reset;
+        @include clickable;
+        font: inherit;
+        color: inherit;
+        text-align: left;
+        word-break: break-word;
+
+        &:hover,
+        &:focus-visible {
+          color: $color-accent-text;
+        }
+
+        &:focus-visible {
+          @include focus-ring;
+        }
+      }
     }
 
     .tagsBlock {
@@ -192,7 +236,7 @@
   }
 }
 
-// ============================================================================= Table mode — the same account as one row.
+// Table mode — the same account as one row.
 .row {
   position: relative;
   display: grid;
@@ -791,6 +835,25 @@
     .title {
       font-size: 16px;
     }
+
+    // Own listing: the price is the way into the editor.
+    .priceLink {
+      @include button-reset;
+      @include clickable;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+      width: fit-content;
+
+      &:hover,
+      &:focus-visible {
+        color: $color-accent-text;
+      }
+
+      &:focus-visible {
+        @include focus-ring;
+      }
+    }
   }
 }
 
@@ -843,6 +906,21 @@
 
   &:focus-visible {
     @include focus-ring;
+  }
+}
+
+// Dimmed, but still hoverable: the tooltip is the only place the market's
+// refusal is explained, and a natively disabled button fires no pointer events.
+.actionIconOff {
+  opacity: .45;
+  cursor: default;
+
+  &:hover {
+    filter: none;
+  }
+
+  &:active {
+    transform: none;
   }
 }
 

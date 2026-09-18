@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PLATFORM } from '~/lib/platform';
 import { useCountdown } from '~/lib/useCountdown';
 import { setDebugFlag, useDebugFlag } from '~/stores/debug';
 import { patchSettings, useSettings } from '~/stores/settings';
@@ -90,7 +91,9 @@ const ConsentDialog = ({ forced }: { forced: boolean }) => {
         {FIELDS.map((key) => (
           <li key={key} className={s.item}>
             <span className={s.itemName}>{t(`settings.metrics.fields.${key}.name`)}</span>
-            <span className={s.itemValue}>{t(`settings.metrics.fields.${key}.value`)}</span>
+            <span className={s.itemValue}>
+              {t(`settings.metrics.fields.${key}.value`, { context: PLATFORM })}
+            </span>
           </li>
         ))}
       </ul>

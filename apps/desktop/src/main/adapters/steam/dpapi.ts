@@ -1,31 +1,6 @@
 import { spawn } from 'node:child_process';
 import log from 'electron-log/main';
 
-const CRC32_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let i = 0; i < 256; i++) {
-    let c = i;
-    for (let k = 0; k < 8; k++) {
-      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-    }
-    t[i] = c >>> 0;
-  }
-  return t;
-})();
-
-const crc32 = (buf: Buffer): number => {
-  let crc = 0xffffffff;
-  for (let i = 0; i < buf.length; i++) {
-    crc = (crc >>> 8) ^ CRC32_TABLE[(crc ^ buf[i]!) & 0xff]!;
-  }
-  return (crc ^ 0xffffffff) >>> 0;
-};
-
-export const computeConnectCacheHdr = (login: string): string => {
-  const value = crc32(Buffer.from(login, 'utf8'));
-  return `${value.toString(16)}1`;
-};
-
 const PS_SCRIPT = `
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security

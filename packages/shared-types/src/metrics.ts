@@ -35,6 +35,7 @@ export const METRIC_FEATURES = [
   'login.instagram',
   'login.tiktok',
   'login.llm',
+  'login.ea',
   'base.import',
   'base.export',
   'base.check',
@@ -58,6 +59,7 @@ export const LOGIN_FEATURE: Record<SupportedServiceId, MetricFeature> = {
   instagram: 'login.instagram',
   discord: 'login.discord',
   llm: 'login.llm',
+  ea: 'login.ea',
 };
 
 /** The counter for a service id that may be anything — the caller's view. */

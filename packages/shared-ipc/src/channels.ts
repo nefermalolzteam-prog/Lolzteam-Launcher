@@ -1,10 +1,11 @@
-import type { LoginProgressEvent } from '@lolzteam/adapter-contract';
+import type { LocalizedText, LoginProgressEvent } from '@lolzteam/adapter-contract';
 import type {
   AccountPreview,
   AccountSummary,
   AccountTag,
   ActionDraft,
   ActionEntry,
+  ApiMonitorSnapshot,
   AuthStatus,
   AuthTokenPayload,
   DesktopNotification,
@@ -14,6 +15,7 @@ import type {
   GuardConfirmationAction,
   GuardResult,
   GuardStatus,
+  ItemEditFields,
   LauncherSettings,
   LocalAccountEdit,
   LocalAccountInput,
@@ -61,6 +63,32 @@ import type {
 } from '@lolzteam/shared-types';
 
 export type LoginProgress = LoginProgressEvent & { itemId: number };
+
+/**
+ * Everything a seller can do to their own listing beyond repricing. They share
+ * one channel because they share a shape — one item, one answer — and eleven
+ * near-identical channels would only spread the same handler across the file.
+ */
+export type ListingOp =
+  | { kind: 'edit'; fields: ItemEditFields }
+  | { kind: 'auto-bump'; hour: number }
+  | { kind: 'auto-bump-off' }
+  | { kind: 'open' }
+  | { kind: 'close' }
+  | { kind: 'delete'; reason: string }
+  | { kind: 'stick' }
+  | { kind: 'unstick' }
+  | { kind: 'public-tag-add'; tagId: number }
+  | { kind: 'public-tag-remove'; tagId: number }
+  | { kind: 'update-inventory'; all?: boolean; appId?: number };
+
+/** Questions the main process may have to ask about an account mid-action. */
+export type AccountConfirmKind = 'mafile-download';
+
+export interface AccountConfirmRequest {
+  itemId: number;
+  kind: AccountConfirmKind;
+}
 
 export type TagOpResult = { ok: true } | { ok: false; message: string };
 
@@ -153,10 +181,23 @@ export const IPC_CHANNELS = {
   ACCOUNT_LOGIN_CANCEL: 'account:login-cancel',
   ACCOUNT_LOGIN_PROGRESS: 'account:login-progress',
   ACCOUNT_LOGIN_REQUEST: 'account:login-request',
+  /** Main → renderer: a destructive step needs the user's yes before it runs. */
+  ACCOUNT_CONFIRM_REQUEST: 'account:confirm-request',
+  /** Renderer → main: the user's answer to an `ACCOUNT_CONFIRM_REQUEST`. */
+  ACCOUNT_CONFIRM_ANSWER: 'account:confirm-answer',
   ACCOUNT_CHECK: 'account:check',
   ACCOUNT_ADD_TAG: 'account:add-tag',
   ACCOUNT_REMOVE_TAG: 'account:remove-tag',
   ACCOUNT_SET_NOTE: 'account:set-note',
+  /** Own-listing management: push the lot up in search. */
+  ACCOUNT_BUMP: 'account:bump',
+  /** Own-listing management: a new price for the lot. */
+  ACCOUNT_SET_PRICE: 'account:set-price',
+  /** Own-listing management: the market's AI suggestion for the price. */
+  ACCOUNT_AI_PRICE: 'account:ai-price',
+  /** Every other own-listing action: edit, auto-bump, open/close, delete, stick, public tags, inventory. */
+  ACCOUNT_LISTING_OP: 'account:listing-op',
+  ACCOUNT_AUTO_BUY_PRICE: 'account:auto-buy-price',
 
   LOCAL_ACCOUNT_CREATE: 'local-account:create',
   /** Copy a bought account into the local base. */
@@ -233,6 +274,8 @@ export const IPC_CHANNELS = {
   TELEGRAM_AVATAR_PACK: 'telegram:avatar-pack',
   TELEGRAM_PROFILES: 'telegram:profiles',
   TELEGRAM_AVATAR: 'telegram:avatar',
+  /** Where the installed desktop client is, when the settings do not say. */
+  TELEGRAM_DETECT_BINARY: 'telegram:detect-binary',
 
   /** The mass-operations queue, named after nothing in particular on purpose. */
   TASK_CANCEL: 'task:cancel',
@@ -255,6 +298,8 @@ export const IPC_CHANNELS = {
 
   APP_OPEN_EXTERNAL: 'app:open-external',
   APP_PING_API: 'app:ping-api',
+  /** The market-call journal and the server's own rate-limit numbers. */
+  APP_API_STATS: 'app:api-stats',
   APP_GET_VERSION: 'app:get-version',
   APP_OPEN_LOGS: 'app:open-logs',
   APP_EXPORT_LOG: 'app:export-log',
@@ -301,11 +346,21 @@ export interface IpcRequestMap {
     proxyTest?: ProxyTestInfo | null;
   };
   [IPC_CHANNELS.ACCOUNT_LOGIN_CANCEL]: { itemId: number };
+  [IPC_CHANNELS.ACCOUNT_CONFIRM_ANSWER]: {
+    itemId: number;
+    kind: AccountConfirmKind;
+    accept: boolean;
+  };
   [IPC_CHANNELS.ACCOUNT_CHECK]: { itemId: number };
   [IPC_CHANNELS.ACCOUNT_ADD_TAG]: { itemId: number; tagId: number };
   [IPC_CHANNELS.ACCOUNT_REMOVE_TAG]: { itemId: number; tagId: number };
   // `''` is a legitimate value: it means «убрать заметку».
   [IPC_CHANNELS.ACCOUNT_SET_NOTE]: { itemId: number; text: string };
+  [IPC_CHANNELS.ACCOUNT_BUMP]: { itemId: number };
+  [IPC_CHANNELS.ACCOUNT_SET_PRICE]: { itemId: number; price: number; currency: string };
+  [IPC_CHANNELS.ACCOUNT_LISTING_OP]: { itemId: number; op: ListingOp };
+  [IPC_CHANNELS.ACCOUNT_AUTO_BUY_PRICE]: { itemId: number };
+  [IPC_CHANNELS.ACCOUNT_AI_PRICE]: { itemId: number };
   [IPC_CHANNELS.LOCAL_ACCOUNT_CREATE]: { input: LocalAccountInput };
   [IPC_CHANNELS.LOCAL_ACCOUNT_UPDATE]: { id: number; input: LocalAccountInput };
   [IPC_CHANNELS.LOCAL_ACCOUNT_DELETE]: { id: number };
@@ -378,6 +433,7 @@ export interface IpcRequestMap {
   [IPC_CHANNELS.TELEGRAM_PRIVACY]: TelegramPrivacyRequest;
   [IPC_CHANNELS.TELEGRAM_AVATAR_PACK]: { dir: string };
   [IPC_CHANNELS.TELEGRAM_PROFILES]: undefined;
+  [IPC_CHANNELS.TELEGRAM_DETECT_BINARY]: undefined;
   [IPC_CHANNELS.TELEGRAM_AVATAR]: { accountId: number };
   [IPC_CHANNELS.TASK_CANCEL]: { runId: string };
   [IPC_CHANNELS.PROXY_TEST]: Pick<
@@ -398,6 +454,7 @@ export interface IpcRequestMap {
   [IPC_CHANNELS.BROWSER_NAV_OPEN_EMAIL]: undefined;
   [IPC_CHANNELS.APP_OPEN_EXTERNAL]: { url: string };
   [IPC_CHANNELS.APP_PING_API]: undefined;
+  [IPC_CHANNELS.APP_API_STATS]: undefined;
   [IPC_CHANNELS.APP_GET_VERSION]: undefined;
   [IPC_CHANNELS.APP_OPEN_LOGS]: undefined;
   [IPC_CHANNELS.APP_EXPORT_LOG]: undefined;
@@ -434,12 +491,24 @@ export interface IpcResponseMap {
   // Deliberately not `AccountDetails`.
   [IPC_CHANNELS.ACCOUNTS_GET_MAIL]: MailCredentials | null;
   // `cancelled` marks the one failure that is not one: the user aborted the attempt.
-  [IPC_CHANNELS.ACCOUNT_LOGIN]: { ok: boolean; message?: string; cancelled?: boolean };
+  [IPC_CHANNELS.ACCOUNT_LOGIN]: { ok: boolean; message?: LocalizedText; cancelled?: boolean };
   [IPC_CHANNELS.ACCOUNT_LOGIN_CANCEL]: undefined;
+  [IPC_CHANNELS.ACCOUNT_CONFIRM_ANSWER]: undefined;
   [IPC_CHANNELS.ACCOUNT_CHECK]: CheckAccountResult;
   [IPC_CHANNELS.ACCOUNT_ADD_TAG]: TagOpResult;
   [IPC_CHANNELS.ACCOUNT_REMOVE_TAG]: TagOpResult;
   [IPC_CHANNELS.ACCOUNT_SET_NOTE]: NoteOpResult;
+  [IPC_CHANNELS.ACCOUNT_BUMP]: { ok: boolean; message?: string };
+  [IPC_CHANNELS.ACCOUNT_SET_PRICE]: { ok: boolean; message?: LocalizedText };
+  [IPC_CHANNELS.ACCOUNT_LISTING_OP]: { ok: boolean; message?: LocalizedText };
+  /** `price: null` — the market has no auto-buy figure for this item. */
+  [IPC_CHANNELS.ACCOUNT_AUTO_BUY_PRICE]: {
+    ok: boolean;
+    price?: number | null;
+    message?: LocalizedText;
+  };
+  /** `price: null` — the AI has no opinion on this item. */
+  [IPC_CHANNELS.ACCOUNT_AI_PRICE]: { ok: boolean; price?: number | null; message?: string };
   [IPC_CHANNELS.LOCAL_ACCOUNT_CREATE]: LocalAccountResult;
   [IPC_CHANNELS.LOCAL_ACCOUNT_UPDATE]: LocalAccountResult;
   [IPC_CHANNELS.LOCAL_ACCOUNT_DELETE]: LocalAccountResult;
@@ -521,6 +590,7 @@ export interface IpcResponseMap {
   [IPC_CHANNELS.BROWSER_NAV_OPEN_EMAIL]: undefined;
   [IPC_CHANNELS.APP_OPEN_EXTERNAL]: undefined;
   [IPC_CHANNELS.APP_PING_API]: NetworkStatus;
+  [IPC_CHANNELS.APP_API_STATS]: ApiMonitorSnapshot;
   [IPC_CHANNELS.APP_GET_VERSION]: string;
   [IPC_CHANNELS.APP_OPEN_LOGS]: undefined;
   [IPC_CHANNELS.APP_EXPORT_LOG]: { ok: boolean; path?: string };
@@ -549,6 +619,7 @@ export interface IpcEventMap {
   [IPC_CHANNELS.ACTION_LOG_ENTRY]: ActionEntry;
   [IPC_CHANNELS.ACCOUNT_LOGIN_PROGRESS]: LoginProgress;
   [IPC_CHANNELS.ACCOUNT_LOGIN_REQUEST]: { itemId: number };
+  [IPC_CHANNELS.ACCOUNT_CONFIRM_REQUEST]: AccountConfirmRequest;
   [IPC_CHANNELS.ACCOUNTS_CATEGORY]: AccountsCategoryEvent;
   [IPC_CHANNELS.SETTINGS_CHANGED]: SettingsResponse;
   [IPC_CHANNELS.UPDATE_STATUS]: UpdateStatus;

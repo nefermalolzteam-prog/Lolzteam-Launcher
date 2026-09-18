@@ -1,19 +1,29 @@
+import type { LocalizedText } from '@adapter-contract';
+import type { ListingOp } from '@shared-ipc';
 import type { AccountTag, ProxyEntry, ServiceId, UserLabel } from '@shared-types';
 import { pinnedProxyFor } from '@shared-types';
 import { useQueryClient } from '@tanstack/react-query';
 import { type RefObject, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { rendererLog } from '~/lib/log';
 import { loginMethodFor, loginMethodsFor } from '~/lib/loginService';
 import { useDismiss } from '~/lib/useDismiss';
 import { type MassActionId, useInventorySelection } from '~/stores/inventorySelection';
 import { useLocalLabels } from '~/stores/localLabels';
 import { type LoginMethod, useLoginSession } from '~/stores/loginSession';
 import { useMailTarget } from '~/stores/mailTarget';
+import { notify } from '~/stores/notifications';
 import { useProfileLabels } from '~/stores/profileLabels';
 import { patchSettings, useSettings } from '~/stores/settings';
 import { useView } from '~/stores/view';
 import type { ProxyTest } from '../ProxyChoiceModal';
-import { patchAccountNote, patchAccountTags, reloadAccounts } from './cardCache';
+import {
+  patchAccountAutoBump,
+  patchAccountNote,
+  patchAccountPrice,
+  patchAccountTags,
+  reloadAccounts,
+} from './cardCache';
 import type { AccountFacts } from './facts';
 
 const EMPTY_PROXIES: ProxyEntry[] = [];
@@ -22,7 +32,9 @@ const EMPTY_SERVICES: ServiceId[] = [];
 const EMPTY_PREFS: Partial<Record<ServiceId, LoginMethod>> = {};
 
 const RATE_LIMIT_COOLDOWN_MS = 60_000;
-const isRateLimitMessage = (msg: string): boolean => /\b429\b|rate.?limit/i.test(msg);
+// Rate-limit shows up in the upstream text the adapter tucked into `detail` (or, defensively, the key itself).
+const isRateLimitMessage = (msg: LocalizedText): boolean =>
+  /\b429\b|rate.?limit/i.test(`${msg.key} ${msg.params?.detail ?? ''}`);
 
 /** Which question the proxy list is being asked, or `null` for «not open». */
 export type ProxyPick = { mode: 'login'; autoTestId: string | null } | { mode: 'pin' };
@@ -41,10 +53,6 @@ export interface AccountModalDeck {
   readonly methodOpen: boolean;
   readonly chooseMethod: (method: LoginMethod, remember: boolean) => void;
   readonly cancelMethod: () => void;
-
-  readonly warnOpen: boolean;
-  readonly confirmWarn: () => void;
-  readonly cancelWarn: () => void;
 
   readonly proxyPick: ProxyPick | null;
   /** The route for this one login. */
@@ -89,10 +97,22 @@ export interface AccountModalDeck {
   readonly noteOpen: boolean;
   readonly closeNote: () => void;
 
+  /** The listing price editor for the user's own lot. */
+  readonly priceOpen: boolean;
+  readonly closePrice: () => void;
+
+  /** The auto-bump interval picker. */
+  readonly autoBumpOpen: boolean;
+  readonly closeAutoBump: () => void;
+
   /** The list has to come back from main — a folder or a local label changed it. */
   readonly onReload: () => void;
   /** The market took the note; write it into the list we already hold. */
   readonly onNoteSaved: (note: string | null) => void;
+  /** …and the same for a new price. */
+  readonly onPriceSaved: (price: number | null) => void;
+  /** Auto-bump changed in its dialog; the badge reads the list, so write it there. */
+  readonly onAutoBumpSaved: (hours: number | null) => void;
 }
 
 export interface AccountControls {
@@ -125,6 +145,14 @@ export interface AccountControls {
   readonly openOnMarket: () => void;
   readonly openEmail: () => void;
   readonly askMass: (action: MassActionId) => void;
+
+  /** Own-listing management. */
+  readonly bumpListing: () => void;
+  readonly bumping: boolean;
+  readonly openListingPrice: () => void;
+  readonly openAutoBump: () => void;
+  /** Auto-bump, open/close, stick, inventory — everything that needs no form. */
+  readonly runListingOp: (op: ListingOp) => void;
 
   readonly menuOpen: boolean;
   readonly toggleMenu: () => void;
@@ -160,7 +188,6 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
   const cooldownLeft =
     rateLimitedUntil !== null ? Math.max(0, Math.ceil((rateLimitedUntil - Date.now()) / 1000)) : 0;
 
-  const [warnOpen, setWarnOpen] = useState(false);
   const [proxyPick, setProxyPick] = useState<ProxyPick | null>(null);
   const [methodModalOpen, setMethodModalOpen] = useState(false);
   const [sdaOpen, setSdaOpen] = useState(false);
@@ -178,6 +205,9 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
   const [localLabelsOpen, setLocalLabelsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [autoBumpOpen, setAutoBumpOpen] = useState(false);
+  const [bumping, setBumping] = useState(false);
   const [togglingTag, setTogglingTag] = useState<Set<number>>(new Set());
 
   const labels = useProfileLabels((p) => p.labels);
@@ -228,12 +258,15 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
         proxyTest,
       );
       if (!res.ok) {
-        const msg = res.message ?? t('inventory.card.loginFailedFallback');
+        const msg: LocalizedText = res.message ?? { key: 'inventory.card.loginFailedFallback' };
         if (isRateLimitMessage(msg)) setRateLimitedUntil(Date.now() + RATE_LIMIT_COOLDOWN_MS);
         sess.fail(msg);
       }
     } catch (err) {
-      sess.fail(err instanceof Error ? err.message : t('inventory.card.callError'));
+      sess.fail({
+        key: 'inventory.card.callError',
+        params: err instanceof Error ? { detail: err.message } : {},
+      });
     }
   };
 
@@ -241,7 +274,9 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
     void runLogin(proxyId, proxyTest ?? null);
   };
 
-  const proceedAfterWarn = () => {
+  // No pre-flight warranty warning any more: the guarantee is only ever touched
+  // by the maFile download, and that one stops at its own confirmation prompt.
+  const proceedToLogin = () => {
     const nativeNoProxy = service === 'steam' && pendingMethodRef.current === 'native';
     const canProxy = proxyForThis && !nativeNoProxy;
     if (!canProxy) {
@@ -254,12 +289,7 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
 
   const startLoginWithMethod = (method: LoginMethod) => {
     pendingMethodRef.current = method;
-    // Steam sign-in may need to fetch the mafile (for a Steam Guard code), which cancels the account's active warranty.
-    if (service === 'steam' && warranty) {
-      setWarnOpen(true);
-      return;
-    }
-    proceedAfterWarn();
+    proceedToLogin();
   };
 
   const startLogin = () => {
@@ -290,17 +320,13 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
   const startSteamWebLogin = () => {
     if (service !== 'steam') return;
     pendingMethodRef.current = 'web';
-    if (warranty) {
-      setWarnOpen(true);
-      return;
-    }
-    proceedAfterWarn();
+    proceedToLogin();
   };
 
   const startLlmWebLogin = () => {
     if (service !== 'llm') return;
     pendingMethodRef.current = 'web';
-    proceedAfterWarn();
+    proceedToLogin();
   };
 
   const runCheck = async () => {
@@ -431,6 +457,70 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
     }
   };
 
+  /** Push the user's own listing back to the top; the bell says what came of it. */
+  /**
+   * The listing actions that take no input. One notification either way, and a
+   * reload when the market may have moved the lot in or out of the list.
+   */
+  const runListingOp = async (op: ListingOp) => {
+    try {
+      const res = await window.launcher.accounts.listingOp(item.itemId, op);
+      notify({
+        category: 'accounts',
+        level: res.ok ? 'success' : 'warning',
+        title: {
+          key: res.ok ? 'inventory.card.listing.opDone' : 'inventory.card.listing.opFailedShort',
+          params: { title: item.title },
+        },
+        body: res.ok || !res.message ? null : res.message,
+      });
+      if (res.ok) {
+        // Auto-bump shows on the card, so write it back rather than refetch.
+        if (op.kind === 'auto-bump') patchAccountAutoBump(qc, item.itemId, op.hour);
+        if (op.kind === 'auto-bump-off') patchAccountAutoBump(qc, item.itemId, null);
+        // These move the lot in or out of the list itself — only the market knows the new shape.
+        if (op.kind === 'open' || op.kind === 'close' || op.kind === 'delete') reloadAccounts(qc);
+      }
+    } catch (err) {
+      rendererLog.warn(`[listing] ${op.kind} #${item.itemId} threw`, err);
+      notify({
+        category: 'accounts',
+        level: 'warning',
+        title: { key: 'inventory.card.listing.opFailedShort', params: { title: item.title } },
+        body: null,
+      });
+    }
+  };
+
+  const bumpListing = async () => {
+    if (bumping) return;
+    setBumping(true);
+    try {
+      const res = await window.launcher.accounts.bumpListing(item.itemId);
+      notify({
+        category: 'accounts',
+        level: res.ok ? 'success' : 'warning',
+        title: {
+          key: res.ok ? 'inventory.card.listing.bumpDone' : 'inventory.card.listing.bumpFailed',
+          params: { title: item.title },
+        },
+        body: res.ok ? null : { key: 'inventory.card.listing.bumpFailedBody' },
+      });
+      if (!res.ok && res.message) {
+        rendererLog.warn(`[listing] bump #${item.itemId}: ${res.message}`);
+      }
+    } catch {
+      notify({
+        category: 'accounts',
+        level: 'warning',
+        title: { key: 'inventory.card.listing.bumpFailed', params: { title: item.title } },
+        body: { key: 'inventory.card.listing.bumpFailedBody' },
+      });
+    } finally {
+      setBumping(false);
+    }
+  };
+
   return {
     busy,
     cooldownLeft,
@@ -462,6 +552,12 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
       useInventorySelection.getState().askFor([item.itemId], action);
     },
 
+    bumpListing: () => void bumpListing(),
+    bumping,
+    openListingPrice: () => setPriceOpen(true),
+    openAutoBump: () => setAutoBumpOpen(true),
+    runListingOp: (op) => void runListingOp(op),
+
     menuOpen,
     toggleMenu: () => setMenuOpen((v) => !v),
     closeMenu: () => setMenuOpen(false),
@@ -474,13 +570,6 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
       methodOpen: methodModalOpen,
       chooseMethod,
       cancelMethod: () => setMethodModalOpen(false),
-
-      warnOpen,
-      confirmWarn: () => {
-        setWarnOpen(false);
-        proceedAfterWarn();
-      },
-      cancelWarn: () => setWarnOpen(false),
 
       proxyPick,
       chooseProxy: (proxyId, test) => {
@@ -523,8 +612,18 @@ export const useAccountControls = (facts: AccountFacts): AccountControls => {
       noteOpen,
       closeNote: () => setNoteOpen(false),
 
+      priceOpen,
+      closePrice: () => setPriceOpen(false),
+      autoBumpOpen,
+      closeAutoBump: () => setAutoBumpOpen(false),
+
       onReload: () => reloadAccounts(qc),
       onNoteSaved: (note) => patchAccountNote(qc, item.itemId, note),
+      onAutoBumpSaved: (hours) => patchAccountAutoBump(qc, item.itemId, hours),
+      onPriceSaved: (price) => {
+        if (price !== null) patchAccountPrice(qc, item.itemId, price);
+        else void reloadAccounts(qc);
+      },
     },
   };
 };

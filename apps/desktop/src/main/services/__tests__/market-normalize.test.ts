@@ -324,10 +324,10 @@ describe('normalizeItem — TikTok', () => {
 });
 
 describe('normalizeItem — LLM', () => {
-  // Verbatim from a live ChatGPT listing — the provider that fills the metering fields the others leave null.
+  // A ChatGPT listing — the provider that fills the metering fields the others leave null.
   const CHATGPT: Partial<RawMarketItem> = {
     llm_service: 'chatgpt',
-    llm_id: 'chatgpt_6da5f9f4-809e-4716-93b6-a47e9fa784f6',
+    llm_id: 'chatgpt_00000000-0000-4000-8000-000000000002',
     llm_register_date: 1_676_359_839,
     llm_subscription: 'chatgptgoplan',
     llm_subscription_ends: 1_793_796_912,
@@ -425,5 +425,42 @@ describe('normalizeItem — common fields', () => {
     expect(summary.warrantyEndsAt).toBe(1_800_000_000);
     expect(summary.purchasedAt).toBe(1_700_000_000);
     expect(summary.isPurchased).toBe(true);
+  });
+
+  it('reads the warranty off the guarantee object the site itself renders from', () => {
+    const summary = normalizeItem(
+      item(STEAM, {
+        guarantee: { duration: 259_200, endDate: 1_800_060_000, active: true, cancelled: false },
+        item_state: 'paid',
+      }),
+      'purchased',
+    );
+    expect(summary.warrantyEndsAt).toBe(1_800_060_000);
+  });
+
+  it('treats a cancelled guarantee as none at all', () => {
+    const cancelled = normalizeItem(
+      item(STEAM, {
+        guarantee: { endDate: 1_800_060_000, active: false, cancelled: true },
+        item_state: 'paid',
+      }),
+      'purchased',
+    );
+    expect(cancelled.warrantyEndsAt).toBeNull();
+  });
+
+  it('keeps a past end date so an expired-but-real guarantee reads as expired, not absent', () => {
+    // The market marks a lapsed guarantee `active: false` (it computes
+    // `active = endDate > now && !cancelled`). Nulling it here would show the
+    // grey «no warranty» badge; keeping the past `endDate` lets the UI render
+    // the truer «expired» one. Only a *cancelled* guarantee collapses to none.
+    const expired = normalizeItem(
+      item(STEAM, {
+        guarantee: { endDate: 1_600_000_000, active: false, cancelled: false },
+        item_state: 'paid',
+      }),
+      'purchased',
+    );
+    expect(expired.warrantyEndsAt).toBe(1_600_000_000);
   });
 });

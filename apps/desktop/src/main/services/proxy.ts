@@ -111,7 +111,7 @@ export const testProxy = (
     const timer = setTimeout(() => {
       // `req` is still null when `setProxy` itself is what is taking too long.
       req?.abort();
-      finish({ ok: false, message: 'Таймаут подключения' });
+      finish({ ok: false, message: 'Connection timed out' });
     }, TEST_TIMEOUT_MS);
 
     ses
@@ -136,7 +136,7 @@ export const testProxy = (
             // A proxy that answers with a stream instead of a page would otherwise be buffered whole, in the main process.
             if (size > TEST_MAX_BYTES) {
               req?.abort();
-              finish({ ok: false, message: 'Некорректный ответ' });
+              finish({ ok: false, message: 'Malformed response' });
               return;
             }
             chunks.push(c);
@@ -152,7 +152,7 @@ export const testProxy = (
                 finish({ ok: false, message: `HTTP ${response.statusCode}` });
               }
             } catch {
-              finish({ ok: false, message: 'Некорректный ответ' });
+              finish({ ok: false, message: 'Malformed response' });
             }
           });
         });

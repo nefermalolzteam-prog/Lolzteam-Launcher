@@ -19,7 +19,11 @@ const wireEvents = () => {
 
   autoUpdater.logger = log;
   autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // A deb (or rpm) update is installed through `pkexec`, so letting it run on
+  // quit would put a root password prompt in front of someone who merely
+  // closed the window. There the install waits for the explicit button;
+  // AppImage and Windows swap the file silently and keep the on-quit path.
+  autoUpdater.autoInstallOnAppQuit = !(process.platform === 'linux' && !process.env.APPIMAGE);
 
   autoUpdater.on('checking-for-update', () => emit({ state: 'checking' }));
   autoUpdater.on('update-available', (info) =>

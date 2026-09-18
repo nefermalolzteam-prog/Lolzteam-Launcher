@@ -1,5 +1,5 @@
 /** Which login pipeline the renderer should render progress for. */
-export type LoginFlow = 'steam' | 'telegram' | 'browser' | 'discord' | 'llm';
+export type LoginFlow = 'steam' | 'telegram' | 'browser' | 'discord' | 'llm' | 'ea';
 
 export type LoginMethod = 'native' | 'web';
 
@@ -63,25 +63,36 @@ export const SERVICES = {
     login: { flow: 'llm', methods: ['web'], proxy: true },
   },
 
-  // Known market categories without a login adapter yet.
-  fortnite: { displayName: 'Fortnite' },
-  mihoyo: { displayName: 'miHoYo' },
-  riot: { displayName: 'Riot' },
-  supercell: { displayName: 'Supercell' },
-  ea: { displayName: 'EA', aliases: ['origin'] },
-  wot: { displayName: 'World of Tanks' },
-  wotblitz: { displayName: 'WoT Blitz', aliases: ['wot-blitz'] },
-  gifts: { displayName: 'Gifts' },
-  epicgames: { displayName: 'Epic Games', aliases: ['epic-games'] },
-  eft: { displayName: 'Escape from Tarkov', aliases: ['escape-from-tarkov'] },
-  socialclub: { displayName: 'Social Club', aliases: ['social-club'] },
-  uplay: { displayName: 'Uplay' },
-  battlenet: { displayName: 'Battle.net', aliases: ['battle-net'] },
-  vpn: { displayName: 'VPN' },
-  roblox: { displayName: 'Roblox' },
-  warface: { displayName: 'Warface' },
-  minecraft: { displayName: 'Minecraft' },
-  hytale: { displayName: 'Hytale' },
+  // EA Desktop: a native Windows-only login — OAuth against EA, then the session
+  // cookies land in the client's own CEF cookie store.
+  ea: {
+    displayName: 'EA',
+    categoryId: 3,
+    aliases: ['origin'],
+    icon: 'ea',
+    login: { flow: 'ea', methods: ['native'] },
+  },
+
+  // Known market categories without a login adapter yet. The numeric ids let a
+  // market item be recognised even when its category name spelling changes.
+  fortnite: { displayName: 'Fortnite', categoryId: 9 },
+  mihoyo: { displayName: 'miHoYo', categoryId: 17 },
+  riot: { displayName: 'Riot', categoryId: 13 },
+  supercell: { displayName: 'Supercell', categoryId: 15 },
+  wot: { displayName: 'World of Tanks', categoryId: 14 },
+  wotblitz: { displayName: 'WoT Blitz', categoryId: 16, aliases: ['wot-blitz'] },
+  gifts: { displayName: 'Gifts', categoryId: 30 },
+  epicgames: { displayName: 'Epic Games', categoryId: 12, aliases: ['epic-games'] },
+  eft: { displayName: 'Escape from Tarkov', categoryId: 18, aliases: ['escape-from-tarkov'] },
+  socialclub: { displayName: 'Social Club', categoryId: 7, aliases: ['social-club'] },
+  uplay: { displayName: 'Uplay', categoryId: 5 },
+  battlenet: { displayName: 'Battle.net', categoryId: 11, aliases: ['battle-net'] },
+  vpn: { displayName: 'VPN', categoryId: 19 },
+  roblox: { displayName: 'Roblox', categoryId: 31 },
+  warface: { displayName: 'Warface', categoryId: 4 },
+  minecraft: { displayName: 'Minecraft', categoryId: 28 },
+  hytale: { displayName: 'Hytale', categoryId: 8 },
+  onlyfans: { displayName: 'OnlyFans', categoryId: 21 },
 } as const satisfies Record<string, ServiceDefinition>;
 
 export type ServiceId = keyof typeof SERVICES;

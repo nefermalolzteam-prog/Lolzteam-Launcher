@@ -286,9 +286,7 @@ export interface TelegramPrivacyResult {
   readonly needsPremium: readonly TelegramPrivacyKey[];
 }
 
-/* ------------------------------------------------------------------ *
- * The queue itself.
- * ------------------------------------------------------------------ */
+// The queue itself.
 
 /** Which mass operation a run belongs to. */
 export type TelegramTaskKind =

@@ -167,6 +167,6 @@ export class AvatarPool {
 /** Reads the picture itself. */
 export const readAvatarBytes = async (file: AvatarFile): Promise<Uint8Array> => {
   const buf = await fs.readFile(file.path);
-  if (buf.byteLength > MAX_BYTES) throw new Error(`${file.name}: слишком большой файл`);
+  if (buf.byteLength > MAX_BYTES) throw new Error(`${file.name}: file too large`);
   return buf;
 };

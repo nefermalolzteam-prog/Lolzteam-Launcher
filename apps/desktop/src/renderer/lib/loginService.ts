@@ -23,6 +23,18 @@ export const loginMethodsForCategory = (
 
 type TFunc = (key: string, opts?: Record<string, unknown>) => string;
 
+/**
+ * A span of time rather than a deadline: what a listing promises the buyer,
+ * from `guarantee_duration`. Same words as the countdown above it.
+ */
+export const formatDuration = (seconds: number | null, t: TFunc): string | null => {
+  if (!seconds || seconds <= 0) return null;
+  const days = Math.floor(seconds / 86_400);
+  if (days >= 1) return t('inventory.card.warrantyDays', { count: days });
+  const hours = Math.max(1, Math.round(seconds / 3600));
+  return t('inventory.card.warrantyHours', { count: hours });
+};
+
 export const formatWarranty = (warrantyEndsAt: number | null, t: TFunc): string | null => {
   if (!warrantyEndsAt) return null;
   const ms = warrantyEndsAt * 1000 - Date.now();

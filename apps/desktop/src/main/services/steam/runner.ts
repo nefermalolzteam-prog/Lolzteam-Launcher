@@ -154,9 +154,7 @@ const execute = async (runId: string, signal: AbortSignal, plan: SteamRunPlan): 
   );
 };
 
-/* ------------------------------------------------------------------ *
- * The validity check.
- * ------------------------------------------------------------------ */
+// The validity check.
 
 /** Starts a validity run over the selected accounts. */
 export const startSteamCheckRun = (req: SteamCheckRequest): TelegramRunStart =>
@@ -203,9 +201,7 @@ const checkOne = async (
   }
 };
 
-/* ------------------------------------------------------------------ *
- * Emptying the friends list.
- * ------------------------------------------------------------------ */
+// Emptying the friends list.
 
 /** Starts a friends purge over the selected accounts. */
 export const startSteamFriendsRun = (req: SteamFriendsRequest): TelegramRunStart => {
@@ -300,7 +296,11 @@ const linkOne = async (
     }
 
     emit({ ...base, step: 'linking' });
-    const result = await linkGuardAccount(accountId, { proxyId: proxy?.id ?? null });
+    // The run was consented to as a whole before it started — no per-account prompts mid-queue.
+    const result = await linkGuardAccount(accountId, {
+      proxyId: proxy?.id ?? null,
+      mafile: 'allow',
+    });
     if (result.ok) {
       return {
         ...base,

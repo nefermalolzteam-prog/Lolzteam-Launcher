@@ -68,6 +68,19 @@
   color: $color-on-danger;
 }
 
+/* Тот же красный, но тише: для «Назад»/«Отмена» в диалогах входа, где полный крик был бы громче самого предупреждения. */
+.dangerSoft {
+  background: #d25c5c24;
+  color: #ff8f8f;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: #d25c5c3d;
+    color: #ffb0b0;
+    filter: none;
+  }
+}
+
 .ghost {
   background: transparent;
   color: $color-text-muted;

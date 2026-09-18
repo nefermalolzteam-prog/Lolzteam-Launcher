@@ -27,6 +27,9 @@
 .md { max-width: 460px; }
 .lg { max-width: 560px; }
 
+/* Диалог фильтров: два столбца вопросов, а не один длинный. */
+.xl { max-width: 980px; }
+
 .head {
   display: flex;
   align-items: flex-start;

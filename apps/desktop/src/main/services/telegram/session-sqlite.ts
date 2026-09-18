@@ -45,10 +45,10 @@ const firstRow = (db: SqlDatabase, sql: string): Record<string, unknown> | null 
 };
 
 const asAuthKey = (value: unknown): Uint8Array => {
-  if (!(value instanceof Uint8Array)) throw new Error('в таблице sessions нет auth_key');
+  if (!(value instanceof Uint8Array)) throw new Error('no auth_key in the sessions table');
   // Telethon stores a missing key as an empty blob rather than NULL.
   if (value.length !== 256) {
-    throw new Error(`auth_key должен быть 256 байт, в файле ${value.length}`);
+    throw new Error(`auth_key must be 256 bytes, file has ${value.length}`);
   }
   return value;
 };
@@ -63,7 +63,7 @@ const asInt = (value: unknown): number | null => {
 };
 
 const requireProdDc = (dcId: number | null): number => {
-  if (dcId === null || !DC_MAPPING_PROD[dcId]) throw new Error(`Неизвестный DC id: ${dcId}`);
+  if (dcId === null || !DC_MAPPING_PROD[dcId]) throw new Error(`Unknown DC id: ${dcId}`);
   return dcId;
 };
 
@@ -76,22 +76,22 @@ export type SessionFile =
 /** Which client wrote this file, decided by the shape of its `sessions` table. */
 const flavorOf = (db: SqlDatabase): SessionFileFlavor => {
   const cols = columnsOf(db, 'sessions');
-  if (cols.size === 0) throw new Error('в файле нет таблицы sessions');
+  if (cols.size === 0) throw new Error('no sessions table in the file');
   if (cols.has('server_address')) return 'telethon';
   if (cols.has('test_mode') || cols.has('api_id')) return 'pyrogram';
-  throw new Error('таблица sessions незнакомого вида');
+  throw new Error('unfamiliar sessions table shape');
 };
 
 const readTelethon = (db: SqlDatabase): TelethonSession => {
   const row = firstRow(db, 'SELECT dc_id, server_address, port, auth_key FROM sessions LIMIT 1');
-  if (!row) throw new Error('таблица sessions пуста');
+  if (!row) throw new Error('sessions table is empty');
   const dcId = requireProdDc(asInt(row.dc_id));
   const fallback = DC_MAPPING_PROD[dcId]?.main;
   const address =
     typeof row.server_address === 'string' && row.server_address
       ? row.server_address
       : (fallback?.ipAddress ?? '');
-  if (!address) throw new Error('в файле нет адреса DC');
+  if (!address) throw new Error('no DC address in the file');
   return {
     dcId,
     ipAddress: address,
@@ -107,7 +107,7 @@ const readPyrogram = (db: SqlDatabase): PyrogramSession => {
     cols.has(c),
   );
   const row = firstRow(db, `SELECT ${wanted.join(', ')} FROM sessions LIMIT 1`);
-  if (!row) throw new Error('таблица sessions пуста');
+  if (!row) throw new Error('sessions table is empty');
   const apiId = asInt(row.api_id);
   return {
     dcId: requireProdDc(asInt(row.dc_id)),

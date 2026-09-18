@@ -28,7 +28,7 @@ export const LoginMethodModal = ({ methods, onChoose, onCancel }: LoginMethodMod
             {t('inventory.card.loginMethod.remember')}
           </ModalCheck>
           <ModalSpacer />
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button variant="dangerSoft" size="sm" onClick={onCancel}>
             {t('inventory.local.cancel')}
           </Button>
         </>

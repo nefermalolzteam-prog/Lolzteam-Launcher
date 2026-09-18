@@ -1,9 +1,9 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BrowserWindow, shell } from 'electron';
-import iconUrl from '../../renderer/assets/favicon.ico?asset';
 import { getCachedSettings } from '../settings/settings-store';
 import { MAIN_COLORS } from '../theme';
+import { appIconPath } from './app-icon';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -14,6 +14,17 @@ export const setQuitting = (v: boolean): void => {
   quitting = v;
 };
 export const isQuitting = (): boolean => quitting;
+
+// Set by `createTray()` once a tray icon actually exists. On Linux the icon can
+// fail to load or the desktop may offer no status-notifier host at all, and
+// hiding the window to a tray that isn't there loses the app with no way back —
+// so "minimize to tray" is only honoured when there is a tray to minimize to.
+let trayAvailable = false;
+export const setTrayAvailable = (v: boolean): void => {
+  trayAvailable = v;
+};
+export const shouldMinimizeToTray = (): boolean =>
+  trayAvailable && (getCachedSettings()?.minimizeToTray ?? true);
 
 export const getMainWindow = (): BrowserWindow | null =>
   mainWindow && !mainWindow.isDestroyed() ? mainWindow : null;
@@ -37,7 +48,7 @@ export const createMainWindow = (): BrowserWindow => {
     minWidth: 960,
     minHeight: 600,
     backgroundColor: MAIN_COLORS.bg,
-    icon: iconUrl,
+    icon: appIconPath,
     title: 'Lolzteam Launcher',
     autoHideMenuBar: true,
     show: false,
@@ -56,8 +67,7 @@ export const createMainWindow = (): BrowserWindow => {
   mainWindow.on('ready-to-show', () => mainWindow?.show());
   mainWindow.on('close', (e) => {
     if (quitting) return;
-    const minimize = getCachedSettings()?.minimizeToTray ?? true;
-    if (minimize) {
+    if (shouldMinimizeToTray()) {
       e.preventDefault();
       mainWindow?.hide();
     }

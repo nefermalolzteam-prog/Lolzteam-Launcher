@@ -13,6 +13,8 @@ import {
   ModalStatus,
 } from '~/widgets/Modal/ModalKit';
 import s from '../AccountCard.module.scss';
+import { ListingAutoBumpModal } from '../ListingAutoBumpModal';
+import { ListingEditModal } from '../ListingEditModal';
 import { LocalLabelsModal } from '../LocalLabelsModal';
 import { LoginMethodModal } from '../LoginMethodModal';
 import { MoveFolderModal } from '../MoveFolderModal';
@@ -44,29 +46,6 @@ export const AccountModals = ({
           onChoose={m.chooseMethod}
           onCancel={m.cancelMethod}
         />
-      )}
-
-      {m.warnOpen && (
-        <Modal
-          title={t('inventory.card.warrantyWarnTitle')}
-          subtitle={item.title}
-          size="md"
-          onClose={m.cancelWarn}
-          footer={
-            <>
-              <ModalSpacer />
-              <Button variant="ghost" size="sm" onClick={m.cancelWarn}>
-                {t('inventory.card.warrantyWarnCancel')}
-              </Button>
-              {/* Красная, а не зелёная: нажатие снимает гарантию, и цвет — последнее, что об этом успевает сказать. */}
-              <Button variant="danger" size="sm" onClick={m.confirmWarn}>
-                {t('inventory.card.warrantyWarnConfirm')}
-              </Button>
-            </>
-          }
-        >
-          <ModalHint>{t('inventory.card.warrantyWarnBody', { warranty })}</ModalHint>
-        </Modal>
       )}
 
       {/* The route for this login. */}
@@ -232,6 +211,13 @@ export const AccountModals = ({
       {m.moveOpen && <MoveFolderModal item={item} onClose={m.closeMove} onMoved={m.onReload} />}
 
       {m.noteOpen && <NoteModal item={item} onClose={m.closeNote} onSaved={m.onNoteSaved} />}
+
+      {m.autoBumpOpen && (
+        <ListingAutoBumpModal item={item} onClose={m.closeAutoBump} onSaved={m.onAutoBumpSaved} />
+      )}
+      {m.priceOpen && (
+        <ListingEditModal item={item} onClose={m.closePrice} onSaved={m.onPriceSaved} />
+      )}
     </>
   );
 };

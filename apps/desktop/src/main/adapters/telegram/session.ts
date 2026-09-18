@@ -21,10 +21,10 @@ export const buildOfflineSession = (params: {
   userId: number | null;
 }): StringSessionData => {
   const dcs = DC_MAPPING_PROD[params.dcId];
-  if (!dcs) throw new Error(`Неизвестный DC id: ${params.dcId}`);
+  if (!dcs) throw new Error(`Unknown DC id: ${params.dcId}`);
   const authKey = hexToBytes(params.authKeyHex);
   if (authKey.length !== 256) {
-    throw new Error(`auth_key должен быть 256 байт, получено ${authKey.length}`);
+    throw new Error(`auth_key must be 256 bytes, got ${authKey.length}`);
   }
   const self =
     params.userId !== null

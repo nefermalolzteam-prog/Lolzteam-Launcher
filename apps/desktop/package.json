@@ -1,8 +1,13 @@
 {
   "name": "@lolzteam/desktop",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Lolzteam Launcher — desktop app",
+  "homepage": "https://github.com/iamextasy/Lolzteam-Launcher",
+  "author": {
+    "name": "iamextasy",
+    "email": "iamextasy@users.noreply.github.com"
+  },
   "type": "module",
   "main": "./out/main/index.js",
   "scripts": {
@@ -20,6 +25,7 @@
     "@mtcute/convert": "^0.29.7",
     "@mtcute/core": "^0.29.7",
     "@mtcute/node": "^0.29.7",
+    "better-sqlite3": "^12.10.0",
     "country-flag-icons": "^1.6.17",
     "dompurify": "^3.4.9",
     "electron-log": "^5.2.4",
@@ -39,6 +45,7 @@
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
@@ -81,11 +88,29 @@
     },
     "mac": {
       "target": ["dmg"],
-      "icon": "build/icon.icns"
+      "icon": "build/icon.icns",
+      "category": "public.app-category.utilities",
+      "identity": null
     },
     "linux": {
-      "target": ["AppImage"],
-      "icon": "build/icon.png"
+      "target": ["AppImage", "deb"],
+      "icon": "build/icon.png",
+      "category": "Network;Utility",
+      "synopsis": "Вход в аккаунты, купленные на lzt.market",
+      "description": "Lolzteam Launcher — вход в купленные на lzt.market аккаунты Steam, Telegram, Discord и других сервисов в один клик.",
+      "maintainer": "iamextasy <iamextasy@users.noreply.github.com>",
+      "desktop": {
+        "Keywords": "lolzteam;lzt;market;steam;telegram;"
+      },
+      "executableName": "lolzteam-launcher"
+    },
+    "deb": {
+      "packageName": "lolzteam-launcher",
+      "artifactName": "lolzteam-launcher_${version}_${arch}.${ext}",
+      "afterInstall": "build/deb-after-install.tpl"
+    },
+    "appImage": {
+      "artifactName": "Lolzteam-Launcher-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,

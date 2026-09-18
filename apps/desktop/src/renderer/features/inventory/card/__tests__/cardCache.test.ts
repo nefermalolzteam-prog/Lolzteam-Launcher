@@ -3,6 +3,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import {
   ACCOUNTS_KEY,
+  patchAccountAutoBump,
   patchAccountNote,
   patchAccountTags,
   reloadAccounts,
@@ -147,5 +148,62 @@ describe('reloadAccounts', () => {
     reloadAccounts(qc);
     // The query has no fetcher here, so it cannot refetch.
     expect(qc.getQueryState(ACCOUNTS_KEY)?.isInvalidated).toBe(true);
+  });
+});
+
+describe('patchAccountAutoBump', () => {
+  const listed = (autoBumpHours: number | null): AccountSummary =>
+    item({
+      itemId: 7,
+      scope: 'listed',
+      listing: {
+        canOpen: false,
+        canClose: true,
+        canEdit: true,
+        canDelete: true,
+        canStick: false,
+        canUnstick: false,
+        canBump: true,
+        canAutoBump: true,
+        bumpBlockedReason: null,
+        autoBumpHours,
+        guaranteeSeconds: null,
+        titleEn: null,
+        allowAskDiscount: null,
+        origin: null,
+        emailType: null,
+      },
+    });
+
+  /** The badge reads this field, so switching auto-bump off has to clear it here. */
+  it('clears the interval when auto-bump is switched off', () => {
+    const qc = new QueryClient();
+    qc.setQueryData<AccountSummary[]>(ACCOUNTS_KEY, [listed(6)]);
+    patchAccountAutoBump(qc, 7, null);
+    expect(qc.getQueryData<AccountSummary[]>(ACCOUNTS_KEY)?.[0]?.listing?.autoBumpHours).toBeNull();
+  });
+
+  it('writes the new interval when it is turned on', () => {
+    const qc = new QueryClient();
+    qc.setQueryData<AccountSummary[]>(ACCOUNTS_KEY, [listed(null)]);
+    patchAccountAutoBump(qc, 7, 12);
+    expect(qc.getQueryData<AccountSummary[]>(ACCOUNTS_KEY)?.[0]?.listing?.autoBumpHours).toBe(12);
+  });
+
+  it('leaves the rest of the capabilities alone', () => {
+    const qc = new QueryClient();
+    qc.setQueryData<AccountSummary[]>(ACCOUNTS_KEY, [listed(6)]);
+    patchAccountAutoBump(qc, 7, null);
+    const after = qc.getQueryData<AccountSummary[]>(ACCOUNTS_KEY)?.[0]?.listing;
+    expect(after?.canClose).toBe(true);
+    expect(after?.canBump).toBe(true);
+  });
+
+  it('does nothing to an account that is not a listing', () => {
+    const qc = new QueryClient();
+    const plain = item({ itemId: 7 });
+    qc.setQueryData<AccountSummary[]>(ACCOUNTS_KEY, [plain]);
+    patchAccountAutoBump(qc, 7, 4);
+    expect(qc.getQueryData<AccountSummary[]>(ACCOUNTS_KEY)?.[0]).toBe(plain);
   });
 });

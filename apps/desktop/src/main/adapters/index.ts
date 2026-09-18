@@ -2,6 +2,7 @@ import type { ServiceAdapter } from '@adapter-contract';
 import type { ServiceId, SupportedServiceId } from '@shared-types';
 import { instagramAdapter, tiktokAdapter } from './browser/adapter';
 import { discordAdapter } from './discord/adapter';
+import { eaAdapter } from './ea/adapter';
 import { llmAdapter } from './llm/adapter';
 import { steamAdapter } from './steam/adapter';
 import { telegramAdapter } from './telegram/adapter';
@@ -13,6 +14,7 @@ const REGISTRY: Record<SupportedServiceId, ServiceAdapter> = {
   instagram: instagramAdapter,
   discord: discordAdapter,
   llm: llmAdapter,
+  ea: eaAdapter,
 };
 
 export const getAdapter = (id: ServiceId | null): ServiceAdapter | null =>

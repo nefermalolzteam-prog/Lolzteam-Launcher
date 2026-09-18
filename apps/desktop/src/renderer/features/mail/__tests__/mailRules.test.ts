@@ -114,16 +114,16 @@ describe('findCode', () => {
     );
   });
 
-  // Настоящее письмо ChatGPT: простой текст свёрстан таблицей, и между словом «code» и самим кодом стоит сотня пробелов.
+  // Форма письма ChatGPT: простой текст свёрстан таблицей, и между словом «code» и самим кодом стоит сотня пробелов.
   it('видит код через колонку пробелов', () => {
     const body = `Enter this temporary verification code to continue:${' '.repeat(97)}564835${' '.repeat(120)}If you were not trying to log in to ChatGPT, please reset your password.`;
     expect(findCode(null, body)).toBe('564835');
   });
 
-  // Настоящее письмо Steam: код буквенно-цифровой, а под ним — ссылка восстановления.
+  // Форма письма Steam: код буквенно-цифровой, а под ним — длинная ссылка восстановления.
   it('берёт буквенно-цифровой код Steam и не путает его со ссылкой', () => {
     const body = [
-      'Hello alfierogersscott1995,',
+      'Hello steamuser123,',
       '',
       'Here is the code you need to change your Steam login credentials:',
       '',
@@ -133,7 +133,7 @@ describe('findCode', () => {
       'located in Hamburg, Germany, please ignore this email.',
       '',
       'View this message on the web:',
-      'https://store.steampowered.com/email/AccountRecoveryCode?sparams=eJxtjk-LAjEMxb9Lz6IzivjnJKIgeFnw6iV2YmegbUqargzLfndTmcMe9pb3y3vJ-zEeSrQ9sowJzd40ZmYYwQednacHeAWJqStWIoRquQlCUJpLSsSCAQaveJKHXNeJXsjYzS39ceZBar4XSXl_X9wXPfo0_8c_Hc0YpYjVSLvZrFfbtmmWn3qWvpFHS109dz1ev1aKhVSAfw7I5JBztiTS7nbrWkBAcKp_gfAo7JRaKlF4nPjprMiTc9gNsf40v2-mJ2En&check=379184400f8db72fc7c33d484a69c056a452e4b02f16fc5a7d32d8bc2798074e',
+      'https://store.steampowered.com/email/AccountRecoveryCode?sparams=nTG3tpUtOvPMbYFrXle_jc_IUZQfUOwh1hHjeVhEVCRHDVHD1Oom5fP3o5Ff36zEauaA1uvu_MIBv75pZ63YwcniQZ6sWrotudVm-jtcOJy4JzICFgF7cGcEsabSfIG5ioplg7lovNq3jZNKd4NgMUjf1Ue1cCHfjgHjDfETBjd8TuOXUssOe77XJU3usYe9t7Vxguljy87SO3kSslLQ68Tzg6etOBjZu-Pc6xIXpQ_jtp6DsgZC0C-Try3OZcYxaDKcbb3M&check=8d77e25dfc2729823923a5b7d46c254ab4f91354283e38cadb562d1ac5a18e66',
     ].join('\n');
     expect(findCode(null, body)).toBe('KBKP3');
   });
@@ -145,10 +145,10 @@ describe('findCode', () => {
     expect(findCode('Verification code', 'STEAM GUARD')).toBeNull();
   });
 
-  // Второе письмо Steam — вход с нового устройства.
+  // Другая форма письма Steam — вход с нового устройства, строки слиплись без пробелов.
   it('дотягивается до подсказки через вставленную строку', () => {
     const body =
-      'qisxwsgp5,It looks like you are trying to log in from a new device. ' +
+      'sv7xk2mq9,It looks like you are trying to log in from a new device. ' +
       'Here is the Steam Guard code you need to access your account:' +
       'Request made from Sweden H6TM5 &nbsp;If this wasn&apos;t youThis email was sent ' +
       'because someone attempted to log in to your Steam account. ' +
@@ -159,7 +159,7 @@ describe('findCode', () => {
   // То же письмо, но код без единой цифры: алфавит Steam такой допускает.
   it('видит код Steam из одних букв', () => {
     const body =
-      'qisxwsgp5,It looks like you are trying to log in from a new device. ' +
+      'sv7xk2mq9,It looks like you are trying to log in from a new device. ' +
       'Here is the Steam Guard code you need to access your account:' +
       'Request made from Sweden XXYMC &nbsp;If this wasn&apos;t youThis email was sent ' +
       'because someone attempted to log in to your Steam account. ' +

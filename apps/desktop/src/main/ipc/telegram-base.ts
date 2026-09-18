@@ -23,6 +23,7 @@ import {
   readTelegramAvatar,
   saveTelegramProfile,
 } from '../accounts/telegram-profile-store';
+import { detectTelegramBinary } from '../adapters/telegram/detect';
 import { AvatarPool, scanAvatarPack } from '../services/telegram/avatar-pack';
 import { checkTelegramAccount } from '../services/telegram/checker';
 import { cleanupTelegramAccount } from '../services/telegram/cleanup';
@@ -59,6 +60,11 @@ export const registerTelegramIpc = (): void => {
   );
 
   /** A session lives in a file or in a folder, and Windows refuses to offer both in one dialog. */
+  ipcMain.handle(
+    IPC_CHANNELS.TELEGRAM_DETECT_BINARY,
+    async (): Promise<{ path: string | null }> => ({ path: detectTelegramBinary() }),
+  );
+
   ipcMain.handle(
     IPC_CHANNELS.TELEGRAM_PICK_PATH,
     async (

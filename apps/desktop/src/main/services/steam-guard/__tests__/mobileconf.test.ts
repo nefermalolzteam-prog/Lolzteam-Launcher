@@ -72,12 +72,13 @@ describe('confirmationParams', () => {
 
 describe('parseConfirmationList', () => {
   it('keeps 64-bit ids as the strings Steam sent', () => {
-    // Both of these lose their last digits through Number.
+    // Every one of these loses digits through `Number`: the id is 2^53 + 1, the
+    // other two are full 64-bit.
     const body = JSON.stringify({
       success: true,
       conf: [
         {
-          id: '15138595942',
+          id: '9007199254740993',
           nonce: '9223372036854775807',
           creator_id: '7656119811223344556',
           type: 2,
@@ -95,7 +96,7 @@ describe('parseConfirmationList', () => {
     if (!result.ok) return;
 
     const [conf] = result.confirmations;
-    expect(conf?.id).toBe('15138595942');
+    expect(conf?.id).toBe('9007199254740993');
     expect(conf?.nonce).toBe('9223372036854775807');
     expect(conf?.creatorId).toBe('7656119811223344556');
     expect(conf?.type).toBe(2);
@@ -105,11 +106,11 @@ describe('parseConfirmationList', () => {
 
   it('accepts numeric ids without rounding them', () => {
     // Steam has been seen sending these unquoted; stringify before anything else touches them or the value is already wrong.
-    const body = '{"success":true,"conf":[{"id":15138595942,"nonce":123,"type":3}]}';
+    const body = '{"success":true,"conf":[{"id":1234567890123,"nonce":123,"type":3}]}';
     const result = parseConfirmationList(body);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.confirmations[0]?.id).toBe('15138595942');
+    expect(result.confirmations[0]?.id).toBe('1234567890123');
     expect(result.confirmations[0]?.nonce).toBe('123');
   });
 

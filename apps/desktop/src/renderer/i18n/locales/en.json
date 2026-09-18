@@ -237,7 +237,8 @@
         "busy": "Another run is already going.",
         "empty": "Nothing in the selection can be linked."
       },
-      "start": "Link"
+      "start": "Link",
+      "mafileConsent": "I understand: for accounts whose shared_secret is not in the item data, the launcher will download the maFile from the market — cancelling those items’ guarantee."
     },
     "delete": {
       "action": "Delete",
@@ -538,7 +539,8 @@
     "update": {
       "title": "Downloading update",
       "detail": "{{percent}}%"
-    }
+    },
+    "hint": "Authorization runs through lzt.market OAuth. The token is stored locally, encrypted by the system keystore (DPAPI on Windows, Keychain on macOS, KWallet or Secret Service on Linux)."
   },
   "notify": {
     "bell": "Notifications",
@@ -619,7 +621,82 @@
         "offline": "Couldn't reach the market — the token wasn't checked. Check your connection or proxy and try again."
       }
     },
-    "hint": "Authorization runs through lzt.market OAuth. The token is stored locally, encrypted by the system keystore (DPAPI on Windows / Keychain on macOS)."
+    "hint": "Authorization runs through lzt.market OAuth. The token is stored locally, encrypted by the system keystore (DPAPI on Windows / Keychain on macOS).",
+    "errors": {
+      "bad-item-id": "Invalid account id",
+      "cancelled": "Login cancelled",
+      "details-fetch-failed": "Could not load the account data",
+      "service-unsupported": "Service «{{service}}» is not supported yet",
+      "unknown": "Unexpected error",
+      "web-only": "Only browser login is supported",
+      "steam-needs-email-code": "This account needs an email code",
+      "steam-email-code-fetch-failed": "Could not get the email code — try again",
+      "steam-email-code-rejected": "Steam rejected the email code: {{detail}}",
+      "steam-guard-no-mafile": "This account needs a Steam Guard code, but the item has no maFile — link an SDA from the account menu or ask the seller",
+      "steam-guard-mafile-unavailable": "This account needs a Steam Guard code (maFile unavailable)",
+      "steam-mafile-declined": "Login cancelled: downloading the maFile resets the item's warranty",
+      "steam-mafile-fetch-failed": "Could not get the maFile for Steam Guard — try again",
+      "steam-guard-rejected": "Steam rejected the Steam Guard code: {{detail}}",
+      "steam-needs-device-confirm": "Steam is waiting for a confirmation on your phone. Link an authenticator via the account menu → «Steam Guard (SDA)» and the launcher will confirm sign-ins itself",
+      "steam-needs-email-confirm": "The account is waiting for confirmation via the link in an email",
+      "steam-bad-credentials": "Steam rejected the login/password: {{detail}}",
+      "steam-login-error": "Steam login error: {{detail}}",
+      "steam-no-credentials": "This account has no login/password in its lzt.market data",
+      "steam-no-web-cookies": "Steam returned no web cookies for login",
+      "steam-native-platform": "Signing in to the Steam client is available on Windows, Linux and macOS",
+      "steam-not-found": "Steam was not found on the system (check the installation)",
+      "steam-not-closed": "Steam did not close — close it manually and retry the login",
+      "steam-vdf-failed": "Could not update Steam files: {{detail}}",
+      "steam-encrypt-failed": "Could not encrypt the token: {{detail}}",
+      "steam-localvdf-failed": "Could not save the token to local.vdf: {{detail}}",
+      "tg-no-web-session": "No Telegram session data for browser login",
+      "tg-userid-failed": "Could not determine the account user id: {{detail}}",
+      "tg-web-session-failed": "Could not build a Telegram Web session: {{detail}}",
+      "tg-method-unsupported": "Login via Telegram Desktop or a browser is supported",
+      "tg-no-credentials": "This account has no Telegram data in lzt.market",
+      "tg-native-platform": "Signing in to Telegram Desktop is available on Windows, Linux and macOS",
+      "tg-session-build-failed": "Could not build a session from auth_key: {{detail}}",
+      "tg-tdata-write-failed": "Could not write the tdata session: {{detail}}",
+      "tg-portable-marker-failed": "Could not create the portable-mode marker: {{detail}}",
+      "tg-launch-failed": "Could not launch Telegram: {{detail}}",
+      "dc-no-token": "This account has no token for signing in to Discord",
+      "browser-no-cookies": "This account has no cookies for browser login",
+      "llm-no-cookies": "This account has no cookies for signing in to {{service}}",
+      "llm-no-credentials": "This account has no email/password for signing in to {{service}}",
+      "llm-unsupported": "This LLM service is not supported yet",
+      "ea-native-only": "Only native login to EA Desktop is supported",
+      "ea-windows-only": "Signing in to EA Desktop is available only on Windows",
+      "ea-not-found": "EA Desktop was not found on the system (check the installation)",
+      "ea-no-credentials": "This account has no email/password in its lzt.market data",
+      "ea-login-error": "EA login error: {{detail}}",
+      "ea-aes-read-failed": "Could not read the EA Desktop AES key: {{detail}}",
+      "ea-session-write-failed": "Could not write the session to EA Desktop: {{detail}}",
+      "ea-bad-credentials": "EA rejected the email or password — check the account data",
+      "ea-needs-2fa": "Could not get the confirmation code from the mailbox",
+      "ea-bad-2fa-code": "Wrong or expired code — try again",
+      "ea-no-remid": "EA returned no session cookie — try again",
+      "tg-path-missing-win": "Set the path to Telegram.exe in Settings",
+      "tg-not-at-path-win": "Telegram.exe was not found at the given path",
+      "tg-dir-unwritable-win": "The Telegram.exe folder is not writable: {{detail}}",
+      "tg-still-running-win": "Telegram is still running (perhaps as administrator). Close it manually and retry the login.",
+      "tg-missing-nix": "Telegram Desktop was not found — install it or set the path in Settings",
+      "tg-not-at-path-nix": "Telegram Desktop was not found at the given path",
+      "tg-flatpak": "This is a Flatpak Telegram: its sandbox cannot see the launcher session folder. Install the regular telegram-desktop package or set another path",
+      "tg-swift": "This is Telegram for macOS (Telegram.app): it stores sessions in its own format the launcher cannot sign in to. Install Telegram Desktop (telegramdesktop/tdesktop) or set another path",
+      "tg-dir-unwritable-nix": "The Telegram session folder is not writable: {{detail}}",
+      "tg-still-running-nix": "Telegram is still running. Close it manually and retry the login.",
+      "tg-no-restore-data": "No Telegram session data to restore (loginData.raw is empty or malformed)"
+    },
+    "success": {
+      "browser-web": "{{service}} opened as {{account}}",
+      "dc-web": "Discord opened as {{account}}",
+      "ea-native": "EA Desktop launched as {{account}}",
+      "llm-web": "{{service}} opened as {{account}}",
+      "steam-native": "Steam launched as {{account}}",
+      "steam-web": "Steam opened in the browser as {{account}}",
+      "tg-native": "Telegram launched as {{account}}",
+      "tg-web": "Telegram Web opened as {{account}}"
+    }
   },
   "deepLink": {
     "title": "Sign in via extension",
@@ -654,7 +731,11 @@
     "launchingTelegram": "Launching Telegram",
     "injectingCookies": "Applying session cookies",
     "injectingToken": "Applying Discord token",
-    "launchingBrowser": "Opening browser"
+    "launchingBrowser": "Opening browser",
+    "acquiringTokenEa": "Signing in to EA",
+    "killingEa": "Closing EA Desktop",
+    "launchingEa": "Launching EA Desktop",
+    "writingEaSession": "Writing the EA session"
   },
   "loginModal": {
     "title": "Signing in to “{{title}}”",
@@ -869,15 +950,41 @@
         "ttVerified": "Verified",
         "ttStream": "Can go live",
         "ttEmail": "With email",
-        "ttFollowers": "With followers"
+        "ttFollowers": "With followers",
+        "steamGames": "Has games",
+        "steamGifts": "Has gifts",
+        "steamFriends": "Has friends",
+        "steamVac": "VAC banned",
+        "steamTradeBan": "Trade banned",
+        "steamRedPlate": "Red plate",
+        "steamChinese": "Perfect World",
+        "tgUsername": "Has username",
+        "tgStars": "Has stars",
+        "tgAdmin": "Admin",
+        "dcGifts": "Has gifts",
+        "dcBoosts": "Has boosts",
+        "igLogin": "Login without cookies",
+        "ttMobile": "Has phone",
+        "ttCoins": "Has coins",
+        "llmCookies": "Has cookies",
+        "llmRenew": "Auto-renew",
+        "llmKyc": "KYC verified",
+        "llmPhone": "Has phone",
+        "llmBalance": "Has balance",
+        "steamCs2Ban": "CS2 banned",
+        "steamLimited": "Limited"
       },
-      "reset": "Reset filters"
+      "reset": "Reset filters",
+      "priceFrom": "from",
+      "priceLabel": "Price",
+      "pricePending": "Press Enter or leave the field to apply",
+      "priceTo": "to"
     },
     "card": {
-      "warrantyDays_one": "{{count}} day warranty",
-      "warrantyDays_other": "{{count}} days warranty",
-      "warrantyHours_one": "{{count}} hour warranty",
-      "warrantyHours_other": "{{count}} hours warranty",
+      "warrantyDays_one": "{{count}} day",
+      "warrantyDays_other": "{{count}} days",
+      "warrantyHours_one": "{{count}} hour",
+      "warrantyHours_other": "{{count}} hours",
       "login": "Sign in",
       "loginViaBrowser": "Sign in via browser",
       "loginMethod": {
@@ -1039,7 +1146,19 @@
         "admin_other": "Admin in {{count}}",
         "contacts_one": "{{count}} contact",
         "contacts_other": "{{count}} contacts",
-        "stars": "{{count}} Stars"
+        "stars": "{{count}} Stars",
+        "sessionFolder_linux": "Telegram client",
+        "placeholderNoFile_linux": "Not found — install telegram-desktop or pick a path",
+        "pickDialogTitle_linux": "Pick the Telegram or fork executable",
+        "pickFilterName_linux": "Executables",
+        "alert_linux": "Optional: the launcher runs the client with a session folder of its own, so your everyday Telegram is left alone.",
+        "releaseHint_linux": "Open the GitHub release page — Linux builds",
+        "sessionFolder_darwin": "Telegram client",
+        "placeholderNoFile_darwin": "Not found — install Telegram Desktop or pick a path",
+        "pickDialogTitle_darwin": "Pick the Telegram Desktop executable inside the .app bundle",
+        "pickFilterName_darwin": "Executables",
+        "alert_darwin": "Optional: the launcher runs the client with a session folder of its own, so your everyday Telegram is left alone.",
+        "releaseHint_darwin": "Open the GitHub release page — macOS builds"
       },
       "proxy": {
         "selectTitle": "Choose a proxy for sign-in",
@@ -1138,7 +1257,83 @@
         "cookies": "With cookies",
         "cookiesTitle": "Session cookies included — one-click login",
         "registered": "Reg. {{date}}"
-      }
+      },
+      "goToCategory": "Show only “{{category}}”",
+      "listing": {
+        "aiButton": "Suggest AI price",
+        "aiFailed": "The AI price did not load — try again",
+        "aiHint": "The AI priced the item at {{price}} {{currency}} — filled in above",
+        "aiNone": "The AI found no comparable listings and could not price this one",
+        "bumpFailed": "Could not bump «{{title}}»",
+        "bumpFailedBody": "Check whether you have bumps left on the market",
+        "bumpMenu": "Bump listing",
+        "priceLabel": "Price, {{currency}}",
+        "priceMenu": "Change price",
+        "priceTitle": "Listing price",
+        "saveFailed": "Could not save the price — try again",
+        "bumpDone": "Listing «{{title}}» bumped",
+        "invalidPrice": "Invalid price",
+        "editMenu": "Edit listing",
+        "editTitle": "Edit listing",
+        "titleLabel": "Title",
+        "titleEnLabel": "English title",
+        "titleEnHint": "Leave empty and the market translates it from the title above.",
+        "descriptionLabel": "Public description",
+        "informationLabel": "Private information",
+        "informationHint": "Visible to the buyer only. Empty means «leave as it is».",
+        "discountLabel": "Allow asking for a discount",
+        "originLabel": "Account origin",
+        "emailTypeLabel": "Email type",
+        "autoBuyButton": "Auto-buy price",
+        "autoBuyHint": "Auto-buy: {{price}} {{currency}}",
+        "autoBuyNone": "The market has no auto-buy price for this item",
+        "autoBumpOff": "Turn auto-bump off",
+        "openMenu": "Put back on sale",
+        "closeMenu": "Take off sale",
+        "stickMenu": "Pin to the top",
+        "unstickMenu": "Unpin",
+        "inventoryMenu": "Recount Steam inventory",
+        "opDone": "Listing «{{title}}» updated",
+        "opFailedShort": "Could not update «{{title}}»",
+        "opFailed": "The market refused: {{detail}}",
+        "tri": {
+          "keep": "Leave as is",
+          "yes": "Yes",
+          "no": "No"
+        },
+        "emailTypes": {
+          "native": "Native",
+          "autoreg": "Autoreg"
+        },
+        "origins": {
+          "brute": "Bruteforce",
+          "phishing": "Phishing",
+          "stealer": "Stealer logs",
+          "personal": "Personal",
+          "resale": "Resale",
+          "autoreg": "Autoreg",
+          "self_registration": "Self-registered",
+          "retrieve": "Retrieved",
+          "retrieve_via_support": "Retrieved via support",
+          "dummy": "Dummy"
+        },
+        "autoBumpMenu": "Auto-bump",
+        "autoBumpMenuOn": "Auto-bump: every {{hour}} h",
+        "autoBumpTitle": "Auto-bump",
+        "autoBumpEveryLabel": "Bump every",
+        "autoBumpHours": "{{hour}} h",
+        "autoBumpCurrent": "Now: every {{hour}} h",
+        "autoBumpNone": "Auto-bump is off",
+        "autoBumpBadge": "Auto-bump: {{hour}} h",
+        "autoBumpBadgeTitle": "The listing bumps itself on this interval",
+        "bumpUnavailable": "Bumping is not available right now"
+      },
+      "loginWindowsOnly": "EA Desktop sign-in is available on Windows only",
+      "warranty_active": "Warranty: {{left}}",
+      "warranty_expired": "Warranty expired",
+      "warranty_none": "No warranty",
+      "warranty_until": "Warranty until {{date}}",
+      "warranty_offer_title": "What the buyer gets when they purchase"
     }
   },
   "settings": {
@@ -1219,6 +1414,10 @@
       "debug": {
         "title": "Debug Menu",
         "hint": "Screens that will not show up on their own."
+      },
+      "apiMonitor": {
+        "title": "API monitor",
+        "hint": "Market requests, rate-limit spending and the latest answers."
       }
     },
     "debug": {
@@ -1285,7 +1484,8 @@
         },
         "os": {
           "name": "System",
-          "value": "Windows 11, x64 — no build number"
+          "value": "Windows 11, x64 — no build number",
+          "value_linux": "Linux, kernel 7.x, x64 — no distribution or build number"
         },
         "locale": {
           "name": "Interface language",
@@ -1431,7 +1631,8 @@
         "run": "«База» runs",
         "update": "App updates",
         "proxy": "Proxy checks"
-      }
+      },
+      "general": "General"
     },
     "profile": {
       "title": "Profile",
@@ -1502,7 +1703,8 @@
       "taskConcurrencyLabel": "Accounts at once in Base",
       "taskConcurrencyValue_one": "{{count}} account at a time",
       "taskConcurrencyValue_other": "{{count}} accounts at a time",
-      "taskConcurrencyHint": "How many accounts a run touches at the same time. The lower it is, the calmer it looks from Telegram's side."
+      "taskConcurrencyHint": "How many accounts a run touches at the same time. The lower it is, the calmer it looks from Telegram's side.",
+      "detected": "Found automatically: {{path}}"
     },
     "localDb": {
       "prefix": "Local database",
@@ -1573,7 +1775,9 @@
       "web": "Via browser",
       "steamLabel": "Steam",
       "steamHint": "Sign into the Steam client or the in-app browser.",
-      "telegramHint": "Sign into Telegram Desktop or Telegram Web in the in-app browser. The desktop client needs the path to Telegram.exe in the Telegram settings."
+      "telegramHint": "Sign into Telegram Desktop or Telegram Web in the in-app browser. The desktop client needs the path to Telegram.exe in the Telegram settings.",
+      "telegramHint_linux": "Sign into Telegram Desktop or Telegram Web in the in-app browser. A system-wide install is found automatically.",
+      "telegramHint_darwin": "Sign in through Telegram Desktop or Telegram Web in the built-in browser. The installed client is found on its own (Telegram Desktop, not the App Store Telegram)."
     },
     "proxy": {
       "menuLabel": "Proxy",
@@ -1673,6 +1877,37 @@
       "downloading": "Downloading update…",
       "downloaded": "Version {{version}} is ready to install",
       "error": "Couldn't check for updates"
+    },
+    "apiMonitor": {
+      "axisHourAgo": "an hour ago",
+      "axisNow": "now",
+      "barTitle": "{{count}} request(s) · {{time}}",
+      "empty": "No requests yet — open the account list or refresh it.",
+      "group": "State",
+      "hourLabel": "Requests this hour",
+      "limitLabel": "API limit",
+      "limitValue": "{{remaining}} of {{limit}}",
+      "minuteLabel": "This minute",
+      "ms": "{{n}} ms",
+      "pulseTitle": "Activity over the hour",
+      "recentTitle": "Recent requests",
+      "resetLabel": "Resets in"
     }
+  },
+  "confirm": {
+    "decline": "Cancel login",
+    "mafile-download": {
+      "title": "Guarantee will be cancelled",
+      "text": "Signing in needs the maFile (Steam Guard). Downloading it cancels the item’s active guarantee on lzt.market — permanently. Continue?",
+      "accept": "Download and cancel the guarantee"
+    }
+  },
+  "loginDetails": {
+    "with-email-code": "with the email code",
+    "requesting-guard-code": "requesting a Guard code",
+    "guard-from-item": "Guard code from the item data",
+    "guard-from-sda": "Guard code from the linked SDA",
+    "guard-from-market": "Guard code from the market — warranty untouched",
+    "guard-from-mafile": "Guard code from the maFile — warranty reset"
   }
 }

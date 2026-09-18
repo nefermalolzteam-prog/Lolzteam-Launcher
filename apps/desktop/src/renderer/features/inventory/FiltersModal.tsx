@@ -1,6 +1,7 @@
 import type { AccountValidity } from '@shared-types';
+import { serviceLabel } from '@shared-types';
 import { ArrowDownUp } from 'lucide-react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useActiveFilters, useInventoryFilters } from '~/stores/inventoryFilters';
 import { useLocalGroups } from '~/stores/localGroups';
@@ -15,8 +16,10 @@ import {
   ModalChip,
   ModalChips,
   ModalGroup,
+  ModalInput,
   ModalSpacer,
 } from '~/widgets/Modal/ModalKit';
+import s from './FiltersModal.module.scss';
 import { type LabelChoice, LabelMultiSelect } from './LabelMultiSelect';
 import { attributesFor } from './attributes';
 import { type SortDir, type SortKey, sortKeysFor } from './useInventory';
@@ -34,7 +37,8 @@ const SETTINGS_DEFAULTS = {
 /** How many of this dialog's answers differ from the defaults — the number the toolbar prints on its trigger. */
 export const useFiltersCount = (): number => {
   const settings = useSettings((st) => st.settings);
-  const { includeLabels, excludeLabels, attrs, validity, folder } = useActiveFilters();
+  const { includeLabels, excludeLabels, attrs, validity, folder, priceMin, priceMax } =
+    useActiveFilters();
   const scope = useInventoryFilters((st) => st.scope);
   const filter = useInventoryFilters((st) => st.filter);
 
@@ -51,6 +55,8 @@ export const useFiltersCount = (): number => {
     attrs.filter((id) => offered.has(id)).length +
     validity.length +
     (scope === 'local' && folder !== null ? 1 : 0) +
+    (scope !== 'local' && priceMin !== null ? 1 : 0) +
+    (scope !== 'local' && priceMax !== null ? 1 : 0) +
     (hideInvalid && validity.length === 0 ? 1 : 0) +
     (sortKey !== 'purchased' || sortDir !== 'desc' ? 1 : 0)
   );
@@ -68,18 +74,27 @@ export const useResetFilters = (): (() => void) => {
   }, [resetCategory]);
 };
 
+/** `''` clears the bound; anything unparsable is thrown away rather than guessed at. */
+const parseBound = (raw: string): number | null => {
+  const trimmed = raw.trim();
+  if (trimmed === '') return null;
+  const value = Number(trimmed.replace(',', '.'));
+  return Number.isFinite(value) && value >= 0 ? value : null;
+};
+
 interface FiltersModalProps {
   onClose: () => void;
 }
 
-/** Sort order, verdict and quality chips, the folder of the local base. */
+/** Sort order, verdict and quality chips, the price window, the folder of the local base. */
 export const FiltersModal = ({ onClose }: FiltersModalProps) => {
   const { t } = useTranslation();
   const forumLabels = useProfileLabels((p) => p.labels);
   const localLabels = useLocalLabels((st) => st.labels);
   const loadLocalLabels = useLocalLabels((st) => st.load);
   const settings = useSettings((st) => st.settings);
-  const { includeLabels, excludeLabels, attrs, validity, folder } = useActiveFilters();
+  const { includeLabels, excludeLabels, attrs, validity, folder, priceMin, priceMax } =
+    useActiveFilters();
   const toggleInclude = useInventoryFilters((st) => st.toggleInclude);
   const toggleExclude = useInventoryFilters((st) => st.toggleExclude);
   const scope = useInventoryFilters((st) => st.scope);
@@ -87,6 +102,7 @@ export const FiltersModal = ({ onClose }: FiltersModalProps) => {
   const toggleAttr = useInventoryFilters((st) => st.toggleAttr);
   const toggleValidity = useInventoryFilters((st) => st.toggleValidity);
   const setFolder = useInventoryFilters((st) => st.setFolder);
+  const setPriceRange = useInventoryFilters((st) => st.setPriceRange);
   const groups = useLocalGroups((st) => st.groups);
   const loadGroups = useLocalGroups((st) => st.load);
   const resetFilters = useResetFilters();
@@ -134,9 +150,24 @@ export const FiltersModal = ({ onClose }: FiltersModalProps) => {
   const sortLabel = (key: SortKey): string =>
     key === 'purchased' && local ? t('inventory.card.addedLabel') : t(`inventory.sort.${key}`);
 
+  // The price inputs are text while they are being typed at; the bounds commit as a pair, on the way out of the field.
+  const [minText, setMinText] = useState(priceMin !== null ? String(priceMin) : '');
+  const [maxText, setMaxText] = useState(priceMax !== null ? String(priceMax) : '');
+  useEffect(() => {
+    setMinText(priceMin !== null ? String(priceMin) : '');
+    setMaxText(priceMax !== null ? String(priceMax) : '');
+  }, [priceMin, priceMax]);
+  const commitPrice = () => setPriceRange(parseBound(minText), parseBound(maxText));
+
+  const priceDirty = parseBound(minText) !== priceMin || parseBound(maxText) !== priceMax;
+
+  // On a service tab the chips answer questions about that service — the header says whose.
+  const attrsTitle = filter === 'all' ? t('inventory.filters.attrsLabel') : serviceLabel(filter);
+
   return (
     <Modal
       title={t('inventory.filters.title')}
+      size="xl"
       closable
       onClose={onClose}
       footer={
@@ -152,107 +183,145 @@ export const FiltersModal = ({ onClose }: FiltersModalProps) => {
         </>
       }
     >
-      <ModalGroup>{t('inventory.filters.sortLabel')}</ModalGroup>
-      <ModalChips>
-        {sortKeys.map((key) => (
-          <ModalChip
-            key={key}
-            label={sortLabel(key)}
-            selected={sortKey === key}
-            onClick={() => setSortKey(key)}
-          />
-        ))}
-        {/* Направление — той же пилюлей, но без подсветки: оно не одно из значений ряда. */}
-        <ModalChip
-          icon={ArrowDownUp}
-          label={t(sortDir === 'asc' ? 'inventory.sort.asc' : 'inventory.sort.desc')}
-          onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
-        />
-      </ModalChips>
-
-      <ModalGroup>{t('inventory.filters.validityLabel')}</ModalGroup>
-      <ModalChips>
-        {VALIDITY_ORDER.map((value) => (
-          <ModalChip
-            key={value}
-            label={t(`inventory.card.validity.${value}`)}
-            selected={validity.includes(value)}
-            onClick={() => toggleValidity(value)}
-          />
-        ))}
-      </ModalChips>
-
-      {local && (
-        <>
-          <ModalGroup>{t('inventory.filters.folderLabel')}</ModalGroup>
+      <div className={s.layout}>
+        <div className={s.col}>
+          <ModalGroup>{t('inventory.filters.sortLabel')}</ModalGroup>
           <ModalChips>
-            <ModalChip
-              label={t('inventory.filters.folderAny')}
-              selected={folder === null}
-              onClick={() => setFolder(null)}
-            />
-            <ModalChip
-              label={t('inventory.card.moveFolder.root')}
-              selected={folder === ''}
-              onClick={() => setFolder(folder === '' ? null : '')}
-            />
-            {folders.map((name) => (
+            {sortKeys.map((key) => (
               <ModalChip
-                key={name}
-                label={name}
-                selected={folder === name}
-                onClick={() => setFolder(folder === name ? null : name)}
+                key={key}
+                label={sortLabel(key)}
+                selected={sortKey === key}
+                onClick={() => setSortKey(key)}
+              />
+            ))}
+            {/* Направление — той же пилюлей, но без подсветки: оно не одно из значений ряда. */}
+            <ModalChip
+              icon={ArrowDownUp}
+              label={t(sortDir === 'asc' ? 'inventory.sort.asc' : 'inventory.sort.desc')}
+              onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
+            />
+          </ModalChips>
+
+          <ModalGroup>{t('inventory.filters.validityLabel')}</ModalGroup>
+          <ModalChips>
+            {VALIDITY_ORDER.map((value) => (
+              <ModalChip
+                key={value}
+                label={t(`inventory.card.validity.${value}`)}
+                selected={validity.includes(value)}
+                onClick={() => toggleValidity(value)}
               />
             ))}
           </ModalChips>
-        </>
-      )}
 
-      {chips.length > 0 && (
-        <>
-          <ModalGroup>{t('inventory.filters.attrsLabel')}</ModalGroup>
-          <ModalChips>
-            {chips.map((attr) => (
-              <ModalChip
-                key={attr.id}
-                label={t(`inventory.filters.attrs.${attr.id}`)}
-                selected={attrs.includes(attr.id)}
-                onClick={() => toggleAttr(attr.id)}
+          <ModalChecks>
+            <ModalCheck
+              checked={hideInvalid}
+              disabled={validity.length > 0}
+              onChange={() => void toggleHideInvalid()}
+            >
+              {t('inventory.filters.hideInvalid')}
+            </ModalCheck>
+          </ModalChecks>
+        </div>
+
+        <div className={s.col}>
+          {!local && (
+            <>
+              <ModalGroup>{t('inventory.filters.priceLabel')}</ModalGroup>
+              <div className={s.range}>
+                <ModalInput
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={t('inventory.filters.priceFrom')}
+                  value={minText}
+                  aria-label={t('inventory.filters.priceFrom')}
+                  onChange={(e) => setMinText(e.target.value)}
+                  onBlur={commitPrice}
+                  onKeyDown={(e) => e.key === 'Enter' && commitPrice()}
+                />
+                <ModalInput
+                  type="text"
+                  inputMode="decimal"
+                  placeholder={t('inventory.filters.priceTo')}
+                  value={maxText}
+                  aria-label={t('inventory.filters.priceTo')}
+                  onChange={(e) => setMaxText(e.target.value)}
+                  onBlur={commitPrice}
+                  onKeyDown={(e) => e.key === 'Enter' && commitPrice()}
+                />
+              </div>
+              {/* An unapplied window would look applied — the fields are honest about it. */}
+              {priceDirty && <small>{t('inventory.filters.pricePending')}</small>}
+            </>
+          )}
+
+          {local && (
+            <>
+              <ModalGroup>{t('inventory.filters.folderLabel')}</ModalGroup>
+              <ModalChips>
+                <ModalChip
+                  label={t('inventory.filters.folderAny')}
+                  selected={folder === null}
+                  onClick={() => setFolder(null)}
+                />
+                <ModalChip
+                  label={t('inventory.card.moveFolder.root')}
+                  selected={folder === ''}
+                  onClick={() => setFolder(folder === '' ? null : '')}
+                />
+                {folders.map((name) => (
+                  <ModalChip
+                    key={name}
+                    label={name}
+                    selected={folder === name}
+                    onClick={() => setFolder(folder === name ? null : name)}
+                  />
+                ))}
+              </ModalChips>
+            </>
+          )}
+
+          {/* The chips above say the same thing with more precision. */}
+          {labels.length > 0 && (
+            <>
+              <LabelMultiSelect
+                title={t('inventory.filters.labelInclude')}
+                labels={labels}
+                selected={includeLabels}
+                onToggle={toggleInclude}
+                variant="include"
               />
-            ))}
-          </ModalChips>
-        </>
-      )}
+              <LabelMultiSelect
+                title={t('inventory.filters.labelExclude')}
+                labels={labels}
+                selected={excludeLabels}
+                onToggle={toggleExclude}
+                variant="exclude"
+              />
+            </>
+          )}
+        </div>
 
-      {labels.length > 0 && (
-        <>
-          <LabelMultiSelect
-            title={t('inventory.filters.labelInclude')}
-            labels={labels}
-            selected={includeLabels}
-            onToggle={toggleInclude}
-            variant="include"
-          />
-          <LabelMultiSelect
-            title={t('inventory.filters.labelExclude')}
-            labels={labels}
-            selected={excludeLabels}
-            onToggle={toggleExclude}
-            variant="exclude"
-          />
-        </>
-      )}
-
-      {/* The chips above say the same thing with more precision. */}
-      <ModalChecks>
-        <ModalCheck
-          checked={hideInvalid}
-          disabled={validity.length > 0}
-          onChange={() => void toggleHideInvalid()}
-        >
-          {t('inventory.filters.hideInvalid')}
-        </ModalCheck>
-      </ModalChecks>
+        <div className={s.col}>
+          {chips.length > 0 && (
+            <>
+              <ModalGroup>{attrsTitle}</ModalGroup>
+              <ModalChips>
+                {chips.map((attr) => (
+                  <ModalChip
+                    key={attr.id}
+                    label={t(`inventory.filters.attrs.${attr.id}`)}
+                    selected={attrs.includes(attr.id)}
+                    onClick={() => toggleAttr(attr.id)}
+                  />
+                ))}
+              </ModalChips>
+            </>
+          )}
+        </div>
+      </div>
     </Modal>
   );
 };

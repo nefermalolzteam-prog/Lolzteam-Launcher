@@ -22,7 +22,7 @@ export const registerProxyIpc = (): void => {
   ipcMain.handle(IPC_CHANNELS.PROXY_TEST, (_e, input: TestInput) =>
     validTestInput(input)
       ? testProxy(input)
-      : Promise.resolve({ ok: false as const, message: 'Некорректный адрес прокси' }),
+      : Promise.resolve({ ok: false as const, message: 'Invalid proxy address' }),
   );
 
   handleAction(

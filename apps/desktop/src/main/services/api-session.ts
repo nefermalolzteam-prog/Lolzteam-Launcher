@@ -63,7 +63,7 @@ export const appFetch = (async (
         size += c.length;
         if (size > MAX_RESPONSE_BYTES) {
           req.abort();
-          fail(new Error('Ответ сервера слишком большой'));
+          fail(new Error('server response too large'));
           return;
         }
         chunks.push(c);
@@ -124,7 +124,7 @@ let proxyFailure: string | null = null;
 const assertProxyHonoured = (): void => {
   if (proxyFailure === null) return;
   throw new Error(
-    `Запрос не отправлен: не удалось направить трафик через выбранный прокси (${proxyFailure}). Проверьте прокси в настройках или отключите его.`,
+    `Request not sent: could not route traffic through the selected proxy (${proxyFailure}). Check the proxy in settings or disable it.`,
   );
 };
 

@@ -39,3 +39,16 @@ export const patchAccountNote = (qc: QueryClient, itemId: number, note: string |
 export const reloadAccounts = (qc: QueryClient): void => {
   void qc.invalidateQueries({ queryKey: ACCOUNTS_KEY });
 };
+
+/**
+ * Auto-bump just changed, so the badge reading it has to change with it —
+ * the list is the only place the card looks, and a refetch would blink.
+ */
+export const patchAccountAutoBump = (qc: QueryClient, itemId: number, hours: number | null): void =>
+  patchAccount(qc, itemId, (it) =>
+    it.listing ? { ...it, listing: { ...it.listing, autoBumpHours: hours } } : it,
+  );
+
+/** The new price the market has accepted, straight into every copy of the summary. */
+export const patchAccountPrice = (qc: QueryClient, itemId: number, price: number): void =>
+  patchAccount(qc, itemId, (it) => ({ ...it, price }));

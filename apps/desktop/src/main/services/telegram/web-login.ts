@@ -20,13 +20,13 @@ export interface WebSessionParams {
 export const buildWebAStorage = (params: WebSessionParams): Record<string, string> => {
   const authKey = params.authKeyHex.trim().toLowerCase();
   if (!/^[0-9a-f]{512}$/.test(authKey)) {
-    throw new Error(`auth_key должен быть 512 hex-символов, получено ${params.authKeyHex.length}`);
+    throw new Error(`auth_key must be 512 hex chars, got ${params.authKeyHex.length}`);
   }
   if (!Number.isInteger(params.dcId) || params.dcId < 1 || params.dcId > 5) {
-    throw new Error(`Неизвестный DC id: ${params.dcId}`);
+    throw new Error(`Unknown DC id: ${params.dcId}`);
   }
   if (!Number.isInteger(params.userId) || params.userId <= 0) {
-    throw new Error('Для входа через браузер нужен user id аккаунта');
+    throw new Error('Browser login needs the account user id');
   }
 
   const authKeyKey = `dc${params.dcId}_auth_key`;

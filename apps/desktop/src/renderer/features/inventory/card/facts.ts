@@ -10,7 +10,8 @@ import {
 } from '@shared-types';
 import { useTranslation } from 'react-i18next';
 import { type LabelColors, labelColors } from '~/lib/labelColor';
-import { formatWarranty, toLoginService } from '~/lib/loginService';
+import { formatDuration, formatWarranty, toLoginService } from '~/lib/loginService';
+import { PLATFORM } from '~/lib/platform';
 import { logoFor } from '~/lib/serviceLogos';
 import { useClockTick } from '~/lib/useClockTick';
 import type { LoginService } from '~/stores/loginSession';
@@ -36,10 +37,14 @@ export interface AccountFacts {
   readonly item: AccountSummary;
   /** Hand-added: no price, no warranty, no market tags, no item page. */
   readonly isLocal: boolean;
+  /** The user's own listing on the market: it can be bumped and repriced. */
+  readonly isListing: boolean;
   /** The login flow this category uses, or `null` when it has none. */
   readonly service: LoginService | null;
   readonly canLogin: boolean;
   readonly llmUnsupported: boolean;
+  /** EA on a non-Windows machine: the client it would drive is not there. */
+  readonly eaUnsupported: boolean;
   /** Steam, and the market has not already said there is no maFile. */
   readonly hasGuard: boolean;
   /** Whether «скопировать в базу» is worth offering: a bought account of a service the base can log in offline. */
@@ -78,12 +83,16 @@ export const useAccountFacts = (item: AccountSummary): AccountFacts => {
   useClockTick();
 
   const isLocal = isLocalAccount(item);
+  const isListing = !isLocal && item.scope === 'listed';
   const tags = item.tags ?? item.steam?.tags ?? item.telegram?.tags ?? [];
   const chipTags = tags.filter((tag) => !STATUS_TAG_IDS.has(tag.id) && tag.title.trim() !== '');
   const labels = useProfileLabels((p) => p.labels);
 
   const service = toLoginService(item.category);
   const llmUnsupported = item.category === 'llm' && !isLlmServiceSupported(item.llmService);
+  // EA Desktop exists only on Windows — everywhere else the login button would
+  // open a modal that can only fail.
+  const eaUnsupported = item.category === 'ea' && PLATFORM !== 'win32';
   const hasGuard = item.category === 'steam' && item.hasMafile !== false;
 
   // Everything the last «База» run learned about this account.
@@ -113,9 +122,11 @@ export const useAccountFacts = (item: AccountSummary): AccountFacts => {
   return {
     item,
     isLocal,
+    isListing,
     service,
-    canLogin: service !== null && !llmUnsupported,
+    canLogin: service !== null && !llmUnsupported && !eaUnsupported,
     llmUnsupported,
+    eaUnsupported,
     hasGuard,
     // `isLocalServiceId` rather than a list of our own: the base can hold exactly the services it declares.
     copyable: !isLocal && isLocalServiceId(item.category) && item.localCopyId === null,
@@ -144,7 +155,10 @@ export const useAccountFacts = (item: AccountSummary): AccountFacts => {
     country,
     countryText: country ? countryName(country, i18n.language) : '',
     purchased: item.purchasedAt ? formatPurchasedAgo(item.purchasedAt, t, i18n.language) : null,
-    warranty: formatWarranty(item.warrantyEndsAt, t),
+    // An own listing has no countdown yet — it offers a length instead.
+    warranty: item.listing
+      ? formatDuration(item.listing.guaranteeSeconds, t)
+      : formatWarranty(item.warrantyEndsAt, t),
     price: isLocal ? '' : formatPrice(item.price, item.currency, i18n.language),
   };
 };

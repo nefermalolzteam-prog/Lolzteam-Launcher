@@ -32,7 +32,7 @@ const loginViaBrowser = async (
   }
 
   if (cookies.length === 0)
-    return fail(`У этого аккаунта нет кук для входа в ${provider.displayName}`, 'web');
+    return fail('login.errors.llm-no-cookies', { service: provider.displayName }, 'web');
 
   const partition = `persist:lzt-account-${account.itemId}`;
   ctx.onProgress?.({ step: 'injecting-cookies' });
@@ -41,7 +41,7 @@ const loginViaBrowser = async (
   );
   await injectCookies(partition, cookies, ctx);
 
-  if (ctx.abortSignal.aborted) return fail('Вход отменён', 'web');
+  if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, 'web');
 
   ctx.onProgress?.({ step: 'launching-browser' });
   ctx.log.info(`[llm] opening ${landingUrl} (${provider.provider})`);
@@ -57,7 +57,10 @@ const loginViaBrowser = async (
     ok: true,
     method: 'web',
     windowId,
-    message: `${provider.displayName} открыт под аккаунтом ${account.title}`,
+    message: {
+      key: 'login.success.llm-web',
+      params: { service: provider.displayName, account: account.title },
+    },
   };
 };
 
@@ -134,13 +137,13 @@ const loginViaEmailFill = async (
 ): Promise<LoginResult> => {
   const creds = extractEmailCreds(account);
   if (!creds)
-    return fail(`У этого аккаунта нет email/пароля для входа в ${provider.displayName}`, 'web');
+    return fail('login.errors.llm-no-credentials', { service: provider.displayName }, 'web');
 
   const partition = `persist:lzt-account-${account.itemId}`;
   ctx.onProgress?.({ step: 'injecting-cookies' });
   await injectCookies(partition, [], ctx);
 
-  if (ctx.abortSignal.aborted) return fail('Вход отменён', 'web');
+  if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, 'web');
 
   ctx.onProgress?.({ step: 'launching-browser' });
   ctx.log.info(`[llm] opening ${provider.landingUrl} for email autofill #${account.itemId}`);
@@ -160,7 +163,10 @@ const loginViaEmailFill = async (
     ok: true,
     method: 'web',
     windowId,
-    message: `${provider.displayName} открыт под аккаунтом ${account.title}`,
+    message: {
+      key: 'login.success.llm-web',
+      params: { service: provider.displayName, account: account.title },
+    },
   };
 };
 
@@ -180,8 +186,8 @@ export const llmAdapter: ServiceAdapter = {
     account: AccountDetails,
     ctx: AdapterContext,
   ): Promise<LoginResult> {
-    if (method !== 'web') return fail('Поддерживается только вход через браузер', method);
-    if (ctx.abortSignal.aborted) return fail('Вход отменён', method);
+    if (method !== 'web') return fail('login.errors.web-only', undefined, method);
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, method);
 
     const provider = resolveLlmProvider(account);
     if (!provider) {
@@ -189,7 +195,7 @@ export const llmAdapter: ServiceAdapter = {
         `[llm] unsupported provider for #${account.itemId} ` +
           `(category=${account.categoryRaw}, title=${account.title})`,
       );
-      return fail('Этот LLM-сервис пока не поддерживается', method);
+      return fail('login.errors.llm-unsupported', undefined, method);
     }
 
     return provider.loginKind === 'email-fill'

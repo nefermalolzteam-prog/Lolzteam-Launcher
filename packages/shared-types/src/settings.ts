@@ -128,6 +128,9 @@ export interface InventoryCategoryFilters {
   validity: AccountValidity[];
   /** Folder of the local base, `''` for its root, `null` for all of them. */
   folder: string | null;
+  /** Price window in the user's currency; `null` leaves that side open. Market scopes only. */
+  priceMin: number | null;
+  priceMax: number | null;
 }
 
 export const DEFAULT_SETTINGS: LauncherSettings = {

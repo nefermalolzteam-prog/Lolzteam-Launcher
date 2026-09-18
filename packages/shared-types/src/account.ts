@@ -1,3 +1,4 @@
+import type { ListingCapabilities } from './listing';
 import type { LlmServiceId } from './llm-service';
 import type { ServiceId } from './service-registry';
 
@@ -283,6 +284,8 @@ export interface AccountSummary {
   isPurchased: boolean;
   /** 'purchased' = bought by the user; 'listed' = their own listing; 'local' = added by hand and stored only on this machine. */
   scope: AccountScope;
+  /** The seller's own listing: what the market lets them do with it right now. Absent for anything else. */
+  listing?: ListingCapabilities | null;
   /** Present only for Steam items; null when fields are unavailable. */
   steam: SteamInfo | null;
   /** Present only for Telegram items; null when fields are unavailable. */

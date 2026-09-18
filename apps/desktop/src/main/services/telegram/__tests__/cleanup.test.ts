@@ -206,7 +206,7 @@ describe('cleanupTelegramAccount', () => {
     expect(deleteHistory.mock.calls[1]?.[1]).toEqual({ mode: 'delete' });
   });
 
-  /** The log this pair came from: `private/delete user #731136919` and `bots/delete user #117678843`. */
+  /** Mirrors the shape a real run logs: one private chat, one bot. */
   it('keeps emptying a long history until the server says none is left', async () => {
     let rest = 3;
     const call = vi.fn(async (req: { _: string }) => {

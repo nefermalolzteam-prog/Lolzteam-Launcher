@@ -3,7 +3,13 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
-import { ModalError, ModalHint, ModalSpacer, ModalWarn } from '~/widgets/Modal/ModalKit';
+import {
+  ModalCheck,
+  ModalError,
+  ModalHint,
+  ModalSpacer,
+  ModalWarn,
+} from '~/widgets/Modal/ModalKit';
 import { ProxySpreadRow, useProxySpread } from './ProxySpreadRow';
 
 interface LinkModalProps {
@@ -17,10 +23,11 @@ interface LinkModalProps {
 export const LinkModal = ({ count, error, onCancel, onStart }: LinkModalProps) => {
   const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
+  const [consent, setConsent] = useState(false);
   const proxy = useProxySpread('steam');
 
   const start = (): void => {
-    if (busy) return;
+    if (busy || !consent) return;
     setBusy(true);
     onStart({ proxyIds: proxy.proxyIds });
   };
@@ -41,7 +48,14 @@ export const LinkModal = ({ count, error, onCancel, onStart }: LinkModalProps) =
           <Button variant="ghost" size="sm" onClick={onCancel} disabled={busy}>
             {t('base.check.cancel')}
           </Button>
-          <Button variant="accent" size="sm" icon={PlusCircle} busy={busy} onClick={start}>
+          <Button
+            variant="accent"
+            size="sm"
+            icon={PlusCircle}
+            busy={busy}
+            disabled={!consent}
+            onClick={start}
+          >
             {t('base.link.start')}
           </Button>
         </>
@@ -52,6 +66,11 @@ export const LinkModal = ({ count, error, onCancel, onStart }: LinkModalProps) =
 
       {/* Предупреждение — до строки прокси, а не после: прокси выбирают уже зная, что именно поедет через них. */}
       <ModalWarn>{t('base.link.warn')}</ModalWarn>
+
+      {/* Accounts whose secret lives only in the market's maFile get it downloaded mid-run — and that cancels their guarantee. */}
+      <ModalCheck checked={consent} onChange={setConsent}>
+        {t('base.link.mafileConsent')}
+      </ModalCheck>
 
       <ProxySpreadRow
         state={proxy}

@@ -10,16 +10,17 @@ const linuxDesktopFileName = (scheme: string) => `lolzteam-${scheme}-handler.des
 const linuxDesktopFilePath = (scheme: string) =>
   join(homedir(), '.local', 'share', 'applications', linuxDesktopFileName(scheme));
 
-const escapeDesktopExec = (value: string): string =>
-  value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+export const escapeDesktopExecArg = (value: string): string =>
+  value
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/`/g, '\\`')
+    .replace(/\$/g, '\\$')
+    .replace(/%/g, '%%');
 
-const buildLinuxDesktopFile = (
-  scheme: string,
-  electronBinary: string,
-  projectRoot: string,
-  productName: string,
-): string => {
-  const exec = `"${escapeDesktopExec(electronBinary)}" "${escapeDesktopExec(projectRoot)}" %u`;
+const quoted = (value: string): string => `"${escapeDesktopExecArg(value)}"`;
+
+const buildLinuxDesktopFile = (scheme: string, exec: string, productName: string): string => {
   return [
     '[Desktop Entry]',
     'Type=Application',
@@ -58,25 +59,42 @@ const resolveDevProjectRoot = (): string => {
   return process.cwd();
 };
 
+export const buildLinuxExecLine = (opts: {
+  appImage: string | undefined;
+  isPackaged: boolean;
+  execPath: string;
+  projectRoot: () => string;
+}): string => {
+  if (opts.appImage) return `${quoted(opts.appImage)} --no-sandbox %u`;
+  if (opts.isPackaged) return `${quoted(opts.execPath)} %u`;
+  return `${quoted(opts.execPath)} ${quoted(opts.projectRoot())} %u`;
+};
+
+const linuxExecLine = (): string =>
+  buildLinuxExecLine({
+    appImage: process.env.APPIMAGE,
+    isPackaged: app.isPackaged,
+    execPath: process.execPath,
+    projectRoot: resolveDevProjectRoot,
+  });
+
 export const registerProtocol = async (scheme: string): Promise<void> => {
+  if (process.platform === 'linux') {
+    await writeLinuxDesktopFile(scheme);
+    return;
+  }
+
   if (app.isPackaged) {
     app.setAsDefaultProtocolClient(scheme);
   } else {
     const projectRoot = resolveDevProjectRoot();
     app.setAsDefaultProtocolClient(scheme, process.execPath, [projectRoot]);
   }
-
-  if (process.platform === 'linux' && !app.isPackaged) {
-    await writeLinuxDesktopFile(scheme);
-  }
 };
 
 const writeLinuxDesktopFile = async (scheme: string) => {
   const target = linuxDesktopFilePath(scheme);
-  const electronBinary = process.execPath;
-  const projectRoot = resolveDevProjectRoot();
-  const productName = app.getName?.() || 'Lolzteam Launcher';
-  const content = buildLinuxDesktopFile(scheme, electronBinary, projectRoot, productName);
+  const content = buildLinuxDesktopFile(scheme, linuxExecLine(), 'Lolzteam Launcher');
 
   try {
     await fs.mkdir(dirname(target), { recursive: true });

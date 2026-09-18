@@ -2,6 +2,7 @@ import type { MetricsState } from '@shared-types';
 import { Code2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PLATFORM } from '~/lib/platform';
 import { useDebugFlag } from '~/stores/debug';
 import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
@@ -81,7 +82,9 @@ export const PrivacyPage = () => {
           {FIELD_KEYS.map((key) => (
             <li key={key} className={s.field}>
               <span className={s.fieldName}>{t(`settings.metrics.fields.${key}.name`)}</span>
-              <span className={s.fieldValue}>{t(`settings.metrics.fields.${key}.value`)}</span>
+              <span className={s.fieldValue}>
+                {t(`settings.metrics.fields.${key}.value`, { context: PLATFORM })}
+              </span>
             </li>
           ))}
         </ul>

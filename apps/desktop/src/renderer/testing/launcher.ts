@@ -26,9 +26,17 @@ const node = (overrides: Overrides, name: string): unknown => {
   });
 };
 
+/** Plain values the real preload exposes as data, not functions; a callable node would be the wrong shape. */
+const DATA_DEFAULTS: Overrides = { app: { platform: 'win32' } };
+
+const withDefaults = (overrides: Overrides): Overrides => {
+  const app = isNamespace(overrides.app) ? overrides.app : {};
+  return { ...overrides, app: { ...(DATA_DEFAULTS.app as Overrides), ...app } };
+};
+
 /** Builds the stub. */
 export const stubLauncher = (overrides: Overrides = {}): LauncherApi =>
-  node(overrides, 'launcher') as LauncherApi;
+  node(withDefaults(overrides), 'launcher') as LauncherApi;
 
 /** Installs a fresh stub on `window`, and returns it for the odd direct poke. */
 export const installLauncher = (overrides: Overrides = {}): LauncherApi => {

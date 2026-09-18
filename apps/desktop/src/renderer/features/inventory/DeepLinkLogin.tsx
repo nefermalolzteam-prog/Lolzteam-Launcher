@@ -3,12 +3,11 @@ import { pinnedProxyFor } from '@shared-types';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { loginMethodsFor, toLoginService } from '~/lib/loginService';
-import { formatWarranty } from '~/lib/loginService';
 import { type LoginMethod, useLoginSession } from '~/stores/loginSession';
 import { useSettings } from '~/stores/settings';
 import { Button } from '~/widgets/Button/Button';
 import { Modal } from '~/widgets/Modal/Modal';
-import { ModalHint, ModalSpacer, ModalStatus, ModalWarn } from '~/widgets/Modal/ModalKit';
+import { ModalHint, ModalSpacer, ModalStatus } from '~/widgets/Modal/ModalKit';
 import { LoginMethodModal } from './LoginMethodModal';
 import { ProxyChoiceModal, type ProxyTest } from './ProxyChoiceModal';
 
@@ -121,10 +120,13 @@ export const DeepLinkLogin = () => {
     window.launcher.accounts
       .login(acc.itemId, m, proxyId, proxyTest)
       .then((res) => {
-        if (!res.ok) sess.fail(res.message ?? t('inventory.card.loginFailedFallback'));
+        if (!res.ok) sess.fail(res.message ?? { key: 'inventory.card.loginFailedFallback' });
       })
       .catch((err) =>
-        sess.fail(err instanceof Error ? err.message : t('inventory.card.callError')),
+        sess.fail({
+          key: 'inventory.card.callError',
+          params: err instanceof Error ? { detail: err.message } : {},
+        }),
       );
   };
 
@@ -138,7 +140,7 @@ export const DeepLinkLogin = () => {
         footer={
           <>
             <ModalSpacer />
-            <Button variant="ghost" size="sm" onClick={close}>
+            <Button variant="dangerSoft" size="sm" onClick={close}>
               {t('deepLink.close')}
             </Button>
           </>
@@ -189,8 +191,6 @@ export const DeepLinkLogin = () => {
     );
   }
 
-  const warranty = service === 'steam' ? formatWarranty(pending.warrantyEndsAt, t) : null;
-
   return (
     <Modal
       title={t('deepLink.title')}
@@ -200,7 +200,7 @@ export const DeepLinkLogin = () => {
       footer={
         <>
           <ModalSpacer />
-          <Button variant="ghost" size="sm" onClick={close}>
+          <Button variant="dangerSoft" size="sm" onClick={close}>
             {t('deepLink.cancel')}
           </Button>
           <Button variant="accent" size="sm" onClick={confirm}>
@@ -210,8 +210,7 @@ export const DeepLinkLogin = () => {
       }
     >
       <ModalHint>{t('deepLink.body', { title: pending.title })}</ModalHint>
-      {/* Ссылка приходит извне, и гарантия — единственное. */}
-      {warranty && <ModalWarn>{t('inventory.card.warrantyWarnBody', { warranty })}</ModalWarn>}
+      {/* Steam Guard, если он понадобится, спросит сам — своим диалогом про гарантию. */}
     </Modal>
   );
 };

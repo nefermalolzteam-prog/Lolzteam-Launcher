@@ -45,12 +45,12 @@ describe('extractTelegramCreds', () => {
   it('reads phone from telegram_phone and password from telegram_password_value', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         telegram_password_value: 'my2fa',
       }),
     );
     expect(creds).not.toBeNull();
-    expect(creds!.phone).toBe('+15807812822');
+    expect(creds!.phone).toBe('+15555550123');
     expect(creds!.password).toBe('my2fa');
     expect(creds!.authKey).toBeNull();
   });
@@ -58,7 +58,7 @@ describe('extractTelegramCreds', () => {
   it('reads apiId / apiHash from telegram_json', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         telegram_json: { app_id: 2040, app_hash: 'deadbeef' },
       }),
     );
@@ -69,7 +69,7 @@ describe('extractTelegramCreds', () => {
   it('parses authKey from loginData.raw with `<hex>:<dc>` shape', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         loginData: { raw: `${HEX_256}:2` },
       }),
     );
@@ -81,7 +81,7 @@ describe('extractTelegramCreds', () => {
   it('parses authKey from loginData.raw without dc suffix when telegram_json.dc_id is present', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         telegram_json: { dc_id: 4 },
         loginData: { raw: HEX_256_B },
       }),
@@ -93,7 +93,7 @@ describe('extractTelegramCreds', () => {
   it('rejects authKey shorter than 256 bytes', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         loginData: { raw: `${HEX_TOO_SHORT}:1` },
       }),
     );
@@ -103,7 +103,7 @@ describe('extractTelegramCreds', () => {
   it('rejects authKey with an invalid dc id', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         loginData: { raw: `${HEX_256}:99` },
       }),
     );
@@ -146,7 +146,7 @@ describe('extractTelegramCreds', () => {
   it('ignores telegram_password (flag) and reads only telegram_password_value', () => {
     const creds = extractTelegramCreds(
       baseDetails({
-        telegram_phone: '15807812822',
+        telegram_phone: '15555550123',
         telegram_password: 1,
         telegram_password_value: 'real',
       }),

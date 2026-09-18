@@ -15,7 +15,7 @@ describe('isWebUrl', () => {
 
   it('rejects the schemes a page could redirect itself into', () => {
     // Reading the disk with the page's own scripts.
-    expect(isWebUrl('file:///C:/Users/Vladimir/AppData/Roaming')).toBe(false);
+    expect(isWebUrl('file:///C:/Users/user/AppData/Roaming')).toBe(false);
     // Running in whatever document is currently loaded.
     expect(isWebUrl('javascript:alert(document.cookie)')).toBe(false);
     expect(isWebUrl('data:text/html,<script>1</script>')).toBe(false);

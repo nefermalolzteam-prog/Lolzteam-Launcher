@@ -4,10 +4,10 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import s from './Modal.module.scss';
 
-/** Три ширины и ни одной больше. */
-export type ModalSize = 'sm' | 'md' | 'lg';
+/** Четыре ширины и ни одной больше. */
+export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
-const SIZE: Record<ModalSize, string | undefined> = { sm: s.sm, md: s.md, lg: s.lg };
+const SIZE: Record<ModalSize, string | undefined> = { sm: s.sm, md: s.md, lg: s.lg, xl: s.xl };
 
 interface ModalProps {
   title: string;

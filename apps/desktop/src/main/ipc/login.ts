@@ -13,7 +13,13 @@ import log from 'electron-log/main';
 import { toDetails } from '../accounts/local-projection';
 import { getLocalAccount } from '../accounts/local-store';
 import { getAdapter } from '../adapters';
-import { fetchEmailCode, fetchSteamMafile, getAccountDetails } from '../services/market';
+import { askAccountConfirm } from '../services/confirm-broker';
+import {
+  fetchEmailCode,
+  fetchSteamGuardCode,
+  fetchSteamMafile,
+  getAccountDetails,
+} from '../services/market';
 import { trackFeature } from '../services/metrics';
 import { getSettings } from '../settings/settings-store';
 import { handleAction } from './handle-action';
@@ -59,6 +65,11 @@ export const buildCtx = async (
     onProgress: (event) => broadcast(itemId, event),
     fetchEmailCode: local ? undefined : (id) => fetchEmailCode(id, abortSignal),
     fetchSteamMafile: local ? undefined : (id) => fetchSteamMafile(id, abortSignal),
+    // The guarantee-safe TOTP first, the guarantee-cancelling maFile last — and only with a yes.
+    fetchSteamGuardCode: local ? undefined : (id) => fetchSteamGuardCode(id, abortSignal),
+    confirmMafileDownload: local
+      ? undefined
+      : (id) => askAccountConfirm(id, 'mafile-download', abortSignal),
     settings,
     proxy,
     proxyTest: proxy && proxyTest ? proxyTest : undefined,
@@ -94,7 +105,7 @@ export const registerLoginIpc = (): void => {
     ): Promise<AccountLoginResult> => {
       const { itemId, method, proxyId, proxyTest } = payload;
       if (!Number.isInteger(itemId) || itemId === 0) {
-        return { ok: false, message: 'Некорректный идентификатор аккаунта' };
+        return { ok: false, message: { key: 'login.errors.bad-item-id' } };
       }
       activeLogins.get(itemId)?.abort();
       const ctl = new AbortController();
@@ -108,8 +119,8 @@ export const registerLoginIpc = (): void => {
       if (!details) {
         release();
         return ctl.signal.aborted
-          ? { ok: false, message: 'Вход отменён', cancelled: true }
-          : { ok: false, message: 'Не удалось получить данные аккаунта' };
+          ? { ok: false, message: { key: 'login.errors.cancelled' }, cancelled: true }
+          : { ok: false, message: { key: 'login.errors.details-fetch-failed' } };
       }
 
       const adapter = getAdapter(details.category);
@@ -117,7 +128,10 @@ export const registerLoginIpc = (): void => {
         release();
         return {
           ok: false,
-          message: `Сервис "${details.categoryTitle}" пока не поддерживается`,
+          message: {
+            key: 'login.errors.service-unsupported',
+            params: { service: details.categoryTitle },
+          },
         };
       }
 
@@ -131,11 +145,15 @@ export const registerLoginIpc = (): void => {
         }
         return { ok: result.ok, message: result.message };
       } catch (err) {
-        if (ctl.signal.aborted) return { ok: false, message: 'Вход отменён', cancelled: true };
+        if (ctl.signal.aborted)
+          return { ok: false, message: { key: 'login.errors.cancelled' }, cancelled: true };
         log.error('[login] adapter threw', err);
         return {
           ok: false,
-          message: err instanceof Error ? err.message : 'Неизвестная ошибка',
+          message: {
+            key: 'login.errors.unknown',
+            params: { detail: err instanceof Error ? err.message : '' },
+          },
         };
       } finally {
         release();

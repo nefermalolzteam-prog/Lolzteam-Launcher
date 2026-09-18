@@ -35,6 +35,7 @@ interface LoginParams {
   login: string;
   password: string;
   sharedSecret: string | null;
+  guardCode?: string;
   emailCode?: string;
   proxy?: ProxyEntry;
   approveDeviceConfirm?: (clientId: string, steamId: string) => Promise<boolean>;
@@ -74,7 +75,7 @@ export const acquireWebSession = async (params: LoginParams): Promise<WebSession
     const msg = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
-      error: { kind: 'unknown', message: `Не удалось получить web-куки: ${msg}` },
+      error: { kind: 'unknown', message: `web session request failed: ${msg}` },
     };
   }
 };
@@ -112,14 +113,16 @@ const runCredentialLogin = async (
     const actions = (start.validActions ?? []) as GuardAction[];
     const has = (t: EAuthSessionGuardType) => actions.some((a) => a.type === t);
 
-    if (has(EAuthSessionGuardType.DeviceCode) && params.sharedSecret) {
-      const code = generateSteamGuardCode(params.sharedSecret);
+    if (has(EAuthSessionGuardType.DeviceCode) && (params.sharedSecret ?? params.guardCode)) {
+      const code = params.sharedSecret
+        ? generateSteamGuardCode(params.sharedSecret)
+        : (params.guardCode as string);
       try {
         await session.submitSteamGuardCode(code);
       } catch (err) {
         return failWith({
           kind: 'unknown',
-          message: `Steam Guard TOTP отклонён: ${err instanceof Error ? err.message : String(err)}`,
+          message: `Steam Guard TOTP rejected: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } else if (has(EAuthSessionGuardType.EmailCode)) {
@@ -131,7 +134,7 @@ const runCredentialLogin = async (
       } catch (err) {
         return failWith({
           kind: 'unknown',
-          message: `Email-код отклонён: ${err instanceof Error ? err.message : String(err)}`,
+          message: `email code rejected: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } else if (has(EAuthSessionGuardType.DeviceCode)) {

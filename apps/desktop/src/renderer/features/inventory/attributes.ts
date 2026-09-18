@@ -55,6 +55,28 @@ export const ACCOUNT_ATTRIBUTES: readonly AccountAttribute[] = [
       return it.steam?.isLimited === false;
     },
   },
+  // The inverses of the bans above: someone buying for parts wants the tainted side of the list too.
+  { id: 'steamVac', service: 'steam', match: (it) => it.steam?.vacBanned === true },
+  {
+    id: 'steamTradeBan',
+    service: 'steam',
+    match: (it, src) => {
+      const check = src.checks.get(it.itemId);
+      if (check && check.tradeBanState !== null && check.tradeBanState !== 'None') return true;
+      return (
+        it.steam !== null &&
+        (it.steam.tradeBanned ||
+          (it.steam.marketBanEndsAt !== null && it.steam.marketBanEndsAt > Date.now() / 1000))
+      );
+    },
+  },
+  { id: 'steamRedPlate', service: 'steam', match: (it) => it.steam?.communityBanned === true },
+  { id: 'steamCs2Ban', service: 'steam', match: (it) => it.steam?.cs2BanActive === true },
+  { id: 'steamLimited', service: 'steam', match: (it) => it.steam?.isLimited === true },
+  { id: 'steamChinese', service: 'steam', match: (it) => it.steam?.chineseAccount === true },
+  { id: 'steamGames', service: 'steam', match: (it) => (it.steam?.games.length ?? 0) > 0 },
+  { id: 'steamGifts', service: 'steam', match: (it) => (it.steam?.giftCount ?? 0) > 0 },
+  { id: 'steamFriends', service: 'steam', match: (it) => (it.steam?.friendCount ?? 0) > 0 },
   {
     id: 'steamBalance',
     service: 'steam',
@@ -89,10 +111,15 @@ export const ACCOUNT_ATTRIBUTES: readonly AccountAttribute[] = [
     service: 'telegram',
     match: (it) => it.telegram !== null && !it.telegram.passwordSet,
   },
+  { id: 'tgUsername', service: 'telegram', match: (it) => it.telegram?.username !== null },
+  { id: 'tgStars', service: 'telegram', match: (it) => (it.telegram?.starsCount ?? 0) > 0 },
+  { id: 'tgAdmin', service: 'telegram', match: (it) => (it.telegram?.adminCount ?? 0) > 0 },
 
   { id: 'dcVerified', service: 'discord', match: (it) => it.discord?.verified === true },
   { id: 'dcNitro', service: 'discord', match: (it) => it.discord?.nitroEndDate != null },
   { id: 'dcBilling', service: 'discord', match: (it) => it.discord?.billing === true },
+  { id: 'dcGifts', service: 'discord', match: (it) => (it.discord?.gifts ?? 0) > 0 },
+  { id: 'dcBoosts', service: 'discord', match: (it) => (it.discord?.boosts ?? 0) > 0 },
   {
     id: 'dcClean',
     service: 'discord',
@@ -107,15 +134,38 @@ export const ACCOUNT_ATTRIBUTES: readonly AccountAttribute[] = [
     service: 'instagram',
     match: (it) => (it.instagram?.followerCount ?? 0) > 0,
   },
+  // The seller says login:password works without the cookies — a spare way in if a session dies.
+  {
+    id: 'igLogin',
+    service: 'instagram',
+    match: (it) => it.instagram?.loginWithoutCookies === true,
+  },
 
   { id: 'ttVerified', service: 'tiktok', match: (it) => it.tiktok?.verified === true },
   // Going live is gated behind a follower count.
   { id: 'ttStream', service: 'tiktok', match: (it) => it.tiktok?.canStream === true },
   { id: 'ttEmail', service: 'tiktok', match: (it) => it.tiktok?.hasEmail === true },
+  { id: 'ttMobile', service: 'tiktok', match: (it) => it.tiktok?.hasMobile === true },
+  { id: 'ttCoins', service: 'tiktok', match: (it) => (it.tiktok?.coins ?? 0) > 0 },
   {
     id: 'ttFollowers',
     service: 'tiktok',
     match: (it) => (it.tiktok?.followerCount ?? 0) > 0,
+  },
+
+  // The LLM tab had no chips of its own at all — the provider narrowing in the toolbar was its only filter.
+  { id: 'llmCookies', service: 'llm', match: (it) => it.llm?.hasCookies === true },
+  {
+    id: 'llmRenew',
+    service: 'llm',
+    match: (it) => it.llm?.subscriptionAutoRenew === true,
+  },
+  { id: 'llmKyc', service: 'llm', match: (it) => it.llm?.kycVerified === true },
+  { id: 'llmPhone', service: 'llm', match: (it) => it.llm?.hasPhone === true },
+  {
+    id: 'llmBalance',
+    service: 'llm',
+    match: (it) => (it.llm?.convertedBalance ?? 0) > 0,
   },
 ];
 

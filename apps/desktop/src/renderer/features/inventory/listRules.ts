@@ -19,7 +19,7 @@ export const searchHaystack = (item: AccountSummary, src: CheckSources): string 
     item.title,
     item.categoryTitle,
     item.folder,
-    // The user's own words about the account, which is exactly what he will search for when he cannot remember which of five.
+    // The user's own words about the account — the first thing they reach for in search.
     item.note,
     item.steam?.country,
     item.telegram?.country,

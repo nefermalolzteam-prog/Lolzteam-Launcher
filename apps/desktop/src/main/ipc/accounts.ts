@@ -1,5 +1,5 @@
 import { IPC_CHANNELS } from '@shared-ipc';
-import type { AccountsCategoryEvent } from '@shared-ipc';
+import type { AccountsCategoryEvent, ListingOp } from '@shared-ipc';
 import { SERVICE_CATEGORY_ID, SUPPORTED_SERVICE_IDS } from '@shared-types';
 import type {
   AccountDetails,
@@ -28,13 +28,29 @@ import {
 import { recordAction } from '../services/action-log';
 import { mailboxFor } from '../services/mailbox';
 import {
+  type ListingOpResult,
   addItemTag,
+  addListingPublicTag,
+  bumpListing,
   checkAccountValidity,
+  closeListing,
+  deleteListing,
+  disableListingAutoBump,
+  editListing,
+  fetchAiListingPrice,
+  fetchAutoBuyPrice,
   getAccountDetails,
   listAccountsByCategory,
   listPurchasedAccounts,
+  openListing,
   removeItemTag,
+  removeListingPublicTag,
   setAccountNote,
+  setListingAutoBump,
+  setListingPrice,
+  stickListing,
+  unstickListing,
+  updateListingInventory,
 } from '../services/market';
 import { getSettings } from '../settings/settings-store';
 import { handleAction } from './handle-action';
@@ -288,6 +304,54 @@ const getMailCredentials = async (itemId: number): Promise<MailCredentials | nul
   return details ? mailboxFor(details) : null;
 };
 
+/** One `ListingOp` → the service call that performs it. */
+const runListingOp = (itemId: number, op: ListingOp): Promise<ListingOpResult> => {
+  switch (op.kind) {
+    case 'edit':
+      return editListing(itemId, op.fields);
+    case 'auto-bump':
+      return setListingAutoBump(itemId, op.hour);
+    case 'auto-bump-off':
+      return disableListingAutoBump(itemId);
+    case 'open':
+      return openListing(itemId);
+    case 'close':
+      return closeListing(itemId);
+    case 'delete':
+      return deleteListing(itemId, op.reason);
+    case 'stick':
+      return stickListing(itemId);
+    case 'unstick':
+      return unstickListing(itemId);
+    case 'public-tag-add':
+      return addListingPublicTag(itemId, op.tagId);
+    case 'public-tag-remove':
+      return removeListingPublicTag(itemId, op.tagId);
+    case 'update-inventory':
+      return updateListingInventory(itemId, { all: op.all, appId: op.appId });
+  }
+};
+
+/**
+ * Whatever the card shows has to survive a restart, so the stored copy is
+ * patched too — the renderer's own copy is patched separately, for the badge
+ * that must change before the next refresh.
+ */
+const reloadAfterListingOp = async (itemId: number, op: ListingOp): Promise<void> => {
+  if (op.kind === 'auto-bump' || op.kind === 'auto-bump-off') {
+    const cached = (await loadCachedAccounts())?.items.find((it) => it.itemId === itemId);
+    if (!cached?.listing) return;
+    const autoBumpHours = op.kind === 'auto-bump' ? op.hour : null;
+    await patchCachedAccount(itemId, { listing: { ...cached.listing, autoBumpHours } });
+    return;
+  }
+  if (op.kind !== 'edit') return;
+  const patch: Partial<AccountSummary> = {};
+  if (typeof op.fields.title === 'string') patch.title = op.fields.title;
+  if (typeof op.fields.price === 'number') patch.price = op.fields.price;
+  if (Object.keys(patch).length > 0) await patchCachedAccount(itemId, patch);
+};
+
 export const registerAccountsIpc = () => {
   ipcMain.handle(IPC_CHANNELS.ACCOUNTS_LIST, () => listAllAccounts());
   ipcMain.handle(
@@ -347,6 +411,94 @@ export const registerAccountsIpc = () => {
       itemId: (p?: { itemId: number }) => p?.itemId ?? null,
       detail: (r) => (r.ok ? (r.note === null ? 'deleted' : 'saved') : null),
     },
+  );
+
+  handleAction(
+    IPC_CHANNELS.ACCOUNT_BUMP,
+    async (_e, payload?: { itemId: number }) => bumpListing(toItemId(payload)),
+    {
+      action: 'listing.bump',
+      itemId: (p?: { itemId: number }) => p?.itemId ?? null,
+      status: (r) => (r.ok ? 'ok' : 'fail'),
+    },
+  );
+
+  handleAction(
+    IPC_CHANNELS.ACCOUNT_LISTING_OP,
+    async (_e, payload?: { itemId: number; op: ListingOp }) => {
+      const itemId = toItemId(payload);
+      const op = payload?.op;
+      if (!op) return { ok: false, message: { key: 'inventory.card.listing.opFailed' } };
+      const result = await runListingOp(itemId, op);
+      if (result.ok) {
+        // The list holds a copy of every listing; a change it cannot see would show as stale.
+        await reloadAfterListingOp(itemId, op);
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        message: { key: 'inventory.card.listing.opFailed', params: { detail: result.message } },
+      };
+    },
+    {
+      action: 'listing.op',
+      itemId: (p?: { itemId: number; op: ListingOp }) => p?.itemId ?? null,
+      target: (p?: { itemId: number; op: ListingOp }) => p?.op?.kind ?? null,
+      status: (r) => (r.ok ? 'ok' : 'fail'),
+    },
+  );
+
+  handleAction(
+    IPC_CHANNELS.ACCOUNT_AUTO_BUY_PRICE,
+    async (_e, payload?: { itemId: number }) => {
+      const result = await fetchAutoBuyPrice(toItemId(payload));
+      return result.ok
+        ? { ok: true, price: result.price }
+        : {
+            ok: false,
+            message: { key: 'inventory.card.listing.opFailed', params: { detail: result.message } },
+          };
+    },
+    {
+      action: 'listing.autoBuyPrice',
+      itemId: (p?: { itemId: number }) => p?.itemId ?? null,
+      status: (r) => (r.ok ? 'ok' : 'fail'),
+    },
+  );
+
+  handleAction(
+    IPC_CHANNELS.ACCOUNT_SET_PRICE,
+    async (_e, payload?: { itemId: number; price: number; currency: string }) => {
+      const itemId = toItemId(payload);
+      const price = payload?.price;
+      if (!Number.isFinite(price) || (price as number) <= 0) {
+        return { ok: false, message: { key: 'inventory.card.listing.invalidPrice' } };
+      }
+      const result = await setListingPrice(
+        itemId,
+        Math.round(price as number),
+        typeof payload?.currency === 'string' && payload.currency ? payload.currency : 'rub',
+      );
+      if (result.ok) {
+        await patchCachedAccount(itemId, { price: Math.round(price as number) });
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        message: { key: 'inventory.card.listing.saveFailed', params: { detail: result.message } },
+      };
+    },
+    {
+      action: 'listing.price',
+      itemId: (p?: { itemId: number }) => p?.itemId ?? null,
+      target: (p?: { itemId: number; price: number; currency: string }) =>
+        p ? String(Math.round(p.price)) : null,
+      status: (r) => (r.ok ? 'ok' : 'fail'),
+    },
+  );
+
+  ipcMain.handle(IPC_CHANNELS.ACCOUNT_AI_PRICE, async (_e, payload?: { itemId: number }) =>
+    fetchAiListingPrice(toItemId(payload)),
   );
 
   onTokenChange(() => {

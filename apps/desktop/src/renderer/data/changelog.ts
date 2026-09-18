@@ -9,6 +9,40 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '1.1.0',
+    date: '2026-09-16',
+    changes: {
+      ru: [
+        'Поддержка macOS: сборки для Apple Silicon и Intel, вход в Steam и Telegram Desktop',
+        'Поддержка Linux: сборки AppImage и .deb',
+        'Новый сервис - EA Desktop (только Windows)',
+        'Гарантия при входе в Steam больше не тратится зря: код Steam Guard берётся из данных товара, затем из привязанного SDA, затем разовым кодом с маркета, а maFile - последним и только с вашего подтверждения',
+        'Исправлен бейдж гарантии: у купленных аккаунтов виден реальный срок',
+        'Редактирование своих лотов целиком: название, описание, приватная информация, происхождение, тип почты и цена с подсказками маркета',
+        'Поднятие лота кнопкой на карточке и авто-подъём с выбором интервала',
+        'Снять лот с продажи и вернуть, закрепить в топе, пересчитать инвентарь Steam',
+        'Монитор API в настройках: остаток лимита, запросы за час и за минуту, история',
+        'Фильтры переехали в диалог на две колонки: цена «от» и «до» и 22 новых фильтра по категориям',
+        'Ошибки и сообщения при входе переводятся на язык интерфейса',
+        'Исправления: выпадающий список «Все сервисы» не обрезается шапкой, привязка SDA не зависает, код Steam Guard с буквами больше не теряется, просроченный код с почты запрашивается заново',
+      ],
+      en: [
+        'macOS support: builds for Apple Silicon and Intel, with Steam and Telegram Desktop sign-in',
+        'Linux support: AppImage and .deb builds',
+        'New service — EA Desktop (Windows only)',
+        'Signing into Steam no longer spends the guarantee for nothing: the Steam Guard code comes from the item data, then a linked SDA, then a one-time code from the market, and the maFile last, only after you confirm',
+        'Fixed the guarantee badge: bought accounts now show the real remaining time',
+        'Edit your own listings in full: title, description, private information, origin, email type and price with market suggestions',
+        'Bump a listing from a button on the card, and auto-bump with a chosen interval',
+        'Take a listing off sale and back, pin it to the top, recount the Steam inventory',
+        'API monitor in settings: remaining limit, requests per hour and per minute, and a history',
+        'Filters moved into a two-column dialog: a price from/to window and 22 new filters across categories',
+        'Sign-in errors and messages are translated to the interface language',
+        'Fixes: the "All services" dropdown is no longer clipped by the header, linking an SDA no longer hangs, a Steam Guard code with letters is no longer discarded, an expired mail code is re-requested',
+      ],
+    },
+  },
+  {
     version: '1.0.0',
     date: '2026-08-13',
     changes: {

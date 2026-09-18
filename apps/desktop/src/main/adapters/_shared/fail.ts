@@ -1,10 +1,14 @@
-import type { LoginMethod, LoginResult } from '@adapter-contract';
+import type { LocalizedText, LoginMethod, LoginResult } from '@adapter-contract';
 
-// Shared `fail` factory for adapter login results. Returns `ok: false` with the
-// given message; `method` defaults to 'native' because both Steam and Telegram
-// adapters only support that method today.
-export const failLogin = (message: string, method: LoginMethod = 'native'): LoginResult => ({
+// Shared `fail` factory for adapter login results. Takes an i18n key (and
+// optional params) rather than prose: the main process has no locale, so the
+// renderer resolves the text. `method` defaults to 'native'.
+export const failLogin = (
+  key: string,
+  params?: LocalizedText['params'],
+  method: LoginMethod = 'native',
+): LoginResult => ({
   ok: false,
   method,
-  message,
+  message: params ? { key, params } : { key },
 });

@@ -1,6 +1,7 @@
 import type { ServiceId } from '@shared-types';
 import { SUPPORTED_SERVICE_IDS, loginMethodsOf, serviceLabel } from '@shared-types';
 import { useTranslation } from 'react-i18next';
+import { PLATFORM } from '~/lib/platform';
 import type { LoginMethod } from '~/stores/loginSession';
 import { patchSettings, useSettings } from '~/stores/settings';
 import { type ChoiceOption, SettingChoice, SettingGroup } from '../ui/SettingsControls';
@@ -37,7 +38,10 @@ export const LoginMethodsPage = () => {
             key={id}
             // Per-service copy is optional: without it the row falls back to the brand name instead of showing a raw i18n key.
             title={t(`settings.loginMethods.${id}Label`, { defaultValue: serviceLabel(id) })}
-            description={t(`settings.loginMethods.${id}Hint`, { defaultValue: '' })}
+            description={t(`settings.loginMethods.${id}Hint`, {
+              context: PLATFORM,
+              defaultValue: '',
+            })}
             options={options}
             columns={2}
             value={prefs[id] ?? 'ask'}

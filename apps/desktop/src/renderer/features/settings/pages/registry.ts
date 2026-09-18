@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { IS_DEV } from '~/lib/dev';
 import {
   AccountsIcon,
+  ApiIcon,
   BellIcon,
   DatabaseIcon,
   DebugIcon,
@@ -18,6 +19,7 @@ import {
 import { AboutPage } from './AboutPage';
 import { AccountsListPage } from './AccountsListPage';
 import { ActionLogPage } from './ActionLogPage';
+import { ApiMonitorPage } from './ApiMonitorPage';
 import { DebugPage } from './DebugPage';
 import { GeneralPage } from './GeneralPage';
 import { LabelsPage } from './LabelsPage';
@@ -41,6 +43,7 @@ const PAGES = {
   telegram: { icon: serviceIcon('telegram'), Component: TelegramPage },
   steam: { icon: serviceIcon('steam'), Component: SteamPage },
   actionLog: { icon: LogIcon, Component: ActionLogPage },
+  apiMonitor: { icon: ApiIcon, Component: ApiMonitorPage },
   privacy: { icon: MetricsIcon, Component: PrivacyPage },
   about: { icon: LolzteamIcon, Component: AboutPage },
   debug: { icon: DebugIcon, Component: DebugPage },
@@ -54,7 +57,7 @@ export const SETTINGS_NAV: readonly { id: string; pages: readonly SettingsPageId
   { id: 'accounts', pages: ['accountsList', 'localDb', 'labels', 'login'] },
   { id: 'network', pages: ['proxy'] },
   { id: 'services', pages: ['telegram', 'steam'] },
-  { id: 'system', pages: ['actionLog', 'privacy', 'about'] },
+  { id: 'system', pages: ['actionLog', 'apiMonitor', 'privacy', 'about'] },
   /* «Разработка» есть только под `pnpm dev`. */
   ...(IS_DEV ? [{ id: 'dev', pages: ['debug'] as const }] : []),
 ];

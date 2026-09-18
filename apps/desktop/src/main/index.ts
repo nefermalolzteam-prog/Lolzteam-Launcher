@@ -21,11 +21,17 @@ import { registerSteamGuardIpc } from './ipc/steam-guard';
 import { registerTelegramIpc } from './ipc/telegram-base';
 import { buildBrowserUserAgent } from './lib/user-agent';
 import { initAppProxy } from './services/api-session';
+import { registerConfirmIpc } from './services/confirm-broker';
 import { initMetrics } from './services/metrics';
 import { registerProxyAuthHandler } from './services/proxy';
-import { getCachedSettings } from './settings/settings-store';
 import { registerUpdaterIpc } from './updater';
-import { createMainWindow, getMainWindow, setQuitting, showMainWindow } from './window/main-window';
+import {
+  createMainWindow,
+  getMainWindow,
+  setQuitting,
+  shouldMinimizeToTray,
+  showMainWindow,
+} from './window/main-window';
 import { createTray } from './window/tray';
 
 log.initialize();
@@ -74,6 +80,7 @@ app.whenReady().then(async () => {
 
   registerProxyAuthHandler();
   await initAppProxy();
+  registerConfirmIpc();
 
   const win = createMainWindow();
   try {
@@ -113,6 +120,5 @@ app.whenReady().then(async () => {
 app.on('before-quit', () => setQuitting(true));
 
 app.on('window-all-closed', () => {
-  const minimize = getCachedSettings()?.minimizeToTray ?? true;
-  if (process.platform !== 'darwin' && !minimize) app.quit();
+  if (process.platform !== 'darwin' && !shouldMinimizeToTray()) app.quit();
 });

@@ -1,5 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import type { SteamLayout } from './layout';
+import { patchSteamRegistryVdf } from './registry-vdf';
 
 const execFileAsync = promisify(execFile);
 
@@ -15,19 +17,33 @@ const writeValue = async (
   });
 };
 
-export const setAutoLoginUser = async (login: string): Promise<void> => {
-  if (process.platform !== 'win32') return;
-  await writeValue('AutoLoginUser', 'REG_SZ', login);
-  await writeValue('RememberPassword', 'REG_DWORD', '1');
-};
-
 const deleteValue = async (name: string): Promise<void> => {
   try {
     await execFileAsync('reg', ['delete', STEAM_KEY, '/v', name, '/f'], { windowsHide: true });
   } catch {}
 };
 
-export const clearAutoLoginUser = async (): Promise<void> => {
+export const setAutoLoginUser = async (layout: SteamLayout, login: string): Promise<void> => {
+  if (layout.registryVdfPath) {
+    await patchSteamRegistryVdf(layout.registryVdfPath, {
+      AutoLoginUser: login,
+      RememberPassword: '1',
+    });
+    return;
+  }
+  if (process.platform !== 'win32') return;
+  await writeValue('AutoLoginUser', 'REG_SZ', login);
+  await writeValue('RememberPassword', 'REG_DWORD', '1');
+};
+
+export const clearAutoLoginUser = async (layout: SteamLayout): Promise<void> => {
+  if (layout.registryVdfPath) {
+    await patchSteamRegistryVdf(layout.registryVdfPath, {
+      AutoLoginUser: null,
+      RememberPassword: null,
+    });
+    return;
+  }
   if (process.platform !== 'win32') return;
   await deleteValue('AutoLoginUser');
   await deleteValue('RememberPassword');

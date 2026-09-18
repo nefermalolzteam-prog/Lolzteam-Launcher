@@ -106,7 +106,7 @@ export const ProxyChoiceModal = ({
             <Button variant="ghost" size="sm" onClick={() => setFailed(null)}>
               {t('inventory.card.proxy.change')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={onCancel}>
+            <Button variant="dangerSoft" size="sm" onClick={onCancel}>
               {t('inventory.card.proxy.exit')}
             </Button>
             <Button variant="accent" size="sm" onClick={() => onChoose(null, null)}>
@@ -160,7 +160,7 @@ export const ProxyChoiceModal = ({
       footer={
         <>
           <ModalSpacer />
-          <Button variant="ghost" size="sm" onClick={onCancel}>
+          <Button variant="dangerSoft" size="sm" onClick={onCancel}>
             {t('inventory.local.cancel')}
           </Button>
         </>

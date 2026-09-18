@@ -23,13 +23,13 @@ describe('buildOfflineSession', () => {
 
   it('throws on unknown dc id', () => {
     expect(() => buildOfflineSession({ authKeyHex: HEX_256, dcId: 99, userId: 1 })).toThrow(
-      /Неизвестный DC/,
+      /Unknown DC/,
     );
   });
 
   it('throws on wrong auth_key length', () => {
     expect(() => buildOfflineSession({ authKeyHex: 'abcd', dcId: 2, userId: 1 })).toThrow(
-      /256 байт/,
+      /256 bytes/,
     );
   });
 });

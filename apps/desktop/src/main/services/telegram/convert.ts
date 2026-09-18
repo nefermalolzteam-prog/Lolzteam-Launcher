@@ -75,8 +75,6 @@ const isFilePath = async (path: string): Promise<boolean> => {
   }
 };
 
-// ---------------------------------------------------------------- string sessions
-
 /** Reject a parse that produced something Telegram would never accept. */
 const validate = (session: StringSessionData | null | undefined): StringSessionData | null => {
   const dc = session?.primaryDcs?.main;
@@ -137,8 +135,6 @@ export const parseAnyStringSession = (
   }
   return guesses[0] ?? null;
 };
-
-// ---------------------------------------------------------------- scanning
 
 /** One convertible thing found on disk. */
 interface ScanItem {
@@ -376,8 +372,6 @@ export const scanConvertFolder = async (dir: string): Promise<TelegramConvertSca
   return { dir, entries, skipped: acc.skipped };
 };
 
-// ---------------------------------------------------------------- conversion
-
 const loadItem = async (
   item: ScanItem,
 ): Promise<{ session: StringSessionData; meta: TelegramSidecar | null }> => {
@@ -386,7 +380,7 @@ const loadItem = async (
   if (item.format === 'tdata') {
     const tdata = await Tdata.open({ path: item.path, ignoreVersion: true });
     const session = validate(await convertFromTdata(tdata, item.tdataIndex ?? 0));
-    if (!session) throw new Error('в tdata нет пригодного ключа');
+    if (!session) throw new Error('no usable key in tdata');
     return { session, meta };
   }
 
@@ -397,13 +391,13 @@ const loadItem = async (
         ? convertFromTelethonSession(parsed.session)
         : convertFromPyrogramSession(parsed.session),
     );
-    if (!session) throw new Error('в файле нет пригодного ключа');
+    if (!session) throw new Error('no usable key in the file');
     return { session, meta };
   }
 
   const text = await readTextSafe(item.path);
   const parsed = parseAnyStringSession(text.split(/\r?\n/)[(item.line ?? 1) - 1] ?? text);
-  if (!parsed) throw new Error('строка сессии больше не читается');
+  if (!parsed) throw new Error('the session string is no longer readable');
   return { session: parsed.session, meta };
 };
 
@@ -463,7 +457,7 @@ const toStringSession = (
     case 'mtcute-string':
       return writeStringSession(session);
     default:
-      throw new Error(`Неизвестный строковый формат: ${target}`);
+      throw new Error(`Unknown string format: ${target}`);
   }
 };
 
@@ -533,7 +527,7 @@ const writeOne = async (
   }
 
   if (!STRING_TARGETS.has(params.target)) {
-    throw new Error(`Неизвестный формат: ${params.target}`);
+    throw new Error(`Unknown format: ${params.target}`);
   }
 
   const encoded = toStringSession(params.target, session, meta?.apiId ?? null);
@@ -580,8 +574,6 @@ export const runConvert = async (params: ConvertRunParams): Promise<TelegramConv
   const converted = results.filter((r) => r.ok).length;
   return { outDir: params.outDir, items: results, converted, failed: results.length - converted };
 };
-
-// ---------------------------------------------------------------- loading
 
 /** A scanned item with its key read in. */
 export interface LoadedTelegramSession {

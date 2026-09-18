@@ -417,10 +417,18 @@
   color: $color-text-soft;
   cursor: pointer;
   user-select: none;
+  /* Сам флажок — как кнопка: серая подложка и воздух вокруг «квадратик + подпись», а не голая строка. */
+  width: fit-content;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #ffffff14;
+  transition: background $duration-fast $ease-out, color $duration-fast $ease-out;
 
+  &:hover:has(input:not(:disabled)) { background: #ffffff24; }
   &:has(input:disabled) { opacity: 0.5; cursor: default; }
   &:has(input:checked), &:has(input:indeterminate) { color: $color-text; }
-  &:has(input:focus-visible) .checkBox { @include focus-ring; }
+  &:has(input:focus-visible) { @include focus-ring; }
 }
 
 /* С пояснением подпись становится двухэтажной, и квадратик садится к её первой строке, а не к середине блока. */
@@ -463,7 +471,8 @@
   width: 16px;
   height: 16px;
   border-radius: 5px;
-  border: 1.5px solid #3a3a3a;
+  /* Полупрозрачная рамка в тон подложке — тёмный контур на серой кнопке выглядел грязью. */
+  border: 1.5px solid #ffffff59;
   display: grid;
   place-items: center;
   color: $color-on-accent;

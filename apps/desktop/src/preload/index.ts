@@ -1,10 +1,14 @@
+import type { LocalizedText } from '@adapter-contract';
 import {
+  type AccountConfirmKind,
+  type AccountConfirmRequest,
   type AccountsCacheStatus,
   type AccountsCategoryEvent,
   type AuthTokenSubmitResult,
   type CheckAccountResult,
   IPC_CHANNELS,
   type LabelMutationResult,
+  type ListingOp,
   type LoginProgress,
   type NetworkStatus,
   type NoteOpResult,
@@ -17,6 +21,7 @@ import type {
   AccountSummary,
   ActionDraft,
   ActionEntry,
+  ApiMonitorSnapshot,
   AuthStatus,
   AuthTokenPayload,
   DesktopNotification,
@@ -129,7 +134,7 @@ const api = {
       proxyId?: string | null,
       proxyTest?: { ip: string; ms: number } | null,
     ) =>
-      invoke<{ ok: boolean; message?: string }>(IPC_CHANNELS.ACCOUNT_LOGIN, {
+      invoke<{ ok: boolean; message?: LocalizedText }>(IPC_CHANNELS.ACCOUNT_LOGIN, {
         itemId,
         method,
         proxyId,
@@ -144,10 +149,40 @@ const api = {
     // An empty `text` deletes the note — see `NoteOpResult`.
     setNote: (itemId: number, text: string) =>
       invoke<NoteOpResult>(IPC_CHANNELS.ACCOUNT_SET_NOTE, { itemId, text }),
+    // Own-listing management: bump, reprice, ask the market's AI.
+    bumpListing: (itemId: number) =>
+      invoke<{ ok: boolean; message?: string }>(IPC_CHANNELS.ACCOUNT_BUMP, { itemId }),
+    /** Everything else a seller does to their own lot, behind one channel. */
+    listingOp: (itemId: number, op: ListingOp) =>
+      invoke<{ ok: boolean; message?: LocalizedText }>(IPC_CHANNELS.ACCOUNT_LISTING_OP, {
+        itemId,
+        op,
+      }),
+    autoBuyPrice: (itemId: number) =>
+      invoke<{ ok: boolean; price?: number | null; message?: LocalizedText }>(
+        IPC_CHANNELS.ACCOUNT_AUTO_BUY_PRICE,
+        { itemId },
+      ),
+    setListingPrice: (itemId: number, price: number, currency: string) =>
+      invoke<{ ok: boolean; message?: LocalizedText }>(IPC_CHANNELS.ACCOUNT_SET_PRICE, {
+        itemId,
+        price,
+        currency,
+      }),
+    aiListingPrice: (itemId: number) =>
+      invoke<{ ok: boolean; price?: number | null; message?: string }>(
+        IPC_CHANNELS.ACCOUNT_AI_PRICE,
+        { itemId },
+      ),
     onLoginProgress: (h: (p: LoginProgress) => void) =>
       on<LoginProgress>(IPC_CHANNELS.ACCOUNT_LOGIN_PROGRESS, h),
     onLoginRequest: (h: (p: { itemId: number }) => void) =>
       on<{ itemId: number }>(IPC_CHANNELS.ACCOUNT_LOGIN_REQUEST, h),
+    // Main asks whether a guarantee-cancelling step may run; the answer goes straight back.
+    onConfirmRequest: (h: (p: AccountConfirmRequest) => void) =>
+      on<AccountConfirmRequest>(IPC_CHANNELS.ACCOUNT_CONFIRM_REQUEST, h),
+    answerConfirm: (itemId: number, kind: AccountConfirmKind, accept: boolean) =>
+      invoke<void>(IPC_CHANNELS.ACCOUNT_CONFIRM_ANSWER, { itemId, kind, accept }),
   },
   localAccounts: {
     // Secrets only ever travel renderer → main.
@@ -281,6 +316,8 @@ const api = {
       }),
   },
   telegram: {
+    /** The system-wide client the launcher would use when no path is configured (Linux only; null elsewhere). */
+    detectBinary: () => invoke<{ path: string | null }>(IPC_CHANNELS.TELEGRAM_DETECT_BINARY),
     pickDir: (title?: string) =>
       invoke<{ dir: string | null }>(IPC_CHANNELS.TELEGRAM_CONVERT_PICK_DIR, { title }),
     pickPath: (mode: 'file' | 'dir', title?: string) =>
@@ -331,8 +368,16 @@ const api = {
       }>(IPC_CHANNELS.PROXY_FETCH_MARKET),
   },
   app: {
+    /**
+     * The OS this build runs on. The renderer has no `process`, but several
+     * screens describe things that genuinely differ per platform — where a
+     * Telegram session is written, what a file picker should filter on.
+     */
+    platform: process.platform,
     getVersion: () => invoke<string>(IPC_CHANNELS.APP_GET_VERSION),
     pingApi: () => invoke<NetworkStatus>(IPC_CHANNELS.APP_PING_API),
+    // The live market-call journal; poll while the page is open.
+    apiStats: () => invoke<ApiMonitorSnapshot>(IPC_CHANNELS.APP_API_STATS),
     openExternal: (url: string) => invoke<void>(IPC_CHANNELS.APP_OPEN_EXTERNAL, { url }),
     openLogs: () => invoke<void>(IPC_CHANNELS.APP_OPEN_LOGS),
     exportLog: () => invoke<{ ok: boolean; path?: string }>(IPC_CHANNELS.APP_EXPORT_LOG),

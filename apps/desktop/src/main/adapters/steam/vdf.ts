@@ -1,5 +1,6 @@
 import { promises as fs } from 'node:fs';
 import { basename, dirname } from 'node:path';
+import type { SteamFlavor } from './layout';
 import { type VdfObject, emptyVdf, getObj, parseVdf, writeVdfString } from './vdf-parse';
 
 let tmpSeq = 0;
@@ -19,19 +20,19 @@ export const writeVdfFile = async (path: string, content: string): Promise<void>
 
 const writeFile = writeVdfFile;
 
-const readExisting = async (path: string): Promise<VdfObject | null> => {
+export const readExisting = async (path: string): Promise<VdfObject | null> => {
   let text: string;
   try {
     text = await fs.readFile(path, 'utf8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null;
-    throw new Error(`не удалось прочитать ${basename(path)}: ${(err as Error).message}`);
+    throw new Error(`failed to read ${basename(path)}: ${(err as Error).message}`);
   }
   if (text.trim() === '') return null;
   const parsed = parseVdf(text);
   if (Object.keys(parsed).length === 0) {
     throw new Error(
-      `файл ${basename(path)} не удалось разобрать — перезапись отменена, чтобы не потерять сохранённые в нём аккаунты`,
+      `could not parse ${basename(path)} — rewrite aborted to avoid losing the accounts saved in it`,
     );
   }
   return parsed;
@@ -85,14 +86,18 @@ export const mergeLoginUsersVdf = async (
   path: string,
   login: string,
   steamId64: string,
+  flavor: SteamFlavor = 'win32',
 ): Promise<void> => {
   const ts = Math.round(Date.now() / 1000);
+  const linux = flavor !== 'win32';
   const existing = (await readExisting(path)) ?? emptyVdf();
   const users = getObj(existing, 'users');
 
   for (const [otherSteamId, value] of Object.entries(users)) {
     if (otherSteamId === steamId64) continue;
-    if (value && typeof value === 'object') value.MostRecent = '0';
+    if (!value || typeof value !== 'object') continue;
+    if (linux) value.AutoLogin = '0';
+    else value.MostRecent = '0';
   }
 
   const me = getObj(users, steamId64);
@@ -101,8 +106,12 @@ export const mergeLoginUsersVdf = async (
   me.RememberPassword = '1';
   me.WantsOfflineMode = '0';
   me.SkipOfflineModeWarning = '0';
-  me.AllowAutoLogin = '1';
-  me.MostRecent = '1';
+  if (linux) {
+    me.AutoLogin = '1';
+  } else {
+    me.AllowAutoLogin = '1';
+    me.MostRecent = '1';
+  }
   me.Timestamp = String(ts);
 
   await writeFile(path, writeVdfString(existing));

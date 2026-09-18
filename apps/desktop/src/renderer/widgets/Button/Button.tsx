@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react';
 import type { ComponentPropsWithRef, ComponentType } from 'react';
 import s from './Button.module.scss';
 
-export type ButtonVariant = 'accent' | 'neutral' | 'ghost' | 'danger';
+export type ButtonVariant = 'accent' | 'neutral' | 'ghost' | 'danger' | 'dangerSoft';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 export type ButtonShape = 'pill' | 'rounded';
 
@@ -12,6 +12,7 @@ const VARIANT: Record<ButtonVariant, string | undefined> = {
   neutral: s.neutral,
   ghost: s.ghost,
   danger: s.danger,
+  dangerSoft: s.dangerSoft,
 };
 
 const SIZE: Record<ButtonSize, string | undefined> = { sm: s.sm, md: s.md, lg: s.lg };

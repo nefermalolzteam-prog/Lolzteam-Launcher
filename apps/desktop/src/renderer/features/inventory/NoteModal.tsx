@@ -59,10 +59,9 @@ export const NoteModal = ({ item, onClose, onSaved }: NoteModalProps) => {
           {/* Only when there is something on the server to remove. */}
           {current !== '' && (
             <Button
-              variant="ghost"
+              variant="dangerSoft"
               size="sm"
               icon={Trash2}
-              className={s.delete}
               disabled={busy}
               onClick={() => void commit('')}
             >

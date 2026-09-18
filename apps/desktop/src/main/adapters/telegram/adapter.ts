@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process';
 import { rename, rm } from 'node:fs/promises';
 import type {
   AdapterContext,
@@ -10,7 +9,7 @@ import type {
 import type { StringSessionData } from '@mtcute/node/utils.js';
 import type { AccountDetails } from '@shared-types';
 import { serviceLabel } from '@shared-types';
-import type { WebContents } from 'electron';
+import { type WebContents, app } from 'electron';
 import { fetchSelfId } from '../../services/telegram/self';
 import {
   TELEGRAM_WEB_URL,
@@ -19,8 +18,10 @@ import {
 } from '../../services/telegram/web-login';
 import { failLogin as fail } from '../_shared/fail';
 import { injectCookies, openBrowserWindow } from '../browser/shell-window';
+import { looksLikeFlatpakTelegram, looksLikeSwiftTelegram, resolveTelegramBinary } from './detect';
 import { type TelegramCreds, extractTelegramCreds } from './extract';
-import { ensurePortableMarker, fileExists, getTdataDir } from './paths';
+import { type TelegramTarget, launchTelegram, resolveTelegramTarget } from './launch';
+import { ensurePortableMarker, fileExists } from './paths';
 import { killTelegramProcesses, waitForTelegramExit } from './process';
 import { buildOfflineSession } from './session';
 import { writeProxySettings } from './settings-tdf';
@@ -32,7 +33,7 @@ const loginViaWeb = async (
   ctx: AdapterContext,
 ): Promise<LoginResult> => {
   const authKey = creds.authKey;
-  if (!authKey) return fail('Нет данных сессии Telegram для входа через браузер', 'web');
+  if (!authKey) return fail('login.errors.tg-no-web-session', undefined, 'web');
 
   let userId = creds.userId;
   if (!userId) {
@@ -53,7 +54,7 @@ const loginViaWeb = async (
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       ctx.log.warn(`[telegram] could not resolve user id for #${account.itemId}: ${msg}`);
-      return fail(`Не удалось определить user id аккаунта: ${msg}`, 'web');
+      return fail('login.errors.tg-userid-failed', { detail: msg }, 'web');
     }
   }
 
@@ -64,14 +65,14 @@ const loginViaWeb = async (
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return fail(`Не удалось собрать сессию для Telegram Web: ${msg}`, 'web');
+    return fail('login.errors.tg-web-session-failed', { detail: msg }, 'web');
   }
 
   const partition = `persist:lzt-account-${account.itemId}`;
   ctx.onProgress?.({ step: 'injecting-cookies' });
   await injectCookies(partition, [], ctx);
 
-  if (ctx.abortSignal.aborted) return fail('Вход отменён', 'web');
+  if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, 'web');
 
   ctx.onProgress?.({ step: 'launching-browser' });
   ctx.log.info(`[telegram] opening Telegram Web for #${account.itemId} (dc=${authKey.dcId})`);
@@ -88,14 +89,37 @@ const loginViaWeb = async (
     ok: true,
     method: 'web',
     windowId,
-    message: `Telegram Web открыт под ${who}`,
+    message: { key: 'login.success.tg-web', params: { account: who } },
   };
 };
+
+const NATIVE_PLATFORMS = new Set<NodeJS.Platform>(['win32', 'linux', 'darwin']);
+
+// Platform-specific keys (the renderer resolves them); the two branches map the
+// same slots to different phrasings. Empty string = «not applicable here».
+const MSG =
+  process.platform === 'win32'
+    ? {
+        missing: 'login.errors.tg-path-missing-win',
+        notAtPath: 'login.errors.tg-not-at-path-win',
+        flatpak: '',
+        swift: '',
+        sessionDirUnwritable: 'login.errors.tg-dir-unwritable-win',
+        stillRunning: 'login.errors.tg-still-running-win',
+      }
+    : {
+        missing: 'login.errors.tg-missing-nix',
+        notAtPath: 'login.errors.tg-not-at-path-nix',
+        flatpak: 'login.errors.tg-flatpak',
+        swift: 'login.errors.tg-swift',
+        sessionDirUnwritable: 'login.errors.tg-dir-unwritable-nix',
+        stillRunning: 'login.errors.tg-still-running-nix',
+      };
 
 export const telegramAdapter: ServiceAdapter = {
   id: 'telegram',
   displayName: serviceLabel('telegram'),
-  platforms: ['win32'] as const,
+  platforms: ['win32', 'linux', 'darwin'] as const,
   methods: ['native', 'web'] as const,
 
   async probe(method: LoginMethod, ctx: AdapterContext): Promise<ProbeResult> {
@@ -103,15 +127,20 @@ export const telegramAdapter: ServiceAdapter = {
     if (method !== 'native') {
       return { available: false, reason: 'Поддерживается вход через Telegram Desktop или браузер' };
     }
-    if (process.platform !== 'win32') {
-      return { available: false, reason: 'Telegram-адаптер работает только на Windows' };
+    if (!NATIVE_PLATFORMS.has(process.platform)) {
+      return {
+        available: false,
+        reason: 'Вход в Telegram Desktop доступен на Windows, Linux и macOS',
+      };
     }
-    const exe = ctx.settings?.telegramExePath;
-    if (!exe) {
-      return { available: false, reason: 'Укажите путь к Telegram.exe в Настройках' };
+    const exe = resolveTelegramBinary(ctx.settings?.telegramExePath);
+    if (!exe) return { available: false, reason: MSG.missing };
+    if (!(await fileExists(exe))) return { available: false, reason: MSG.notAtPath };
+    if (process.platform === 'linux' && (await looksLikeFlatpakTelegram(exe))) {
+      return { available: false, reason: MSG.flatpak };
     }
-    if (!(await fileExists(exe))) {
-      return { available: false, reason: 'Telegram.exe не найден по указанному пути' };
+    if (process.platform === 'darwin' && looksLikeSwiftTelegram(exe)) {
+      return { available: false, reason: MSG.swift };
     }
     return { available: true };
   },
@@ -122,27 +151,31 @@ export const telegramAdapter: ServiceAdapter = {
     ctx: AdapterContext,
   ): Promise<LoginResult> {
     if (method !== 'native' && method !== 'web') {
-      return fail('Поддерживается вход через Telegram Desktop или браузер', method);
+      return fail('login.errors.tg-method-unsupported', undefined, method);
     }
-    if (ctx.abortSignal.aborted) return fail('Вход отменён', method);
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, method);
 
     const creds = extractTelegramCreds(account);
-    if (!creds) return fail('У этого аккаунта нет данных Telegram в lzt.market', method);
+    if (!creds) return fail('login.errors.tg-no-credentials', undefined, method);
 
     if (!creds.authKey) {
-      return fail(
-        'Нет данных сессии Telegram для восстановления (loginData.raw пуст или некорректен)',
-        method,
-      );
+      return fail('login.errors.tg-no-restore-data', undefined, method);
     }
 
     if (method === 'web') return loginViaWeb(account, creds, ctx);
 
-    if (process.platform !== 'win32') return fail('Telegram-адаптер работает только на Windows');
+    if (!NATIVE_PLATFORMS.has(process.platform)) {
+      return fail('login.errors.tg-native-platform');
+    }
 
-    const exe = ctx.settings?.telegramExePath;
-    if (!exe || !(await fileExists(exe))) {
-      return fail('Укажите путь к Telegram.exe в Настройках');
+    const exe = resolveTelegramBinary(ctx.settings?.telegramExePath);
+    if (!exe) return fail(MSG.missing);
+    if (!(await fileExists(exe))) return fail(MSG.notAtPath);
+    if (process.platform === 'linux' && (await looksLikeFlatpakTelegram(exe))) {
+      return fail(MSG.flatpak);
+    }
+    if (process.platform === 'darwin' && looksLikeSwiftTelegram(exe)) {
+      return fail(MSG.swift);
     }
 
     ctx.onProgress?.({ step: 'building-tdata' });
@@ -158,29 +191,27 @@ export const telegramAdapter: ServiceAdapter = {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      return fail(`Не удалось собрать сессию из auth_key: ${msg}`);
+      return fail('login.errors.tg-session-build-failed', { detail: msg });
+    }
+
+    let target: TelegramTarget;
+    try {
+      target = await resolveTelegramTarget(exe, app.getPath('userData'));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return fail(MSG.sessionDirUnwritable, { detail: msg });
     }
 
     ctx.onProgress?.({ step: 'killing-telegram' });
-    ctx.log.info('[telegram] killing Telegram processes');
-    await killTelegramProcesses(exe);
-    const exited = await waitForTelegramExit(exe, 5000);
-    if (!exited) {
-      return fail(
-        'Telegram всё ещё запущен (возможно, от имени администратора). Закройте его вручную и повторите вход.',
-      );
-    }
+    ctx.log.info(`[telegram] stopping Telegram instances on ${target.workdir}`);
+    await killTelegramProcesses(target);
+    const exited = await waitForTelegramExit(target, 5000);
+    if (!exited) return fail(MSG.stillRunning);
 
-    if (ctx.abortSignal.aborted) return fail('Вход отменён');
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled');
 
     ctx.onProgress?.({ step: 'writing-tdata' });
-    let tdataDir: string;
-    try {
-      tdataDir = await getTdataDir(exe);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return fail(`Папка с Telegram.exe недоступна на запись: ${msg}`);
-    }
+    const tdataDir = target.tdataDir;
     const stagingDir = `${tdataDir}.new`;
     const backupDir = `${tdataDir}.bak`;
     if (!(await fileExists(tdataDir)) && (await fileExists(backupDir))) {
@@ -222,7 +253,7 @@ export const telegramAdapter: ServiceAdapter = {
     } catch (err) {
       await rm(stagingDir, { recursive: true, force: true }).catch(() => {});
       const msg = err instanceof Error ? err.message : String(err);
-      return fail(`Не удалось записать сессию tdata: ${msg}`);
+      return fail('login.errors.tg-tdata-write-failed', { detail: msg });
     }
 
     if (ctx.proxy) {
@@ -235,33 +266,33 @@ export const telegramAdapter: ServiceAdapter = {
       }
     }
 
-    // Without `tportable.tdat` next to the exe, Telegram Desktop reads
-    // %APPDATA%\Telegram Desktop instead of our tdata and shows the phone-entry
-    // screen — making the offline write look like it silently failed.
-    try {
-      await ensurePortableMarker(exe);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      return fail(`Не удалось создать маркер portable-режима: ${msg}`);
+    if (target.needsPortableMarker) {
+      try {
+        await ensurePortableMarker(exe);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return fail('login.errors.tg-portable-marker-failed', { detail: msg });
+      }
     }
 
-    if (ctx.abortSignal.aborted) return fail('Вход отменён');
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled');
 
     ctx.onProgress?.({ step: 'launching-telegram' });
-    ctx.log.info('[telegram] launching portable Telegram');
-    const child = spawn(exe, [], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: false,
-    });
-    child.unref();
+    ctx.log.info(`[telegram] launching ${exe} ${target.args.join(' ')}`);
+    let child: Awaited<ReturnType<typeof launchTelegram>>;
+    try {
+      child = await launchTelegram(target, ctx.log);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return fail('login.errors.tg-launch-failed', { detail: msg });
+    }
 
     const who = creds.phone || `аккаунт #${account.itemId}`;
     return {
       ok: true,
       method,
       launchedPid: child.pid,
-      message: `Telegram запущен под ${who}`,
+      message: { key: 'login.success.tg-native', params: { account: who } },
     };
   },
 };

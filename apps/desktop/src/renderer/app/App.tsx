@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 import { ConnectionScreen } from '~/features/auth/ConnectionScreen';
 import { LoginScreen } from '~/features/auth/LoginScreen';
+import { AccountConfirmPrompt } from '~/features/inventory/AccountConfirmPrompt';
 import { DeepLinkLogin } from '~/features/inventory/DeepLinkLogin';
 import { InventoryView } from '~/features/inventory/InventoryView';
 import { LoginProgressModal } from '~/features/inventory/LoginProgressModal';
@@ -76,7 +77,7 @@ export const App = () => {
       const sess = useLoginSession.getState();
       if (evt.itemId !== sess.itemId) return;
       if (sess.step === 'done' || sess.error !== null) return;
-      sess.setStep(evt.step, evt.detail);
+      sess.setStep(evt.step, evt.detailKey);
     });
     return off;
   }, []);
@@ -141,6 +142,8 @@ export const App = () => {
       {!splashDone && <Splash onDone={() => setSplashDone(true)} />}
       {/* After the splash: the first thing a user sees should be the app, and the question is about the app. */}
       {splashDone && <MetricsConsentModal />}
+      {/* The guarantee question can interrupt a login from any view — it lives above them all. */}
+      <AccountConfirmPrompt />
     </>
   );
 };

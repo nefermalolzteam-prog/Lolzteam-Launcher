@@ -1,9 +1,14 @@
 import { LOLZ_CONFIG } from '@lolzteam/shared-ipc';
 import ky, { HTTPError, type KyInstance } from 'ky';
 import type {
+  ApiCallRecord,
   CheckAccountResponse,
   EmailCodeResponse,
+  ItemEditFields,
+  RawAiPriceResponse,
+  RawAutoBuyPriceResponse,
   RawEditMeResponse,
+  RawGuardCodeResponse,
   RawLettersResponse,
   RawMarketItem,
   RawOrdersResponse,
@@ -19,6 +24,8 @@ export interface MarketClientOptions {
   getToken: () => Promise<string | null> | string | null;
   userAgent?: string;
   fetch?: typeof globalThis.fetch;
+  /** Every finished request, handed to whoever is counting them. Must never throw. */
+  onResponse?: (record: ApiCallRecord) => void;
 }
 
 /** Longest we will sit on a `429`. */
@@ -51,6 +58,15 @@ const waitAfterRateLimit = (response: Response, now: number): number => {
   return Math.min(Math.max(reset * 1000 - now + RESET_SLACK_MS, 0), MAX_RETRY_WAIT_MS);
 };
 
+/** `X-RateLimit-*`, when the server sent them — the monitor's live numbers. */
+const headerCount = (response: Response, name: string): number | undefined => {
+  const value = Number(response.headers.get(name));
+  return Number.isFinite(value) && value >= 0 ? value : undefined;
+};
+
+/** When each in-flight request left, keyed by the request it belongs to. */
+const startedAt = new WeakMap<Request, number>();
+
 export class MarketClient {
   private readonly http: KyInstance;
   private readonly getToken: MarketClientOptions['getToken'];
@@ -65,10 +81,32 @@ export class MarketClient {
       hooks: {
         beforeRequest: [
           async (req) => {
+            startedAt.set(req, Date.now());
             const token = await this.getToken();
             if (token) req.headers.set('Authorization', `Bearer ${token}`);
             if (opts.userAgent) req.headers.set('User-Agent', opts.userAgent);
             req.headers.set('Accept', 'application/json');
+          },
+        ],
+        afterResponse: [
+          (request, _options, response) => {
+            if (!opts.onResponse) return response;
+            try {
+              const began = startedAt.get(request) ?? Date.now();
+              let path = new URL(request.url).pathname;
+              if (path.startsWith('/')) path = path.slice(1);
+              opts.onResponse({
+                at: Date.now(),
+                method: request.method,
+                path,
+                status: response.status,
+                durationMs: Math.max(0, Date.now() - began),
+                limit: headerCount(response, 'X-RateLimit-Limit'),
+                remaining: headerCount(response, 'X-RateLimit-Remaining'),
+                reset: headerCount(response, 'X-RateLimit-Reset'),
+              });
+            } catch {}
+            return response;
           },
         ],
         beforeRetry: [
@@ -114,9 +152,20 @@ export class MarketClient {
     return this.http.get(String(itemId), { signal }).json<{ item?: RawMarketItem }>();
   }
 
-  /** `Managing.Steam.GetMafile` — Steam Guard mafile for the item. */
+  /** `Managing.Steam.GetMafile` — Steam Guard mafile for the item. Cancels the item's active guarantee. */
   async getSteamMafile(itemId: number, signal?: AbortSignal): Promise<unknown> {
     return this.http.get(`${itemId}/mafile`, { signal }).json<unknown>();
+  }
+
+  /**
+   * `Managing.Steam.GetGuardCode` — the current Steam Guard TOTP, straight from
+   * the maFile the market holds. Unlike `getSteamMafile` this leaves the item's
+   * active guarantee untouched.
+   */
+  async getSteamGuardCode(itemId: number, signal?: AbortSignal): Promise<RawGuardCodeResponse> {
+    return this.http
+      .get(`${itemId}/guard-code`, { signal, throwHttpErrors: false })
+      .json<RawGuardCodeResponse>();
   }
 
   async checkAccount(itemId: number, signal?: AbortSignal): Promise<CheckAccountResponse> {
@@ -182,6 +231,111 @@ export class MarketClient {
   /** `Managing.NoteDelete` — remove it. */
   async deleteItemNote(itemId: number): Promise<RawStatusResponse> {
     return this.http.delete(`${itemId}/note`, { throwHttpErrors: false }).json<RawStatusResponse>();
+  }
+
+  /** `Managing.Bump` — push the listing back to the top of search. */
+  async bumpItem(itemId: number): Promise<RawStatusResponse> {
+    return this.http.post(`${itemId}/bump`, { throwHttpErrors: false }).json<RawStatusResponse>();
+  }
+
+  /**
+   * `Managing.Edit` — the edit endpoint takes the fields themselves; every one
+   * left out keeps its current value. `currency` is required whenever `price`
+   * moves, and the market answers 403 when a price is cut by more than half.
+   */
+  async editItem(itemId: number, fields: ItemEditFields): Promise<RawStatusResponse> {
+    return this.http
+      .put(`${itemId}/edit`, { json: fields, throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** The one-field form of `editItem`, kept for the reprice path. */
+  async setItemPrice(itemId: number, price: number, currency: string): Promise<RawStatusResponse> {
+    return this.editItem(itemId, { price, currency });
+  }
+
+  /** `Managing.AutoBump` — bump the listing again every `hour` hours. */
+  async setAutoBump(itemId: number, hour: number): Promise<RawStatusResponse> {
+    return this.http
+      .post(`${itemId}/auto-bump`, { json: { hour }, throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.AutoBumpDelete` — stop bumping it on a timer. */
+  async disableAutoBump(itemId: number): Promise<RawStatusResponse> {
+    return this.http
+      .delete(`${itemId}/auto-bump`, { throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.Open` — put the listing back on sale. */
+  async openItem(itemId: number): Promise<RawStatusResponse> {
+    return this.http.post(`${itemId}/open`, { throwHttpErrors: false }).json<RawStatusResponse>();
+  }
+
+  /** `Managing.Close` — take the listing off sale without deleting it. */
+  async closeItem(itemId: number): Promise<RawStatusResponse> {
+    return this.http.post(`${itemId}/close`, { throwHttpErrors: false }).json<RawStatusResponse>();
+  }
+
+  /** `Managing.Delete` — a soft delete: the listing leaves public search and can be restored. */
+  async deleteItem(itemId: number, reason: string): Promise<RawStatusResponse> {
+    return this.http
+      .delete(String(itemId), { json: { reason }, throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.Stick` — pin the listing to the top of search. */
+  async stickItem(itemId: number): Promise<RawStatusResponse> {
+    return this.http.post(`${itemId}/stick`, { throwHttpErrors: false }).json<RawStatusResponse>();
+  }
+
+  /** `Managing.Unstick` — unpin it. */
+  async unstickItem(itemId: number): Promise<RawStatusResponse> {
+    return this.http
+      .delete(`${itemId}/stick`, { throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.AutoBuyPrice` — what the market would pay for the item itself. */
+  async getAutoBuyPrice(itemId: number, signal?: AbortSignal): Promise<RawAutoBuyPriceResponse> {
+    return this.http
+      .get(`${itemId}/auto-buy-price`, { signal, throwHttpErrors: false })
+      .json<RawAutoBuyPriceResponse>();
+  }
+
+  /** `Managing.PublicTag.Add` — a tag every visitor of the listing sees. */
+  async addPublicTag(itemId: number, tagId: number): Promise<RawTagOpResponse> {
+    return this.http
+      .post(`${itemId}/public-tag`, { json: { tag_id: tagId }, throwHttpErrors: false })
+      .json<RawTagOpResponse>();
+  }
+
+  /** `Managing.PublicTag.Delete` — take one off. */
+  async removePublicTag(itemId: number, tagId: number): Promise<RawTagOpResponse> {
+    return this.http
+      .delete(`${itemId}/public-tag`, { json: { tag_id: tagId }, throwHttpErrors: false })
+      .json<RawTagOpResponse>();
+  }
+
+  /** `Managing.UpdateInventory` — re-count the Steam inventory behind the listing. */
+  async updateInventoryValue(
+    itemId: number,
+    params: { all?: boolean; appId?: number } = {},
+  ): Promise<RawStatusResponse> {
+    const json: Record<string, unknown> = {};
+    if (params.all !== undefined) json.all = params.all;
+    if (params.appId !== undefined) json.app_id = params.appId;
+    return this.http
+      .post(`${itemId}/update-inventory`, { json, throwHttpErrors: false })
+      .json<RawStatusResponse>();
+  }
+
+  /** `Managing.AiPrice` — the market's own suggestion for the item, in the user's currency. */
+  async getAiPrice(itemId: number, signal?: AbortSignal): Promise<RawAiPriceResponse> {
+    return this.http
+      .get(`${itemId}/ai-price`, { signal, throwHttpErrors: false })
+      .json<RawAiPriceResponse>();
   }
 
   /** `Market.UserTags.Get` — the user's own tag palette. */

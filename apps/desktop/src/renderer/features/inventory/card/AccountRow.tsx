@@ -107,7 +107,7 @@ export const AccountRow = ({
             )}
           </button>
         </Tooltip>
-        <AccountDetails facts={facts} compact />
+        <AccountDetails facts={facts} compact controls={controls} />
       </div>
 
       <div className={`${s.cellText} ${s.cellPurchased} ${purchased ? '' : s.cellEmpty}`}>

@@ -1,3 +1,4 @@
+import type { LocalizedText } from '@adapter-contract';
 import { useEffect } from 'react';
 import { streamKey, useAccountsStream } from './accountsStream';
 import { useLoginSession } from './loginSession';
@@ -56,7 +57,7 @@ const accountsSource: NotifySource = (emit) => {
 /** One account's login, when it stops. */
 const loginSource: NotifySource = (emit) => {
   let step: string | null = null;
-  let error: string | null = null;
+  let error: LocalizedText | null = null;
   return watch(useLoginSession.subscribe, () => {
     const st = useLoginSession.getState();
     const [wasStep, wasError] = [step, error];

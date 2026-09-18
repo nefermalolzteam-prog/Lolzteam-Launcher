@@ -237,7 +237,8 @@
         "busy": "Уже идёт другой прогон.",
         "empty": "Не выбрано ни одного аккаунта, который можно привязать."
       },
-      "start": "Привязать"
+      "start": "Привязать",
+      "mafileConsent": "Понимаю: у аккаунтов без shared_secret в данных лаунчер скачает maFile с маркета — это сбрасывает гарантию этих товаров."
     },
     "delete": {
       "action": "Удалить",
@@ -539,7 +540,8 @@
     "update": {
       "title": "Скачиваем обновление",
       "detail": "{{percent}}%"
-    }
+    },
+    "hint": "Авторизация идёт через OAuth lzt.market. Токен хранится локально, зашифрованный системным хранилищем (DPAPI на Windows, Keychain на macOS, KWallet или Secret Service на Linux)."
   },
   "notify": {
     "bell": "Уведомления",
@@ -621,7 +623,82 @@
         "offline": "Не удалось связаться с маркетом — токен не проверен. Проверьте интернет или прокси и попробуйте ещё раз."
       }
     },
-    "hint": "Авторизация идёт через OAuth lzt.market. Токен хранится локально, зашифрованный системным хранилищем (DPAPI на Windows / Keychain на macOS)."
+    "hint": "Авторизация идёт через OAuth lzt.market. Токен хранится локально, зашифрованный системным хранилищем (DPAPI на Windows / Keychain на macOS).",
+    "errors": {
+      "bad-item-id": "Некорректный идентификатор аккаунта",
+      "cancelled": "Вход отменён",
+      "details-fetch-failed": "Не удалось получить данные аккаунта",
+      "service-unsupported": "Сервис «{{service}}» пока не поддерживается",
+      "unknown": "Неизвестная ошибка",
+      "web-only": "Поддерживается только вход через браузер",
+      "steam-needs-email-code": "Аккаунт требует код с почты",
+      "steam-email-code-fetch-failed": "Не удалось получить код с почты — попробуйте ещё раз",
+      "steam-email-code-rejected": "Steam отверг код с почты: {{detail}}",
+      "steam-guard-no-mafile": "Аккаунт требует код Steam Guard, но maFile на товаре нет — привяжите SDA в меню аккаунта или обратитесь к продавцу",
+      "steam-guard-mafile-unavailable": "Аккаунт требует код Steam Guard (mafile недоступен)",
+      "steam-mafile-declined": "Вход отменён: скачивание maFile сбрасывает гарантию товара",
+      "steam-mafile-fetch-failed": "Не удалось получить mafile для Steam Guard — попробуйте ещё раз",
+      "steam-guard-rejected": "Steam отверг код Steam Guard: {{detail}}",
+      "steam-needs-device-confirm": "Steam ждёт подтверждения на телефоне. Подключите аутентификатор в меню аккаунта → «Steam Guard (SDA)», и лаунчер будет подтверждать вход сам",
+      "steam-needs-email-confirm": "Аккаунт ждёт подтверждения по ссылке из письма",
+      "steam-bad-credentials": "Steam отверг логин/пароль: {{detail}}",
+      "steam-login-error": "Ошибка входа в Steam: {{detail}}",
+      "steam-no-credentials": "У этого аккаунта нет логина/пароля в данных lzt.market",
+      "steam-no-web-cookies": "Steam не вернул web-куки для входа",
+      "steam-native-platform": "Вход в клиент Steam доступен на Windows, Linux и macOS",
+      "steam-not-found": "Steam не найден в системе (проверьте установку)",
+      "steam-not-closed": "Steam не закрылся — закройте его вручную и повторите вход",
+      "steam-vdf-failed": "Не удалось обновить файлы Steam: {{detail}}",
+      "steam-encrypt-failed": "Не удалось зашифровать токен: {{detail}}",
+      "steam-localvdf-failed": "Не удалось сохранить токен в local.vdf: {{detail}}",
+      "tg-no-web-session": "Нет данных сессии Telegram для входа через браузер",
+      "tg-userid-failed": "Не удалось определить user id аккаунта: {{detail}}",
+      "tg-web-session-failed": "Не удалось собрать сессию для Telegram Web: {{detail}}",
+      "tg-method-unsupported": "Поддерживается вход через Telegram Desktop или браузер",
+      "tg-no-credentials": "У этого аккаунта нет данных Telegram в lzt.market",
+      "tg-native-platform": "Вход в Telegram Desktop доступен на Windows, Linux и macOS",
+      "tg-session-build-failed": "Не удалось собрать сессию из auth_key: {{detail}}",
+      "tg-tdata-write-failed": "Не удалось записать сессию tdata: {{detail}}",
+      "tg-portable-marker-failed": "Не удалось создать маркер portable-режима: {{detail}}",
+      "tg-launch-failed": "Не удалось запустить Telegram: {{detail}}",
+      "dc-no-token": "У этого аккаунта нет токена для входа в Discord",
+      "browser-no-cookies": "У этого аккаунта нет cookie для входа через браузер",
+      "llm-no-cookies": "У этого аккаунта нет кук для входа в {{service}}",
+      "llm-no-credentials": "У этого аккаунта нет email/пароля для входа в {{service}}",
+      "llm-unsupported": "Этот LLM-сервис пока не поддерживается",
+      "ea-native-only": "Поддерживается только нативный вход в EA Desktop",
+      "ea-windows-only": "Вход в EA Desktop доступен только на Windows",
+      "ea-not-found": "EA Desktop не найден в системе (проверьте установку)",
+      "ea-no-credentials": "У этого аккаунта нет email/пароля в данных lzt.market",
+      "ea-login-error": "Ошибка входа в EA: {{detail}}",
+      "ea-aes-read-failed": "Не удалось прочитать AES ключ EA Desktop: {{detail}}",
+      "ea-session-write-failed": "Не удалось записать сессию в EA Desktop: {{detail}}",
+      "ea-bad-credentials": "EA отверг email или пароль — проверьте данные аккаунта",
+      "ea-needs-2fa": "Не удалось получить код подтверждения с почты",
+      "ea-bad-2fa-code": "Неверный или просроченный код — попробуйте снова",
+      "ea-no-remid": "EA не вернул сессионный cookie — попробуйте ещё раз",
+      "tg-path-missing-win": "Укажите путь к Telegram.exe в Настройках",
+      "tg-not-at-path-win": "Telegram.exe не найден по указанному пути",
+      "tg-dir-unwritable-win": "Папка с Telegram.exe недоступна на запись: {{detail}}",
+      "tg-still-running-win": "Telegram всё ещё запущен (возможно, от имени администратора). Закройте его вручную и повторите вход.",
+      "tg-missing-nix": "Telegram Desktop не найден — установите его или укажите путь в Настройках",
+      "tg-not-at-path-nix": "Telegram Desktop не найден по указанному пути",
+      "tg-flatpak": "Указан Flatpak-Telegram: его песочница не видит папку сессий лаунчера. Установите обычный пакет telegram-desktop или укажите другой путь",
+      "tg-swift": "Указан Telegram для macOS (Telegram.app): он хранит сессии в собственном формате, и лаунчер не может в него войти. Установите Telegram Desktop (telegramdesktop/tdesktop) или укажите другой путь",
+      "tg-dir-unwritable-nix": "Папка для сессии Telegram недоступна на запись: {{detail}}",
+      "tg-still-running-nix": "Telegram всё ещё запущен. Закройте его вручную и повторите вход.",
+      "tg-no-restore-data": "Нет данных сессии Telegram для восстановления (loginData.raw пуст или некорректен)"
+    },
+    "success": {
+      "browser-web": "{{service}} открыт под аккаунтом {{account}}",
+      "dc-web": "Discord открыт под аккаунтом {{account}}",
+      "ea-native": "EA Desktop запущен под аккаунтом {{account}}",
+      "llm-web": "{{service}} открыт под аккаунтом {{account}}",
+      "steam-native": "Steam запущен под аккаунтом {{account}}",
+      "steam-web": "Steam открыт в браузере под аккаунтом {{account}}",
+      "tg-native": "Telegram запущен под {{account}}",
+      "tg-web": "Telegram Web открыт под {{account}}"
+    }
   },
   "deepLink": {
     "title": "Вход через расширение",
@@ -656,7 +733,11 @@
     "launchingTelegram": "Запускаю Telegram",
     "injectingCookies": "Применяю cookie-сессию",
     "injectingToken": "Применяю токен Discord",
-    "launchingBrowser": "Открываю браузер"
+    "launchingBrowser": "Открываю браузер",
+    "acquiringTokenEa": "Выполняю вход в EA",
+    "killingEa": "Закрываю EA Desktop",
+    "launchingEa": "Запускаю EA Desktop",
+    "writingEaSession": "Записываю сессию EA"
   },
   "loginModal": {
     "title": "Вход в «{{title}}»",
@@ -873,19 +954,45 @@
         "ttVerified": "Verified",
         "ttStream": "Может стримить",
         "ttEmail": "С почтой",
-        "ttFollowers": "С подписчиками"
+        "ttFollowers": "С подписчиками",
+        "steamGames": "С играми",
+        "steamGifts": "С гифтами",
+        "steamFriends": "С друзьями",
+        "steamVac": "VAC-бан",
+        "steamTradeBan": "Трейд-бан",
+        "steamRedPlate": "Красная табличка",
+        "steamChinese": "Perfect World",
+        "tgUsername": "С username",
+        "tgStars": "Со звёздами",
+        "tgAdmin": "Админ",
+        "dcGifts": "С гифтами",
+        "dcBoosts": "С бустами",
+        "igLogin": "Вход без кук",
+        "ttMobile": "С телефоном",
+        "ttCoins": "С коинами",
+        "llmCookies": "С куками",
+        "llmRenew": "Автопродление",
+        "llmKyc": "KYC пройден",
+        "llmPhone": "С телефоном",
+        "llmBalance": "С балансом",
+        "steamCs2Ban": "CS2-бан",
+        "steamLimited": "Ограничен"
       },
-      "reset": "Сбросить фильтры"
+      "reset": "Сбросить фильтры",
+      "priceFrom": "от",
+      "priceLabel": "Цена",
+      "pricePending": "Нажмите Enter или уйдите из поля, чтобы применить",
+      "priceTo": "до"
     },
     "card": {
-      "warrantyDays_one": "{{count}} день гарантии",
-      "warrantyDays_few": "{{count}} дня гарантии",
-      "warrantyDays_many": "{{count}} дней гарантии",
-      "warrantyDays_other": "{{count}} дн. гарантии",
-      "warrantyHours_one": "{{count}} час гарантии",
-      "warrantyHours_few": "{{count}} часа гарантии",
-      "warrantyHours_many": "{{count}} часов гарантии",
-      "warrantyHours_other": "{{count}} ч. гарантии",
+      "warrantyDays_one": "{{count}} день",
+      "warrantyDays_few": "{{count}} дня",
+      "warrantyDays_many": "{{count}} дней",
+      "warrantyDays_other": "{{count}} дн.",
+      "warrantyHours_one": "{{count}} час",
+      "warrantyHours_few": "{{count}} часа",
+      "warrantyHours_many": "{{count}} часов",
+      "warrantyHours_other": "{{count}} ч.",
       "login": "Войти",
       "loginViaBrowser": "Войти через браузер",
       "loginMethod": {
@@ -1071,7 +1178,19 @@
         "contacts_few": "{{count}} контакта",
         "contacts_many": "{{count}} контактов",
         "contacts_other": "{{count}} контактов",
-        "stars": "{{count}} Stars"
+        "stars": "{{count}} Stars",
+        "sessionFolder_linux": "Клиент Telegram",
+        "placeholderNoFile_linux": "Не найден — установите telegram-desktop или укажите путь",
+        "pickDialogTitle_linux": "Выберите исполняемый файл Telegram или форка",
+        "pickFilterName_linux": "Исполняемые файлы",
+        "alert_linux": "Необязательно: лаунчер запускает клиент с собственной папкой сессии, поэтому ваш обычный Telegram не затрагивается.",
+        "releaseHint_linux": "Открыть страницу релиза на GitHub — сборки для Linux",
+        "sessionFolder_darwin": "Клиент Telegram",
+        "placeholderNoFile_darwin": "Не найден — установите Telegram Desktop или укажите путь",
+        "pickDialogTitle_darwin": "Выберите исполняемый файл Telegram Desktop внутри .app",
+        "pickFilterName_darwin": "Исполняемые файлы",
+        "alert_darwin": "Необязательно: лаунчер запускает клиент с собственной папкой сессии, поэтому ваш обычный Telegram не затрагивается.",
+        "releaseHint_darwin": "Открыть страницу релиза на GitHub — сборки для macOS"
       },
       "proxy": {
         "selectTitle": "Выберите прокси для входа",
@@ -1180,7 +1299,83 @@
         "cookies": "С cookies",
         "cookiesTitle": "В комплекте есть куки — вход в один клик",
         "registered": "Рег. {{date}}"
-      }
+      },
+      "goToCategory": "Показать только «{{category}}»",
+      "listing": {
+        "aiButton": "Предложить AI-цену",
+        "aiFailed": "AI-оценка не загрузилась — попробуйте ещё раз",
+        "aiHint": "AI оценил лот в {{price}} {{currency}} — цена подставлена в поле",
+        "aiNone": "AI не нашёл похожих лотов и не смог оценить",
+        "bumpFailed": "Не удалось поднять «{{title}}»",
+        "bumpFailedBody": "Проверьте, есть ли доступные поднятия на маркете",
+        "bumpMenu": "Поднять лот",
+        "priceLabel": "Цена, {{currency}}",
+        "priceMenu": "Изменить цену",
+        "priceTitle": "Цена лота",
+        "saveFailed": "Не удалось сохранить цену — попробуйте ещё раз",
+        "bumpDone": "Лот «{{title}}» поднят",
+        "invalidPrice": "Некорректная цена",
+        "editMenu": "Редактировать лот",
+        "editTitle": "Редактирование лота",
+        "titleLabel": "Название",
+        "titleEnLabel": "Название на английском",
+        "titleEnHint": "Оставьте пустым — маркет переведёт сам из названия выше.",
+        "descriptionLabel": "Публичное описание",
+        "informationLabel": "Приватная информация",
+        "informationHint": "Видна только покупателю. Пусто — оставить как есть.",
+        "discountLabel": "Разрешить просить скидку",
+        "originLabel": "Происхождение аккаунта",
+        "emailTypeLabel": "Тип почты",
+        "autoBuyButton": "Цена автопокупки",
+        "autoBuyHint": "Автопокупка: {{price}} {{currency}}",
+        "autoBuyNone": "У маркета нет цены автопокупки для этого лота",
+        "autoBumpOff": "Выключить авто-подъём",
+        "openMenu": "Вернуть в продажу",
+        "closeMenu": "Снять с продажи",
+        "stickMenu": "Закрепить в топе",
+        "unstickMenu": "Открепить",
+        "inventoryMenu": "Пересчитать инвентарь Steam",
+        "opDone": "Лот «{{title}}» обновлён",
+        "opFailedShort": "Не удалось обновить «{{title}}»",
+        "opFailed": "Маркет отказал: {{detail}}",
+        "tri": {
+          "keep": "Не менять",
+          "yes": "Да",
+          "no": "Нет"
+        },
+        "emailTypes": {
+          "native": "Родная",
+          "autoreg": "Авторег"
+        },
+        "origins": {
+          "brute": "Брут",
+          "phishing": "Фишинг",
+          "stealer": "Логи стилера",
+          "personal": "Личный",
+          "resale": "Перепродажа",
+          "autoreg": "Авторег",
+          "self_registration": "Саморег",
+          "retrieve": "Возврат",
+          "retrieve_via_support": "Возврат через поддержку",
+          "dummy": "Пустышка"
+        },
+        "autoBumpMenu": "Авто-подъём",
+        "autoBumpMenuOn": "Авто-подъём: каждые {{hour}} ч",
+        "autoBumpTitle": "Авто-подъём",
+        "autoBumpEveryLabel": "Поднимать каждые",
+        "autoBumpHours": "{{hour}} ч",
+        "autoBumpCurrent": "Сейчас: каждые {{hour}} ч",
+        "autoBumpNone": "Авто-подъём выключен",
+        "autoBumpBadge": "Авто-ап: {{hour}} ч",
+        "autoBumpBadgeTitle": "Лот поднимается сам с таким интервалом",
+        "bumpUnavailable": "Поднятие сейчас недоступно"
+      },
+      "loginWindowsOnly": "Вход в EA Desktop доступен только на Windows",
+      "warranty_active": "Гарантия: {{left}}",
+      "warranty_expired": "Гарантия истекла",
+      "warranty_none": "Без гарантии",
+      "warranty_until": "Гарантия до {{date}}",
+      "warranty_offer_title": "Столько гарантии получит покупатель"
     }
   },
   "settings": {
@@ -1261,6 +1456,10 @@
       "debug": {
         "title": "Debug Menu",
         "hint": "Экраны, которые сами по себе не покажутся."
+      },
+      "apiMonitor": {
+        "title": "Монитор API",
+        "hint": "Запросы к маркету, расход лимита и последние ответы."
       }
     },
     "debug": {
@@ -1327,7 +1526,8 @@
         },
         "os": {
           "name": "Система",
-          "value": "Windows 11, x64 — без номера сборки"
+          "value": "Windows 11, x64 — без номера сборки",
+          "value_linux": "Linux, ядро 7.x, x64 — без дистрибутива и номера сборки"
         },
         "locale": {
           "name": "Язык интерфейса",
@@ -1477,7 +1677,8 @@
         "run": "Задачи «Базы»",
         "update": "Обновления приложения",
         "proxy": "Проверка прокси"
-      }
+      },
+      "general": "Общее"
     },
     "profile": {
       "title": "Профиль",
@@ -1550,7 +1751,8 @@
       "taskConcurrencyValue_one": "{{count}} аккаунт за раз",
       "taskConcurrencyValue_few": "{{count}} аккаунта за раз",
       "taskConcurrencyValue_many": "{{count}} аккаунтов за раз",
-      "taskConcurrencyHint": "Сколько аккаунтов проверяются одновременно. Чем меньше, тем спокойнее это выглядит со стороны Telegram."
+      "taskConcurrencyHint": "Сколько аккаунтов проверяются одновременно. Чем меньше, тем спокойнее это выглядит со стороны Telegram.",
+      "detected": "Найден автоматически: {{path}}"
     },
     "localDb": {
       "prefix": "Локальная база",
@@ -1621,7 +1823,9 @@
       "web": "Через браузер",
       "steamLabel": "Steam",
       "steamHint": "Вход в клиент Steam или через встроенный браузер.",
-      "telegramHint": "Вход в Telegram Desktop или в Telegram Web через встроенный браузер. Для клиента нужен путь к Telegram.exe в настройках Telegram."
+      "telegramHint": "Вход в Telegram Desktop или в Telegram Web через встроенный браузер. Для клиента нужен путь к Telegram.exe в настройках Telegram.",
+      "telegramHint_linux": "Вход в Telegram Desktop или в Telegram Web через встроенный браузер. Установленный в системе клиент лаунчер находит сам.",
+      "telegramHint_darwin": "Вход в Telegram Desktop или в Telegram Web через встроенный браузер. Установленный в системе клиент лаунчер находит сам (нужен Telegram Desktop, а не Telegram из App Store)."
     },
     "proxy": {
       "menuLabel": "Прокси",
@@ -1721,6 +1925,37 @@
       "downloading": "Загрузка обновления…",
       "downloaded": "Версия {{version}} готова к установке",
       "error": "Не удалось проверить обновления"
+    },
+    "apiMonitor": {
+      "axisHourAgo": "час назад",
+      "axisNow": "сейчас",
+      "barTitle": "{{count}} запрос(ов) · {{time}}",
+      "empty": "Пока ни одного запроса — откройте список аккаунтов или обновите его.",
+      "group": "Состояние",
+      "hourLabel": "Запросов за час",
+      "limitLabel": "Лимит API",
+      "limitValue": "{{remaining}} из {{limit}}",
+      "minuteLabel": "За минуту",
+      "ms": "{{n}} мс",
+      "pulseTitle": "Активность за час",
+      "recentTitle": "Последние запросы",
+      "resetLabel": "Обновление через"
     }
+  },
+  "confirm": {
+    "decline": "Отменить вход",
+    "mafile-download": {
+      "title": "Сброс гарантии",
+      "text": "Для входа нужен maFile (Steam Guard). Его скачивание сбрасывает активную гарантию товара на lzt.market — вернуть её будет нельзя. Продолжить?",
+      "accept": "Скачать и сбросить гарантию"
+    }
+  },
+  "loginDetails": {
+    "with-email-code": "с кодом из почты",
+    "requesting-guard-code": "запрашиваю код Guard у маркета",
+    "guard-from-item": "код Guard из данных товара",
+    "guard-from-sda": "код Guard из привязанного SDA",
+    "guard-from-market": "код Guard с маркета — гарантия не трогается",
+    "guard-from-mafile": "код Guard из maFile — гарантия сброшена"
   }
 }

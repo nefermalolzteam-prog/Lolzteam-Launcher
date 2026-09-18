@@ -78,19 +78,19 @@ export const discordAdapter: ServiceAdapter = {
     account: AccountDetails,
     ctx: AdapterContext,
   ): Promise<LoginResult> {
-    if (method !== 'web') return fail('Поддерживается только вход через браузер', method);
-    if (ctx.abortSignal.aborted) return fail('Вход отменён', method);
+    if (method !== 'web') return fail('login.errors.web-only', undefined, method);
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, method);
 
     const token = extractDiscordToken(account);
     if (!token) {
       ctx.log.warn(`[discord] no token for #${account.itemId} (category=${account.categoryRaw})`);
-      return fail('У этого аккаунта нет токена для входа в Discord', method);
+      return fail('login.errors.dc-no-token', undefined, method);
     }
 
     const partition = `persist:lzt-account-${account.itemId}`;
     await prepareSession(partition, ctx);
 
-    if (ctx.abortSignal.aborted) return fail('Вход отменён', method);
+    if (ctx.abortSignal.aborted) return fail('login.errors.cancelled', undefined, method);
 
     ctx.onProgress?.({ step: 'injecting-token' });
     ctx.log.info(`[discord] opening Discord for #${account.itemId}`);
@@ -150,7 +150,7 @@ export const discordAdapter: ServiceAdapter = {
       ok: true,
       method,
       windowId: win.id,
-      message: `Discord открыт под аккаунтом ${account.title}`,
+      message: { key: 'login.success.dc-web', params: { account: account.title } },
     };
   },
 };

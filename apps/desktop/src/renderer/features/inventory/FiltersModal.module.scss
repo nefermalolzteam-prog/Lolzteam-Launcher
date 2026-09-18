@@ -1,0 +1,36 @@
+// The dialog's body in three columns: how the list is ordered (order, verdict)
+// on the left, what the account costs and who it is labelled by in the middle,
+// the service's own attribute chips on the right — the longest block, so it
+// gets the widest track. Narrow cards fall back to two columns, then to one.
+.layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) minmax(200px, 1fr) minmax(260px, 1.3fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Two number fields side by side, «от» и «до».
+.range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}

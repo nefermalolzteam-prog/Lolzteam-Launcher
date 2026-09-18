@@ -13,14 +13,14 @@ class TokenStore extends EventEmitter {
 
   async load(): Promise<string | null> {
     if (this.cached !== undefined) return this.cached;
+    if (!safeStorage.isEncryptionAvailable()) {
+      log.warn('[auth] safeStorage unavailable (no system keystore) — stored token ignored');
+      this.cached = null;
+      return null;
+    }
     try {
       const buf = await fs.readFile(tokenFile());
-      if (!safeStorage.isEncryptionAvailable()) {
-        log.warn('[auth] safeStorage unavailable, reading token as plaintext');
-        this.cached = buf.toString('utf8');
-      } else {
-        this.cached = safeStorage.decryptString(buf);
-      }
+      this.cached = safeStorage.decryptString(buf);
       return this.cached;
     } catch (err: unknown) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {

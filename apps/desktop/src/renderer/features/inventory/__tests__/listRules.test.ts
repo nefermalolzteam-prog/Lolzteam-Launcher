@@ -116,7 +116,7 @@ describe('searchHaystack', () => {
     expect(hay).toContain('xxpro');
   });
 
-  // The one field the user wrote himself, and therefore the one he will type into the search box when he cannot remember.
+  // The one field the user wrote themselves, and so the one they type into the search box.
   it('folds in the market note', () => {
     const hay = searchHaystack(item({ note: 'Для сборки CS2, не продавать' }), EMPTY);
     expect(hay).toContain('сборки cs2');

@@ -10,7 +10,19 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - os: windows-latest
+            targets: --win
+          - os: ubuntu-latest
+            targets: --linux
+          - os: macos-latest
+            targets: --mac --arm64 --x64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -31,7 +43,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build & publish desktop
-        run: pnpm --filter @lolzteam/desktop exec electron-vite build && pnpm --filter @lolzteam/desktop exec electron-builder --win --publish always
+        run: pnpm --filter @lolzteam/desktop exec electron-vite build && pnpm --filter @lolzteam/desktop exec electron-builder ${{ matrix.targets }} --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           LAUNCHER_TELEMETRY_KEY: ${{ secrets.LAUNCHER_TELEMETRY_KEY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false

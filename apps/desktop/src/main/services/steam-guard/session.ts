@@ -7,6 +7,7 @@ import { extractSteamCreds } from '../../adapters/steam/extract';
 import { generateDeviceId } from '../../adapters/steam/mafile';
 import { acquireMobileSession } from '../../adapters/steam/session';
 import { getSettings } from '../../settings/settings-store';
+import { askAccountConfirm } from '../confirm-broker';
 import { fetchAccountDetails, fetchSteamMafileData } from '../market';
 import { proxyUrlFor } from '../proxy';
 import { onGuardRecordDropped } from './cache-events';
@@ -64,7 +65,13 @@ type CredentialsResult =
   | { ok: true; creds: SteamCredentials }
   | { ok: false; reason: GuardFailure };
 
-const resolveCredentials = async (accountId: number): Promise<CredentialsResult> => {
+/** What a link may do when the secret is nowhere but the market's maFile. */
+export type MafilePolicy = 'ask' | 'allow' | 'deny';
+
+const resolveCredentials = async (
+  accountId: number,
+  mafile: MafilePolicy = 'ask',
+): Promise<CredentialsResult> => {
   if (accountId < 0) {
     const local = await getLocalAccount(accountId);
     if (!local || local.service !== 'steam') return { ok: false, reason: 'no_account' };
@@ -88,15 +95,27 @@ const resolveCredentials = async (accountId: number): Promise<CredentialsResult>
   const creds = extractSteamCreds(found.details);
   if (!creds) return { ok: false, reason: 'no_credentials' };
 
-  const mafile = await fetchSteamMafileData(accountId);
+  // A locally linked record already carries the secrets; otherwise linking
+  // needs the maFile, and downloading it cancels the item's active guarantee.
+  // The single link asks through the confirm prompt; a mass run was consented
+  // to once, before it started.
+  const record = creds.sharedSecret ? null : await getGuardRecord(accountId);
+  const itemSecret = creds.sharedSecret ?? record?.sharedSecret ?? null;
+  const mayDownload =
+    itemSecret !== null ||
+    (mafile === 'allow'
+      ? true
+      : mafile === 'ask' && (await askAccountConfirm(accountId, 'mafile-download')));
+  const mafileData = mayDownload ? await fetchSteamMafileData(accountId) : null;
+
   return {
     ok: true,
     creds: {
       login: creds.login,
       password: creds.password,
-      sharedSecret: mafile?.sharedSecret ?? creds.sharedSecret,
-      identitySecret: mafile?.identitySecret ?? null,
-      deviceId: mafile?.deviceId ?? null,
+      sharedSecret: mafileData?.sharedSecret ?? itemSecret,
+      identitySecret: mafileData?.identitySecret ?? record?.identitySecret ?? null,
+      deviceId: mafileData?.deviceId ?? record?.deviceId ?? null,
     },
   };
 };
@@ -104,9 +123,9 @@ const resolveCredentials = async (accountId: number): Promise<CredentialsResult>
 /** Signs in as the mobile app and stores what the authenticator needs. */
 export const linkGuardAccount = async (
   accountId: number,
-  options: { proxyId?: string | null; emailCode?: string } = {},
+  options: { proxyId?: string | null; emailCode?: string; mafile?: MafilePolicy } = {},
 ): Promise<GuardLinkResult> => {
-  const resolved = await resolveCredentials(accountId);
+  const resolved = await resolveCredentials(accountId, options.mafile ?? 'ask');
   if (!resolved.ok) return { ok: false, reason: resolved.reason };
   const creds = resolved.creds;
   if (!creds.sharedSecret) return { ok: false, reason: 'no_credentials' };

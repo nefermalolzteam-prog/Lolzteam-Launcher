@@ -40,11 +40,11 @@ describe('getTdataDir', () => {
   });
 
   it('rejects an empty path', async () => {
-    await expect(getTdataDir('')).rejects.toThrow(/пуст/);
+    await expect(getTdataDir('')).rejects.toThrow(/path is empty/);
   });
 
   it('rejects placing Telegram.exe directly at a filesystem root', async () => {
     const rootExe = process.platform === 'win32' ? 'C:\\Telegram.exe' : '/Telegram.exe';
-    await expect(getTdataDir(rootExe)).rejects.toThrow(/корне диска/);
+    await expect(getTdataDir(rootExe)).rejects.toThrow(/drive root/);
   });
 });

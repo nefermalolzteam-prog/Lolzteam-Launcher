@@ -42,6 +42,25 @@ export interface RawMarketItem {
   item_id: number;
   category_id: number;
   item_state: string;
+  /** Own listings: hours between automatic bumps, absent or 0 when off. */
+  auto_bump_period?: number;
+  /** Own listings: how long the guarantee runs, in seconds. */
+  guarantee_duration?: number;
+  /** Own listings: the editable fields, as the market currently holds them. */
+  allow_ask_discount?: boolean | number;
+  item_origin?: string;
+  email_type?: string;
+  /** Own listings: what the market lets the seller do to this item right now. */
+  canOpenItem?: boolean;
+  canCloseItem?: boolean;
+  canEditItem?: boolean;
+  canDeleteItem?: boolean;
+  canStickItem?: boolean;
+  canUnstickItem?: boolean;
+  canBumpItem?: boolean;
+  canAutoBump?: boolean;
+  /** Why a bump is refused — the market's own sentence, with markup in it. */
+  canNotBumpItemReason?: string;
   price: number;
   price_currency: string;
   title?: string;
@@ -177,7 +196,23 @@ export interface RawMarketItem {
   itemOriginPhrase?: string;
   /** The owner's private note on the item — what `PUT /{item_id}/note` writes. */
   note_text?: string | null;
+  /** The old field the API no longer fills; kept as a fallback. */
   warranty_end_at?: number;
+  /** What the item page actually renders its warranty badge from. */
+  guarantee?: {
+    /** Seconds. */
+    duration?: number;
+    class?: string;
+    /** «3 дня», as the market phrases it. */
+    durationPhrase?: string;
+    /** Unix seconds; `null` until the item is sold. */
+    endDate?: number | null;
+    active?: boolean | null;
+    cancelled?: boolean | null;
+    /** Seconds left, as the server counts. */
+    remainingTime?: number | null;
+    [key: string]: unknown;
+  };
   published_date?: number;
   category?: {
     name?: string;
@@ -331,4 +366,45 @@ export interface RawLettersResponse {
   error?: string;
   errors?: string[] | string;
   [key: string]: unknown;
+}
+
+/** `GET /{item_id}/guard-code` — the market's wording of `codeData` is loose, so every field is optional. */
+export interface RawGuardCodeResponse {
+  codeData?: {
+    code?: string;
+    date?: number;
+    [key: string]: unknown;
+  };
+  code?: string;
+  errors?: string[] | string;
+  [key: string]: unknown;
+}
+
+/** `GET /{item_id}/ai-price` — the suggestion, already in the user's currency. */
+export interface RawAiPriceResponse {
+  price?: number;
+  errors?: string[] | string;
+  [key: string]: unknown;
+}
+
+/** `GET /{item_id}/auto-buy-price` — the same shape, for the auto-buy figure. */
+export type RawAutoBuyPriceResponse = RawAiPriceResponse;
+
+/** The edit payload lives in shared-types: the IPC layer needs it too. */
+export type { ItemEditFields, ItemOrigin } from '@lolzteam/shared-types';
+
+/** One finished market API call, as the API monitor sees it. */
+export interface ApiCallRecord {
+  /** Epoch ms of the response. */
+  at: number;
+  method: string;
+  /** Path relative to the API root, e.g. `user/orders`. */
+  path: string;
+  status: number;
+  durationMs: number;
+  /** The `X-RateLimit-*` trio, when the response carried it. */
+  limit?: number;
+  remaining?: number;
+  /** Unix seconds. */
+  reset?: number;
 }

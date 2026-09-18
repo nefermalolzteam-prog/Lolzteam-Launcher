@@ -50,7 +50,7 @@ export const transportFor = (proxy?: ProxyEntry | null): TelegramTransport => {
   if (!proxy) return new TcpTransport();
   // Checked here rather than left to DNS: a host that cannot resolve makes the connection retry forever.
   if (!isProxyHost(proxy.host)) {
-    throw new Error(`Некорректный хост прокси: ${proxy.host}`);
+    throw new Error(`Invalid proxy host: ${proxy.host}`);
   }
   return new HttpProxyTcpTransport(proxy);
 };

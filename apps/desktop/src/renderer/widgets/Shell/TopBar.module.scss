@@ -112,6 +112,18 @@
 
     &.headerToolbarOpen {
       grid-template-rows: 1fr;
+
+      .headerToolbarInner {
+        // Open, the mask must come off: `overflow: hidden` here is what kept
+        // the service filter's dropdown cut off inside the header. The change
+        // is held back by exactly the row's transition time, so the reveal
+        // still plays masked — `overflow` is a discrete property, so the delay
+        // only counts with `allow-discrete`; without it the mask lifted on the
+        // first frame and the toolbar flashed above the list.
+        overflow: visible;
+        transition: overflow 0s .2s;
+        transition-behavior: allow-discrete;
+      }
     }
 
     .headerToolbarInner {
@@ -119,6 +131,10 @@
       flex-direction: column;
       min-height: 0;
       overflow: hidden;
+      // Collapsing puts the mask back at once — held-back overflow here would
+      // let the toolbar paint outside the shrinking row.
+      transition: overflow 0s 0s;
+      transition-behavior: allow-discrete;
     }
   }
 }

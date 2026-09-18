@@ -47,6 +47,14 @@ const buildSteps = (t: TFunction): Record<LoginService, readonly StepDef[]> => (
     { step: 'injecting-cookies', label: t('loginSteps.injectingCookies') },
     { step: 'launching-browser', label: t('loginSteps.launchingBrowser') },
   ],
+  ea: [
+    { step: 'fetching-credentials', label: t('loginSteps.fetchingCredentials') },
+    { step: 'acquiring-token', label: t('loginSteps.acquiringTokenEa') },
+    { step: 'fetching-email-code', label: t('loginSteps.fetchingEmailCode') },
+    { step: 'killing-ea', label: t('loginSteps.killingEa') },
+    { step: 'writing-ea-session', label: t('loginSteps.writingEaSession') },
+    { step: 'launching-ea', label: t('loginSteps.launchingEa') },
+  ],
 });
 
 // Steam "open in browser" reuses the credential flow but lands in the in-app browser.
@@ -67,8 +75,8 @@ const visibleSteps = (
   awaitingEmail: boolean,
   t: TFunction,
 ): StepDef[] => {
-  if (service !== 'steam') return [...stepsByService[service]];
-  const base = method === 'web' ? steamWebSteps(t) : stepsByService.steam;
+  if (service !== 'steam' && service !== 'ea') return [...stepsByService[service]];
+  const base = service === 'steam' && method === 'web' ? steamWebSteps(t) : stepsByService[service];
   const skipEmail = !awaitingEmail && currentStep !== 'fetching-email-code';
   return base.filter((s) => {
     if (s.step === 'fetching-email-code') return !skipEmail;
@@ -95,7 +103,7 @@ const statusFor = (
 
 export const LoginProgressModal = () => {
   const { t } = useTranslation();
-  const { isOpen, itemId, accountTitle, service, method, step, detail, error, close } =
+  const { isOpen, itemId, accountTitle, service, method, step, detailKey, error, close } =
     useLoginSession();
 
   // Auto-dismiss shortly after a successful sign-in so the modal doesn't linger on screen.
@@ -139,11 +147,11 @@ export const LoginProgressModal = () => {
           <ModalSpacer />
           {/* Одна кнопка, но разная: пока идёт вход, она отменяет начатое, а после — просто убирает отчёт с экрана. */}
           {isFinished ? (
-            <Button variant="ghost" size="sm" onClick={close}>
+            <Button variant="dangerSoft" size="sm" onClick={close}>
               {t('common.close')}
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" onClick={cancel}>
+            <Button variant="dangerSoft" size="sm" onClick={cancel}>
               {t('loginModal.cancel')}
             </Button>
           )}
@@ -168,7 +176,9 @@ export const LoginProgressModal = () => {
               </span>
               <span className={s.label}>
                 {stepDef.label}
-                {status === 'active' && detail && <span className={s.detail}> · {detail}</span>}
+                {status === 'active' && detailKey && (
+                  <span className={s.detail}> · {t(`loginDetails.${detailKey}`)}</span>
+                )}
               </span>
             </li>
           );
@@ -176,7 +186,7 @@ export const LoginProgressModal = () => {
       </ol>
 
       {/* Под списком, а не над ним: строка, на которой всё встало, уже отмечена красным значком. */}
-      {error && <ModalError>{error}</ModalError>}
+      {error && <ModalError>{t(error.key, error.params)}</ModalError>}
 
       {isDone && (
         <div className={s.success}>
@@ -188,9 +198,11 @@ export const LoginProgressModal = () => {
                   ? 'Discord'
                   : svc === 'llm'
                     ? 'Claude'
-                    : svc === 'browser'
-                      ? t('loginModal.browserService')
-                      : 'Steam',
+                    : svc === 'ea'
+                      ? 'EA'
+                      : svc === 'browser'
+                        ? t('loginModal.browserService')
+                        : 'Steam',
           })}
         </div>
       )}

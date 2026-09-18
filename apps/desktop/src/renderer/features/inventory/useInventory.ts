@@ -169,8 +169,9 @@ export const useInventoryList = (scopeOverride?: AccountScope) => {
   const filter = useInventoryFilters((st) => st.filter);
   const llmService = useInventoryFilters((st) => st.llmService);
   const search = useInventoryFilters((st) => st.search);
-  // One subscription for all five: they belong to the open tab and change together.
-  const { includeLabels, excludeLabels, attrs, validity, folder } = useActiveFilters();
+  // One subscription for all of them: they belong to the open tab and change together.
+  const { includeLabels, excludeLabels, attrs, validity, folder, priceMin, priceMax } =
+    useActiveFilters();
   const settings = useSettings((st) => st.settings);
   const hideInvalid = settings?.inventoryHideInvalid ?? false;
   const storedSortKey = settings?.inventorySortKey ?? 'purchased';
@@ -213,6 +214,8 @@ export const useInventoryList = (scopeOverride?: AccountScope) => {
 
   // Folders only exist in the local base; a selection made there must not keep emptying the grid after a switch.
   const activeFolder = scope === 'local' ? folder : null;
+  // Neither does a price: a hand-added account has none to compare.
+  const activePrice = scope === 'local' ? null : { min: priceMin, max: priceMax };
 
   const visible = useMemo(() => {
     const filtered = scopedItems.filter(
@@ -220,6 +223,9 @@ export const useInventoryList = (scopeOverride?: AccountScope) => {
         (filter === 'all' || it.category === filter) &&
         (filter !== 'llm' || llmService === 'all' || it.llmService === llmService) &&
         (activeFolder === null || (it.folder ?? '') === activeFolder) &&
+        (activePrice === null ||
+          ((activePrice.min === null || it.price >= activePrice.min) &&
+            (activePrice.max === null || it.price <= activePrice.max))) &&
         (wantValidity === null || wantValidity.includes(validityOf(it, sources))) &&
         matchesLabelFilters(
           it.tags.map((tg) => tg.id),
@@ -235,6 +241,7 @@ export const useInventoryList = (scopeOverride?: AccountScope) => {
     filter,
     llmService,
     activeFolder,
+    activePrice,
     wantValidity,
     includeLabels,
     excludeLabels,
@@ -266,6 +273,7 @@ export const useInventoryList = (scopeOverride?: AccountScope) => {
     hideInvalid,
     validity.join(),
     activeFolder ?? '*',
+    activePrice ? `${activePrice.min ?? '*'}-${activePrice.max ?? '*'}` : '*',
     sortKey,
     sortDir,
     trimmedSearch,

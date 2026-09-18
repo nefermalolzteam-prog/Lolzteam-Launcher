@@ -3,6 +3,7 @@ import s from '../AccountCard.module.scss';
 import { AvatarPreview } from '../AvatarPreview';
 import { InitialsAvatar } from '../InitialsAvatar';
 import { DETAILS_PANELS } from '../details/registry';
+import type { AccountControls } from './controls';
 import type { AccountFacts } from './facts';
 
 /** The face: a real avatar, initials, the service logo, or nothing at all — in that order, and the order is the point. */
@@ -57,10 +58,14 @@ export const SelectCheck = ({
 );
 
 /** Everything the market parsed out of this account. */
-export const AccountDetails = ({ facts, compact }: { facts: AccountFacts; compact: boolean }) => (
+export const AccountDetails = ({
+  facts,
+  compact,
+  controls,
+}: { facts: AccountFacts; compact: boolean; controls?: AccountControls }) => (
   <>
     {DETAILS_PANELS.map(({ id, Panel }) => (
-      <Panel key={id} item={facts.item} compact={compact} />
+      <Panel key={id} item={facts.item} compact={compact} controls={controls} />
     ))}
   </>
 );

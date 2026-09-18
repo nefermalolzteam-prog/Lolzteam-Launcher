@@ -13,7 +13,7 @@ export const NotificationsPage = () => {
 
   return (
     <>
-      <SettingGroup label={'Общее'}>
+      <SettingGroup label={t('settings.notify.general')}>
         <SettingToggle
           title={t('settings.notify.enabledLabel')}
           description={t('settings.notify.enabledHint')}

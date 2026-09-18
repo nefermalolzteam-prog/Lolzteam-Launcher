@@ -28,6 +28,8 @@ const NO_FILTERS: CategoryFilters = Object.freeze({
   attrs: [] as string[],
   validity: [] as AccountValidity[],
   folder: null,
+  priceMin: null,
+  priceMax: null,
 });
 
 const isEmpty = (f: CategoryFilters): boolean =>
@@ -35,7 +37,9 @@ const isEmpty = (f: CategoryFilters): boolean =>
   f.excludeLabels.length === 0 &&
   f.attrs.length === 0 &&
   f.validity.length === 0 &&
-  f.folder === null;
+  f.folder === null &&
+  f.priceMin === null &&
+  f.priceMax === null;
 
 interface InventoryFiltersState {
   scope: AccountScope;
@@ -53,6 +57,8 @@ interface InventoryFiltersState {
   toggleAttr: (id: string) => void;
   toggleValidity: (value: AccountValidity) => void;
   setFolder: (folder: string | null) => void;
+  /** Both bounds at once: the dialog commits a pair, not keystrokes. */
+  setPriceRange: (min: number | null, max: number | null) => void;
   /** Clears the open tab's filters and leaves every other tab alone. */
   resetCategory: () => void;
   /** Drops the folder selection everywhere — for a switch to another base. */
@@ -129,6 +135,9 @@ export const useInventoryFilters = create<InventoryFiltersState>((set) => ({
 
   setFolder: (folder) => set((st) => editActive(st, () => ({ folder }))),
 
+  setPriceRange: (priceMin, priceMax) =>
+    set((st) => editActive(st, () => ({ priceMin, priceMax }))),
+
   resetCategory: () =>
     set((st) => {
       if (!st.byCategory[st.filter]) return st;
@@ -201,6 +210,8 @@ const strings = (v: unknown): string[] =>
 const readEntry = (raw: unknown): CategoryFilters | null => {
   if (!raw || typeof raw !== 'object') return null;
   const src = raw as Record<string, unknown>;
+  const price = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
   const entry: CategoryFilters = {
     includeLabels: numbers(src.includeLabels),
     excludeLabels: numbers(src.excludeLabels),
@@ -209,6 +220,8 @@ const readEntry = (raw: unknown): CategoryFilters | null => {
       VALIDITIES.includes(v as AccountValidity),
     ),
     folder: typeof src.folder === 'string' ? src.folder : null,
+    priceMin: price(src.priceMin),
+    priceMax: price(src.priceMax),
   };
   return isEmpty(entry) ? null : entry;
 };

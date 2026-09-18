@@ -1,6 +1,7 @@
 import { ExternalLink, FolderOpen, RotateCcw } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IS_POSIX_DESKTOP, PLATFORM } from '~/lib/platform';
 import { patchSettings, useSettings } from '~/stores/settings';
 import {
   type ChoiceOption,
@@ -26,6 +27,32 @@ export const TelegramPage = () => {
 
   const tgPath = settings?.telegramExePath ?? null;
 
+  // On Linux and macOS an empty setting is the normal case: the packaged
+  // client is found on its own. Show what was found so the row does not read
+  // as "nothing set".
+  const [detected, setDetected] = useState<string | null>(null);
+  useEffect(() => {
+    if (!IS_POSIX_DESKTOP || tgPath) return;
+    let live = true;
+    void window.launcher.telegram
+      .detectBinary()
+      .then((result) => {
+        if (live) setDetected(result?.path ?? null);
+      })
+      .catch(() => {
+        if (live) setDetected(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [tgPath]);
+
+  const clientDescription =
+    tgPath ??
+    (IS_POSIX_DESKTOP && detected
+      ? t('settings.telegram.detected', { path: detected })
+      : t('settings.telegram.placeholderNoFile', { context: PLATFORM }));
+
   // Подписи вариантов живут в переводе, а не в константе рядом с числами.
   const accountOptions: readonly ChoiceOption<number>[] = TG_ACCOUNT_LIMITS.map((value) => ({
     value,
@@ -45,8 +72,15 @@ export const TelegramPage = () => {
     setPicking(true);
     try {
       const path = await window.launcher.settings.pickFile({
-        title: t('settings.telegram.pickDialogTitle'),
-        filters: [{ name: t('settings.telegram.pickFilterName'), extensions: ['exe'] }],
+        title: t('settings.telegram.pickDialogTitle', { context: PLATFORM }),
+        // Linux and macOS executables carry no extension, so filtering on one
+        // would hide every candidate the user could possibly pick.
+        filters: [
+          {
+            name: t('settings.telegram.pickFilterName', { context: PLATFORM }),
+            extensions: PLATFORM === 'win32' ? ['exe'] : ['*'],
+          },
+        ],
       });
       if (path) await patchSettings({ telegramExePath: path });
     } finally {
@@ -59,10 +93,10 @@ export const TelegramPage = () => {
       <SettingGroup label={t('settings.nav.sections.client')}>
         {/* Two things to do with one value — choose the file, or forget it — so the row itself is not a button. */}
         <SettingRow
-          title={t('settings.telegram.sessionFolder')}
-          description={tgPath ?? t('settings.telegram.placeholderNoFile')}
+          title={t('settings.telegram.sessionFolder', { context: PLATFORM })}
+          description={clientDescription}
           truncate
-          alert={t('settings.telegram.alert')}
+          alert={t('settings.telegram.alert', { context: PLATFORM })}
         >
           <SettingIconButton
             icon={FolderOpen}
@@ -80,7 +114,7 @@ export const TelegramPage = () => {
         </SettingRow>
         <SettingAction
           title={t('settings.telegram.releaseLabel')}
-          description={t('settings.telegram.releaseHint')}
+          description={t('settings.telegram.releaseHint', { context: PLATFORM })}
           icon={ExternalLink}
           onClick={() => void window.launcher.app.openExternal(RELEASES_URL)}
         />

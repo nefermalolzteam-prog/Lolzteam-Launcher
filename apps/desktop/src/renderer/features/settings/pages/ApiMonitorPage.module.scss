@@ -1,0 +1,168 @@
+/* ── Заголовок секции ───────────────────────────────────────────────────── */
+/* Как подпись группы настроек, но без её коробки: свои карточки рисуют себя сами. */
+.sectionTitle {
+  margin: 0;
+  color: v2.$textMuted;
+  font-size: 14px;
+  font-weight: 400;
+
+  &:not(:first-child) {
+    margin-top: 14px;
+  }
+}
+
+/* ── Карточки состояния ─────────────────────────────────────────────────── */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat {
+  padding: 14px 16px;
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+  background: v2.$primaryDark;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.statLabel {
+  font-size: $fs-xs;
+  color: v2.$textMuted;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: $color-text;
+  font-variant-numeric: tabular-nums;
+  @include truncate(1);
+}
+
+/* ── График ─────────────────────────────────────────────────────────────── */
+
+.card {
+  border: 1px solid v2.$primary;
+  border-radius: v2.$radiusLG;
+  background: v2.$primaryDark;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 72px;
+  /* Ноль — тоже колонка: пустая минута занимает свою и ловит ховер. */
+  > * {
+    flex: 1;
+    min-width: 2px;
+    display: flex;
+    align-items: flex-end;
+  }
+}
+
+.bar {
+  width: 100%;
+  border-radius: 1px 1px 0 0;
+  background: rgba(v2.$primary, 0.8);
+  transition: height $duration-base $ease-out, background $duration-fast $ease-out;
+
+  &.barHit {
+    background: $color-accent-solid;
+  }
+}
+
+.chartAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: $fs-xs;
+  color: v2.$textMuted;
+}
+
+/* ── Таблица запросов ───────────────────────────────────────────────────── */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  overflow-y: auto;
+  @include scrollbar();
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 64px 52px 1fr 44px 56px;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 2px;
+  font-size: $fs-sm;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid rgba(v2.$primary, 0.5);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.rowTime {
+  color: v2.$textMuted;
+}
+
+.rowMethod {
+  font-size: $fs-xs;
+  font-weight: 600;
+  color: v2.$textMuted;
+  text-transform: uppercase;
+}
+
+.rowPath {
+  @include truncate(1);
+  color: $color-text;
+}
+
+.rowMs {
+  color: v2.$textMuted;
+  text-align: right;
+}
+
+.rowStatus {
+  text-align: right;
+  font-weight: 600;
+
+  &.ok {
+    color: $color-accent-text;
+  }
+
+  &.rate {
+    color: $color-danger-text;
+  }
+
+  &.bad {
+    color: $color-danger-text;
+  }
+
+  &.other {
+    color: v2.$textMuted;
+  }
+}
+
+.empty {
+  padding: 18px 0;
+  text-align: center;
+  color: v2.$textMuted;
+  font-size: $fs-sm;
+}
+
+@media (max-width: 780px) {
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

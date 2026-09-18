@@ -2,6 +2,7 @@ import { copyFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { IPC_CHANNELS, LOLZ_CONFIG, type NetworkStatus } from '@shared-ipc';
 import { BrowserWindow, app, dialog, ipcMain, shell } from 'electron';
+import { apiMonitorSnapshot } from '../services/api-monitor';
 import { appFetch } from '../services/api-session';
 
 const ALLOWED_URL_PREFIXES = ['https://', 'http://'];
@@ -45,6 +46,8 @@ export const registerAppIpc = () => {
   });
 
   ipcMain.handle(IPC_CHANNELS.APP_PING_API, () => pingApi());
+
+  ipcMain.handle(IPC_CHANNELS.APP_API_STATS, () => apiMonitorSnapshot());
 
   ipcMain.handle(IPC_CHANNELS.APP_OPEN_LOGS, async () => {
     await shell.openPath(logsDir());

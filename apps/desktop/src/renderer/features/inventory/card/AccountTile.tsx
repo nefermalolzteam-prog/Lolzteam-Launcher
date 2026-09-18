@@ -1,5 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useInventoryFilters } from '~/stores/inventoryFilters';
 import { Tooltip } from '~/widgets/Tooltip/Tooltip';
 import { NoteIcon, StarIcon } from '~/widgets/icons/Icons';
 import s from '../AccountCard.module.scss';
@@ -20,6 +21,7 @@ export const AccountTile = ({
 }: AccountShapeProps) => {
   const { t } = useTranslation();
   const { item, isLocal, profile, identity, country, countryText, chipTags } = facts;
+  const openTab = useInventoryFilters((st) => st.filter);
   // Green is the unmarked case, so only the other two carry a modifier — see the note in `AccountRow`.
   const statusClass =
     facts.validity === 'invalid'
@@ -27,6 +29,17 @@ export const AccountTile = ({
       : facts.validity === 'unknown'
         ? s.statusUnknown
         : '';
+
+  // The card's own category is one click away — but only where there is
+  // somewhere to jump to: on «Все сервисы». Inside a category tab the header
+  // would point at the tab the user is already reading.
+  const goToCategory =
+    item.category !== null && openTab === 'all'
+      ? () =>
+          useInventoryFilters
+            .getState()
+            .setFilter(item.category as NonNullable<typeof item.category>)
+      : null;
 
   const aboutParts: ReactNode[] = [];
   if (identity) {
@@ -48,15 +61,29 @@ export const AccountTile = ({
     <>
       <div className={s.topSection}>
         <header className={s.head}>
-          <div className={s.thumbBlock}>
-            <AccountThumb facts={facts} compact={false} />
-            <span className={s.category}>{facts.categoryText}</span>
-            {profile?.premium && (
-              <span className={s.premiumTag} title="Telegram Premium">
-                <StarIcon size={11} />
-              </span>
-            )}
-          </div>
+          {goToCategory ? (
+            <Tooltip label={t('inventory.card.goToCategory', { category: facts.categoryText })}>
+              <button type="button" className={s.thumbBlock} onClick={goToCategory}>
+                <AccountThumb facts={facts} compact={false} />
+                <span className={s.category}>{facts.categoryText}</span>
+                {profile?.premium && (
+                  <span className={s.premiumTag} title="Telegram Premium">
+                    <StarIcon size={11} />
+                  </span>
+                )}
+              </button>
+            </Tooltip>
+          ) : (
+            <div className={`${s.thumbBlock} ${s.thumbBlockStatic}`}>
+              <AccountThumb facts={facts} compact={false} />
+              <span className={s.category}>{facts.categoryText}</span>
+              {profile?.premium && (
+                <span className={s.premiumTag} title="Telegram Premium">
+                  <StarIcon size={11} />
+                </span>
+              )}
+            </div>
+          )}
           <div className={s.headRight}>
             <div className={`${s.status} ${statusClass}`}>
               <span className={s.dot} />
@@ -72,7 +99,18 @@ export const AccountTile = ({
           </div>
         </header>
 
-        <h3 className={s.titleAccount}>{item.title}</h3>
+        {/* The title is the way to the item page; a hand-added account has none. */}
+        <h3 className={s.titleAccount}>
+          {isLocal ? (
+            item.title
+          ) : (
+            <Tooltip label={t('inventory.card.openOnMarket')}>
+              <button type="button" className={s.titleLink} onClick={controls.openOnMarket}>
+                {item.title}
+              </button>
+            </Tooltip>
+          )}
+        </h3>
 
         {aboutParts.length > 0 && (
           <div className={s.aboutBlock}>
@@ -88,7 +126,7 @@ export const AccountTile = ({
         {/* What is known about the account and what the user called it, as one block: the two are read together. */}
         <div className={s.factsBlock}>
           <div className={s.parsedInfo}>
-            <AccountDetails facts={facts} compact={false} />
+            <AccountDetails facts={facts} compact={false} controls={controls} />
           </div>
 
           {chipTags.length > 0 && (
@@ -154,7 +192,20 @@ export const AccountTile = ({
           {!isLocal && (
             <div className={s.bottomItem}>
               <span className={s.description}>{t('inventory.card.priceLabel')}</span>
-              <span className={s.title}>{facts.price}</span>
+              {/* On the user's own listing the price is the way into the editor. */}
+              {facts.isListing ? (
+                <Tooltip label={t('inventory.card.listing.priceMenu')}>
+                  <button
+                    type="button"
+                    className={`${s.title} ${s.priceLink}`}
+                    onClick={controls.openListingPrice}
+                  >
+                    {facts.price}
+                  </button>
+                </Tooltip>
+              ) : (
+                <span className={s.title}>{facts.price}</span>
+              )}
             </div>
           )}
         </div>

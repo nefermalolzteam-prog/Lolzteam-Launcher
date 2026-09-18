@@ -164,6 +164,20 @@ export const DebugIcon: SettingsIcon = (props) => (
   </Glyph>
 );
 
+/** Монитор API — пульс запросов к маркету. */
+export const ApiIcon: SettingsIcon = (props) => (
+  <Glyph {...props} viewBox="0 0 24 24">
+    <path
+      d="M2 12H5.5L8 6.5L12 17.5L14.5 12H22"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+    />
+  </Glyph>
+);
+
 /** Редактировать — действие в строке, а не пункт рельсы. */
 export const PencilIcon: SettingsIcon = (props) => (
   <Glyph {...props} viewBox="0 0 24 24">

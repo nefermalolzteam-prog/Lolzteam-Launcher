@@ -1,6 +1,9 @@
+import type { GuardCodeAnswer } from '@adapter-contract';
 import { MarketClient, readRateLimit } from '@market-sdk';
 import type {
+  ItemEditFields,
   RateLimitInfo,
+  RawGuardCodeResponse,
   RawLetter,
   RawMarketItem,
   RawOrdersResponse,
@@ -8,6 +11,7 @@ import type {
   RawUserTag,
 } from '@market-sdk';
 import {
+  ITEM_ORIGINS,
   categoryIdToServiceId,
   categoryNameToServiceId,
   detectLlmService,
@@ -20,6 +24,9 @@ import type {
   AuthSession,
   DiscordInfo,
   InstagramInfo,
+  ItemEmailType,
+  ItemOrigin,
+  ListingCapabilities,
   LlmInfo,
   MailLetter,
   MailLettersRequest,
@@ -37,6 +44,7 @@ import log from 'electron-log/main';
 import { type MafileData, parseMafile } from '../adapters/steam/mafile';
 import { loadToken, onTokenChange } from '../auth/token-store';
 import { sleep } from '../lib/sleep';
+import { recordApiCall } from './api-monitor';
 import { appFetch } from './api-session';
 import { toIsoCountry } from './country';
 
@@ -48,6 +56,7 @@ const getClient = (): MarketClient => {
       getToken: () => loadToken(),
       userAgent: `LolzteamLauncher/${app.getVersion?.() ?? '0.0.0'} (+desktop)`,
       fetch: appFetch,
+      onResponse: recordApiCall,
     });
   }
   return client;
@@ -444,6 +453,85 @@ const extractLlmInfo = (item: RawMarketItem, serviceId: ServiceId | null): LlmIn
 };
 
 // `buyer.operation_date` (when present) is when the current viewer purchased the item.
+/**
+ * The item page renders its badge from `item.guarantee` — the trio of
+ * `endDate`/`active`/`cancelled`. The flat `warranty_end_at` the launcher
+ * used to read is no longer filled by the API, which made every bought
+ * account read as «no warranty». It stays as a fallback for old caches.
+ *
+ * We keep the `endDate` even once it is in the past: the badge turns that
+ * into «expired», which is truer than «no warranty at all» for an account
+ * that did carry one. Only a *cancelled* guarantee (the reset already
+ * happened) collapses to none. The market's own `active` flag is just
+ * `endDate > now && !cancelled`, so the UI recomputes it from `endDate`
+ * against the client clock instead of trusting a value frozen server-side.
+ */
+const warrantyEndsAtOf = (item: RawMarketItem): number | null => {
+  const g = item.guarantee;
+  if (g && typeof g === 'object') {
+    if (g.cancelled === true) return null;
+    if (typeof g.endDate === 'number' && g.endDate > 0) return g.endDate;
+  }
+  return typeof item.warranty_end_at === 'number' && item.warranty_end_at > 0
+    ? item.warranty_end_at
+    : null;
+};
+
+/**
+ * The item's own answer to «what may the seller do right now»: bump limits
+ * spent, already closed, not stickable. Only the user's own listings carry it,
+ * so anything else gets `null` and the menu offers nothing.
+ */
+const extractListing = (item: RawMarketItem, scope: MarketScope): ListingCapabilities | null => {
+  if (scope !== 'listed') return null;
+  const flag = (v: unknown): boolean => v === true || v === 1 || v === '1';
+  const period = asNumber(item.auto_bump_period);
+  const guarantee = asNumber(item.guarantee_duration);
+  return {
+    canOpen: flag(item.canOpenItem),
+    canClose: flag(item.canCloseItem),
+    canEdit: flag(item.canEditItem),
+    canDelete: flag(item.canDeleteItem),
+    canStick: flag(item.canStickItem),
+    canUnstick: flag(item.canUnstickItem),
+    canBump: flag(item.canBumpItem),
+    canAutoBump: flag(item.canAutoBump),
+    // The market phrases the refusal with a link to its own settings; the card wants the sentence, not the markup.
+    bumpBlockedReason: stripTags(asString(item.canNotBumpItemReason)),
+    autoBumpHours: period !== null && period > 0 ? period : null,
+    guaranteeSeconds: guarantee !== null && guarantee > 0 ? guarantee : null,
+    titleEn: asString(item.title_en),
+    // `null` and «false» are different answers here: one is «the market did not
+    // say», the other is «discounts are off», and the dialog shows them apart.
+    allowAskDiscount: item.allow_ask_discount === undefined ? null : flag(item.allow_ask_discount),
+    origin: asOrigin(item.item_origin),
+    emailType: asEmailType(item.email_type),
+  };
+};
+
+/** Only the values the market documents; anything else reads as «not said». */
+const asOrigin = (value: unknown): ItemOrigin | null => {
+  const text = asString(value);
+  return text !== null && (ITEM_ORIGINS as readonly string[]).includes(text)
+    ? (text as ItemOrigin)
+    : null;
+};
+
+const asEmailType = (value: unknown): ItemEmailType | null => {
+  const text = asString(value);
+  return text === 'native' || text === 'autoreg' ? text : null;
+};
+
+/** `<a href="/account/market">настройках</a>` → `настройках`. */
+const stripTags = (value: string | null): string | null => {
+  if (value === null) return null;
+  const text = value
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return text || null;
+};
+
 const extractPurchasedAt = (item: RawMarketItem): number | null => {
   const buyer = item.buyer;
   if (buyer && typeof buyer === 'object') {
@@ -500,7 +588,8 @@ export const normalizeItem = (item: RawMarketItem, scope: MarketScope): AccountS
     currency: item.price_currency ?? 'RUB',
     imageUrl: item.item_image_url ?? item.item_image ?? null,
     tags: extractTags(item),
-    warrantyEndsAt: item.warranty_end_at ?? null,
+    warrantyEndsAt: warrantyEndsAtOf(item),
+    listing: extractListing(item, scope),
     publishedAt: item.published_date ?? null,
     purchasedAt: extractPurchasedAt(item),
     isPurchased: item.item_state === 'paid' || item.item_state === 'closed',
@@ -750,6 +839,52 @@ export const fetchSteamMafile = async (
   itemId: number,
   signal?: AbortSignal,
 ): Promise<string | null> => (await fetchSteamMafileData(itemId, signal))?.sharedSecret ?? null;
+
+/**
+ * The current Steam Guard code, generated on the market's side from the maFile
+ * it already holds — the guarantee-preserving stand-in for `fetchSteamMafile`
+ * when all the caller needs is one TOTP.
+ */
+
+// A Guard code is five characters of Steam's own alphabet — digits and letters,
+// never `0`/`1` or the ambiguous consonants. A digits-only check would throw
+// away every code that contains a letter, and the login would fall through to
+// the guarantee-cancelling maFile download for no reason.
+const GUARD_CODE_RE = /^[23456789BCDFGHJKMNPQRTVWXY]{5}$/;
+
+/** The phrase the market answers with when the item has no maFile at all. */
+const looksLikeNoMafile = (resp: RawGuardCodeResponse): boolean => {
+  const errors = Array.isArray(resp.errors) ? resp.errors : [resp.errors];
+  return errors.some((e) => typeof e === 'string' && /no_mafile/i.test(e));
+};
+
+export const fetchSteamGuardCode = async (
+  itemId: number,
+  signal?: AbortSignal,
+): Promise<GuardCodeAnswer> => {
+  const token = await loadToken();
+  if (!token) return { code: null, noMafile: false };
+  try {
+    const resp = await getClient().getSteamGuardCode(itemId, signal);
+    if (looksLikeNoMafile(resp)) {
+      log.info(`[market] guard-code for #${itemId}: the item has no maFile`);
+      return { code: null, noMafile: true };
+    }
+    const code = resp.codeData?.code ?? (typeof resp.code === 'string' ? resp.code : null);
+    if (code === null) {
+      log.info(`[market] guard-code for #${itemId}: no code in the answer`);
+      return { code: null, noMafile: false };
+    }
+    if (!GUARD_CODE_RE.test(code)) {
+      log.warn(`[market] guard-code for #${itemId} has an unexpected shape: ${code.slice(0, 8)}`);
+      return { code: null, noMafile: false };
+    }
+    return { code, noMafile: false };
+  } catch (err) {
+    log.warn('[market] getSteamGuardCode failed', err);
+    return { code: null, noMafile: false };
+  }
+};
 
 const asTrimmedString = (v: unknown): string | null =>
   typeof v === 'string' && v.trim() ? v.trim() : null;
@@ -1008,6 +1143,159 @@ export const setCurrency = async (
   } catch (err) {
     log.warn(`[market] setCurrency(${currency}) failed`, err);
     return { ok: false, message: err instanceof Error ? err.message : 'currency_failed' };
+  }
+};
+
+/** Pushes the user's listing back to the top of the market search. */
+export type ListingOpResult = { ok: true } | { ok: false; message: string };
+
+/**
+ * Every listing operation answers the same way: the market's own sentence when
+ * it refused, `ok` when it did not. Keeps the wrappers to one line each.
+ */
+const opResult = async (
+  itemId: number,
+  label: string,
+  call: (client: ReturnType<typeof getClient>) => Promise<{ errors?: string[] | string }>,
+): Promise<ListingOpResult> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  try {
+    const err = tagOpError(await call(getClient()));
+    return err ? { ok: false, message: err } : { ok: true };
+  } catch (err) {
+    log.warn(`[market] ${label}(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : `${label}_failed` };
+  }
+};
+
+export const bumpListing = async (
+  itemId: number,
+): Promise<{ ok: true } | { ok: false; message: string }> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  try {
+    const resp = await getClient().bumpItem(itemId);
+    const err = tagOpError(resp);
+    if (err) return { ok: false, message: err };
+    return { ok: true };
+  } catch (err) {
+    log.warn(`[market] bumpListing(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : 'bump_failed' };
+  }
+};
+
+/**
+ * One `Managing.Edit` call with whatever the dialog changed. The market answers
+ * 403 with its own sentence when a price is cut by more than half or the email
+ * cannot be changed in the item's current state — those come back verbatim.
+ */
+export const editListing = async (
+  itemId: number,
+  fields: ItemEditFields,
+): Promise<ListingOpResult> => opResult(itemId, 'editListing', (c) => c.editItem(itemId, fields));
+
+/** Bump the listing again every `hour` hours, or stop doing so. */
+export const setListingAutoBump = async (itemId: number, hour: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'setListingAutoBump', (c) => c.setAutoBump(itemId, hour));
+
+export const disableListingAutoBump = async (itemId: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'disableListingAutoBump', (c) => c.disableAutoBump(itemId));
+
+/** Put the listing back on sale, or take it off without deleting it. */
+export const openListing = async (itemId: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'openListing', (c) => c.openItem(itemId));
+
+export const closeListing = async (itemId: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'closeListing', (c) => c.closeItem(itemId));
+
+/** A soft delete: the listing leaves public search and the market can restore it. */
+export const deleteListing = async (itemId: number, reason: string): Promise<ListingOpResult> =>
+  opResult(itemId, 'deleteListing', (c) => c.deleteItem(itemId, reason));
+
+/** Pin the listing to the top of search, or unpin it. */
+export const stickListing = async (itemId: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'stickListing', (c) => c.stickItem(itemId));
+
+export const unstickListing = async (itemId: number): Promise<ListingOpResult> =>
+  opResult(itemId, 'unstickListing', (c) => c.unstickItem(itemId));
+
+/** Public tags sit on the listing for every visitor, unlike the private labels. */
+export const addListingPublicTag = async (
+  itemId: number,
+  tagId: number,
+): Promise<ListingOpResult> =>
+  opResult(itemId, 'addListingPublicTag', (c) => c.addPublicTag(itemId, tagId));
+
+export const removeListingPublicTag = async (
+  itemId: number,
+  tagId: number,
+): Promise<ListingOpResult> =>
+  opResult(itemId, 'removeListingPublicTag', (c) => c.removePublicTag(itemId, tagId));
+
+/** Re-count the Steam inventory behind the listing. */
+export const updateListingInventory = async (
+  itemId: number,
+  params: { all?: boolean; appId?: number } = {},
+): Promise<ListingOpResult> =>
+  opResult(itemId, 'updateListingInventory', (c) => c.updateInventoryValue(itemId, params));
+
+/** What the market itself would pay for the item. */
+export const fetchAutoBuyPrice = async (
+  itemId: number,
+): Promise<{ ok: true; price: number | null } | { ok: false; message: string }> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  try {
+    const resp = await getClient().getAutoBuyPrice(itemId);
+    const err = tagOpError(resp);
+    if (err) return { ok: false, message: err };
+    if (typeof resp.price !== 'number' || !Number.isFinite(resp.price) || resp.price <= 0) {
+      return { ok: true, price: null };
+    }
+    return { ok: true, price: Math.round(resp.price) };
+  } catch (err) {
+    log.warn(`[market] fetchAutoBuyPrice(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : 'auto_buy_price_failed' };
+  }
+};
+
+/** Sets a new price, spelled in `currency` — the market converts it to its default. */
+export const setListingPrice = async (
+  itemId: number,
+  price: number,
+  currency: string,
+): Promise<{ ok: true } | { ok: false; message: string }> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  try {
+    const resp = await getClient().setItemPrice(itemId, price, currency);
+    const err = tagOpError(resp);
+    if (err) return { ok: false, message: err };
+    return { ok: true };
+  } catch (err) {
+    log.warn(`[market] setListingPrice(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : 'price_failed' };
+  }
+};
+
+/** The market's own idea of what the item is worth, already in the user's currency. */
+export const fetchAiListingPrice = async (
+  itemId: number,
+): Promise<{ ok: true; price: number | null } | { ok: false; message: string }> => {
+  const token = await loadToken();
+  if (!token) return { ok: false, message: 'not_authenticated' };
+  try {
+    const resp = await getClient().getAiPrice(itemId);
+    const err = tagOpError(resp);
+    if (err) return { ok: false, message: err };
+    if (typeof resp.price !== 'number' || !Number.isFinite(resp.price) || resp.price <= 0) {
+      return { ok: true, price: null };
+    }
+    return { ok: true, price: Math.round(resp.price) };
+  } catch (err) {
+    log.warn(`[market] fetchAiListingPrice(${itemId}) failed`, err);
+    return { ok: false, message: err instanceof Error ? err.message : 'ai_price_failed' };
   }
 };
 

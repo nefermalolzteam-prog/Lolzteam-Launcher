@@ -67,12 +67,17 @@ const VALIDITIES: readonly AccountValidity[] = ['unknown', 'valid', 'invalid'];
 
 const isNumberArray = arrayOf((v) => typeof v === 'number' && Number.isFinite(v));
 
+/** A price bound: a non-negative number when it is set at all. `undefined` is an entry written before the bounds existed. */
+const isPrice: Check = (v) =>
+  v === undefined || v === null || (typeof v === 'number' && Number.isFinite(v) && v >= 0);
+
 const isCategoryFilters: Check = (v) => {
   if (!isPlainObject(v)) return false;
   if (!isNumberArray(v.includeLabels) || !isNumberArray(v.excludeLabels)) return false;
   if (!arrayOf(isString)(v.attrs)) return false;
   if (!arrayOf(oneOf(...VALIDITIES))(v.validity)) return false;
-  return nullOr(isString)(v.folder);
+  if (!nullOr(isString)(v.folder)) return false;
+  return nullOr(isPrice)(v.priceMin) && nullOr(isPrice)(v.priceMax);
 };
 
 const CHECKS: Record<keyof LauncherSettings, Check> = {
